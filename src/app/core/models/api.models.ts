@@ -1,0 +1,165 @@
+export interface SecteurRequest  { nom: string; }
+export interface SecteurResponse { id: number; nom: string; }
+
+export interface EntrepriseRequest {
+  nom: string; adresse: string; telephone: string;
+  secteurId: number; gerantId: number;
+}
+export interface EntrepriseResponse {
+  id: number; nom: string; adresse: string; telephone: string;
+  secteurId: number; secteurNom: string;
+  gerantId: number; gerantNom: string; gerantPrenom: string;
+}
+
+export interface EmployeRequest {
+  nom: string; prenom: string; email: string;
+  password?: string; specialite?: string;
+  entrepriseId?: number;
+}
+export interface EmployeResponse {
+  id: number; nom: string; prenom: string; email: string;
+  specialite: string; archived: boolean;
+}
+// Retourné par GET /api/employes/check-email
+export interface EmployeCheckResponse {
+  statut: 'NOUVEAU' | 'LIBRE' | 'OCCUPE';
+  message: string;
+  userId: number | null;
+  nom: string | null;
+  prenom: string | null;
+  email: string;
+}
+
+export interface RattachementRequest {
+  userId: number;
+  entrepriseId?: number;
+  specialite?: string;
+}
+
+export interface ClientRequest {
+  nom: string; prenom: string; email: string; password: string; numtel: string;
+}
+export interface ClientResponse {
+  id: number; nom: string; prenom: string; email: string;
+  numtel: string; archived: boolean; createdBy: string;
+}
+
+export interface ServiceRequest {
+  nom: string; description?: string; dureeMinutes: number; tarif?: number | null;
+  entrepriseId?: number;
+  typeService?: string;
+}
+export interface ServiceResponse {
+  id: number; nom: string; description: string;
+  dureeMinutes: number; tarif: number | null; archived: boolean; entrepriseId: number;
+}
+
+export type TypeService = 'EMPLOYE_DEDIE' | 'RESSOURCE_PARTAGEE' | 'FILE_ATTENTE_PURE' | 'HYBRIDE';
+
+export interface ConfigServiceRequest {
+  serviceId: number;
+  typeService: TypeService;
+  dureeMinutes?: number | null;
+  capaciteMinPersonnes?: number | null;
+  capaciteMaxPersonnes?: number | null;
+  ressourceObligatoire: boolean;
+  employeObligatoire: boolean;
+  reservationEnGroupe: boolean;
+  fileAttenteActive: boolean;
+  avanceReservationJours?: number | null;
+  annulationHeures?: number | null;
+}
+export interface ConfigServiceResponse {
+  id: number;
+  serviceId: number; serviceNom: string;
+  typeService: TypeService;
+  dureeMinutes: number | null;
+  capaciteMinPersonnes: number | null;
+  capaciteMaxPersonnes: number | null;
+  ressourceObligatoire: boolean;
+  employeObligatoire: boolean;
+  reservationEnGroupe: boolean;
+  fileAttenteActive: boolean;
+  avanceReservationJours: number | null;
+  annulationHeures: number | null;
+}
+
+export interface RessourceRequest {
+  nom: string; description?: string; capacite?: number; serviceId: number;
+}
+export interface RessourceResponse {
+  id: number; nom: string; description: string;
+  capacite: number; archived: boolean;
+  serviceId: number; serviceNom: string; entrepriseId: number;
+}
+
+export interface ReservationRequest {
+  clientId: number;
+  serviceId: number;
+  employeId?: number | null;
+  ressourceId?: number | null;
+  heureDebut: string;
+  nombrePersonnes?: number;
+  notes?: string;
+}
+export interface ReservationResponse {
+  id: number;
+  clientId: number; clientNom: string; clientPrenom: string;
+  employeId: number | null; employeNom: string | null; employePrenom: string | null;
+  serviceId: number; serviceNom: string;
+  ressourceId: number | null; ressourceNom: string | null;
+  heureDebut: string;
+  heureFin: string;
+  nombrePersonnes: number;
+  prixTotal: number | null;
+  statut: StatutReservation;
+  notes: string;
+}
+
+export interface FileAttenteRequest {
+  clientId: number; employeId: number | null; serviceId: number; reservationId: number;
+}
+export interface FileAttenteResponse {
+  id: number;
+  clientNom: string; clientPrenom: string;
+  employeNom: string; employePrenom: string;
+  serviceNom: string;
+  heureArrivee: string;
+  dateHeureRdv: string;
+  statut: StatutFileAttente;
+}
+
+export interface DisponibiliteRequest {
+  serviceId: number;
+  jour: JourSemaine;
+  heureDebut: string;
+  heureFin: string;
+}
+export interface DisponibiliteResponse {
+  id: number;
+  serviceId: number; serviceNom: string;
+  jour: JourSemaine;
+  heureDebut: string;
+  heureFin: string;
+}
+
+export interface CreneauResponse {
+  heureDebut: string; heureFin: string;
+}
+
+export interface AvisRequest {
+  reservationId: number; note: number; commentaire?: string;
+}
+export interface AvisResponse {
+  id: number; clientNom: string; clientPrenom: string;
+  employeNom: string; employePrenom: string; serviceNom: string;
+  note: number; commentaire: string; dateAvis: string;
+}
+
+export interface GerantResponse {
+  id: number; nom: string; prenom: string; email: string; archived: boolean;
+}
+
+export type StatutReservation = 'EN_ATTENTE' | 'CONFIRMEE' | 'EN_COURS' | 'ANNULEE' | 'TERMINEE';
+export type StatutFileAttente = 'EN_ATTENTE' | 'APPELE' | 'EN_COURS' | 'TERMINE' | 'ANNULE';
+export type JourSemaine = 'LUNDI' | 'MARDI' | 'MERCREDI' | 'JEUDI' | 'VENDREDI' | 'SAMEDI' | 'DIMANCHE';

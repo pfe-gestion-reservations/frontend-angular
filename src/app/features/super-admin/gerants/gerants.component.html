@@ -1,0 +1,241 @@
+<div>
+
+  <!-- PAGE HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        <div class="title-icon"><i class="fas fa-user-tie"></i></div>
+        Gérants
+      </div>
+      <div class="page-subtitle">Gestion des comptes gérants</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-secondary" (click)="showArchived = !showArchived; applyFilter()"
+        [style.background]="showArchived ? 'var(--accent-glow)' : ''"
+        [style.border-color]="showArchived ? 'var(--accent)' : ''"
+        [style.color]="showArchived ? 'var(--accent)' : ''">
+        <i class="fas fa-archive"></i> {{ showArchived ? 'Masquer archivés' : 'Afficher archivés' }}
+      </button>
+      <button class="btn btn-primary" (click)="toggleCreate()">
+        <i class="fas" [class.fa-plus]="!showCreate" [class.fa-times]="showCreate"></i>
+        {{ showCreate ? 'Annuler' : 'Nouveau gérant' }}
+      </button>
+    </div>
+  </div>
+
+  <!-- CREATION PANEL -->
+  <div class="create-panel" *ngIf="showCreate">
+    <div class="create-panel-header">
+      <div class="create-panel-title">
+        <i class="fas fa-user-plus"></i> Créer un nouveau gérant
+      </div>
+    </div>
+    <div class="success-banner" *ngIf="justCreated">
+      <i class="fas fa-check-circle"></i>
+      <div><strong>Gérant créé avec succès !</strong></div>
+    </div>
+    <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+      <div class="create-panel-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Nom</label>
+            <input formControlName="nom" class="form-control" placeholder="Dupont"
+              [class.is-invalid]="createForm.get('nom')?.invalid && createForm.get('nom')?.touched">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Prénom</label>
+            <input formControlName="prenom" class="form-control" placeholder="Jean"
+              [class.is-invalid]="createForm.get('prenom')?.invalid && createForm.get('prenom')?.touched">
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input formControlName="email" type="email" class="form-control" placeholder="gerant@salon.com"
+              [class.is-invalid]="createForm.get('email')?.invalid && createForm.get('email')?.touched">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mot de passe</label>
+            <input formControlName="password" type="password" class="form-control" placeholder="Min. 6 caractères"
+              [class.is-invalid]="createForm.get('password')?.invalid && createForm.get('password')?.touched">
+          </div>
+        </div>
+        <div class="form-error-msg" *ngIf="createError">
+          <i class="fas fa-exclamation-circle"></i> {{ createError }}
+        </div>
+      </div>
+      <div class="create-panel-footer">
+        <button type="button" class="btn btn-secondary" (click)="toggleCreate()">Annuler</button>
+        <button type="submit" class="btn btn-primary" [disabled]="createLoading">
+          <span *ngIf="createLoading">Création...</span>
+          <span *ngIf="!createLoading"><i class="fas fa-user-plus"></i> Créer</span>
+        </button>
+      </div>
+    </form>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>#</th><th>Gérant</th><th>Email</th><th>Statut</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let g of filtered" [class.row-archived]="g.archived">
+            <td class="id-cell">{{ g.id }}</td>
+            <td>
+              <div class="gerant-info">
+                <div class="gerant-avatar">{{ g.nom[0] }}{{ g.prenom[0] }}</div>
+                <div class="gerant-name">{{ g.nom }} {{ g.prenom }}</div>
+              </div>
+            </td>
+            <td class="email-cell">{{ g.email }}</td>
+            <td>
+              <span class="badge" [class.badge-success]="!g.archived" [class.badge-warning]="g.archived">
+                <i class="fas" [class.fa-check-circle]="!g.archived" [class.fa-archive]="g.archived"></i>
+                {{ g.archived ? 'Archivé' : 'Actif' }}
+              </span>
+            </td>
+            <td>
+              <div class="row-actions">
+                <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(g)" title="Modifier">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button *ngIf="!g.archived" class="btn btn-danger btn-sm btn-icon"
+                  (click)="openArchiver(g)" title="Archiver">
+                  <i class="fas fa-archive"></i>
+                </button>
+                <button *ngIf="g.archived" class="btn btn-success btn-sm btn-icon"
+                  (click)="desarchiver(g)" title="Désarchiver">
+                  <i class="fas fa-undo"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filtered.length === 0">
+            <td colspan="5">
+              <div class="empty-state">
+                <i class="fas fa-user-tie"></i>
+                <h3>Aucun gérant</h3>
+                <p>Cliquez sur "Nouveau gérant" pour en créer un</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- MODAL ÉDITION -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-user-edit"></i> Modifier le gérant</div>
+        <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form [formGroup]="editForm" (ngSubmit)="onEdit()">
+        <div class="modal-body">
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nom</label>
+              <input formControlName="nom" class="form-control">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prénom</label>
+              <input formControlName="prenom" class="form-control">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input formControlName="email" type="email" class="form-control">
+          </div>
+          <div class="form-group">
+            <label class="form-label">
+              Nouveau mot de passe
+              <span class="optional-label">(laisser vide pour ne pas changer)</span>
+            </label>
+            <input formControlName="password" type="password" class="form-control"
+              placeholder="Laisser vide pour garder l'actuel">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <span *ngIf="loading">Enregistrement...</span>
+            <span *ngIf="!loading"><i class="fas fa-save"></i> Enregistrer</span>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL ARCHIVAGE AVEC REMPLAÇANT -->
+  <div class="modal-overlay" *ngIf="showArchiverModal" (click)="closeArchiverModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fas fa-archive"></i> Archiver le gérant
+        </div>
+        <button class="modal-close" (click)="closeArchiverModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- Gérant à archiver -->
+        <div class="archiver-gerant-info">
+          <div class="gerant-avatar lg">
+            {{ gerantAArchiver?.nom?.[0] }}{{ gerantAArchiver?.prenom?.[0] }}
+          </div>
+          <div>
+            <div class="gerant-name">{{ gerantAArchiver?.nom }} {{ gerantAArchiver?.prenom }}</div>
+            <div class="gerant-email">{{ gerantAArchiver?.email }}</div>
+          </div>
+        </div>
+
+        <div class="archiver-notice">
+          <i class="fas fa-info-circle"></i>
+          Si ce gérant a une entreprise assignée, vous devez choisir un gérant remplaçant.
+          Sinon, laissez vide.
+        </div>
+
+        <!-- Recherche remplaçant -->
+        <div class="form-group">
+          <label class="form-label">Gérant remplaçant (obligatoire si a une entreprise)</label>
+          <input class="form-control" [(ngModel)]="gerantSearch"
+            placeholder="Rechercher par nom, prénom ou email...">
+        </div>
+
+        <div class="remplacant-list">
+          <div class="remplacant-none" [class.selected]="selectedRemplacantId === null"
+            (click)="selectedRemplacantId = null">
+            <i class="fas fa-user-slash"></i>
+            <span>Aucun remplaçant (gérant sans entreprise)</span>
+            <i class="fas fa-check check-icon" *ngIf="selectedRemplacantId === null"></i>
+          </div>
+          <div class="remplacant-item" *ngFor="let g of filteredRemplacants"
+            [class.selected]="selectedRemplacantId === g.id"
+            (click)="selectedRemplacantId = g.id">
+            <div class="gerant-avatar sm">{{ g.nom[0] }}{{ g.prenom[0] }}</div>
+            <div class="remplacant-info">
+              <span class="remplacant-name">{{ g.nom }} {{ g.prenom }}</span>
+              <span class="remplacant-email">{{ g.email }}</span>
+            </div>
+            <i class="fas fa-check check-icon" *ngIf="selectedRemplacantId === g.id"></i>
+          </div>
+          <div class="remplacant-empty" *ngIf="filteredRemplacants.length === 0 && gerantSearch">
+            Aucun gérant trouvé
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" (click)="closeArchiverModal()">Annuler</button>
+        <button class="btn btn-danger" (click)="confirmerArchivage()" [disabled]="archiverLoading">
+          <span *ngIf="archiverLoading">Archivage...</span>
+          <span *ngIf="!archiverLoading"><i class="fas fa-archive"></i> Confirmer l'archivage</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

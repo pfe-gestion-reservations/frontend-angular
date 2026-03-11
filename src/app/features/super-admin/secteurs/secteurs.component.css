@@ -1,0 +1,79 @@
+.split-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px;
+  transition: grid-template-columns .3s ease;
+}
+.split-layout.panel-open {
+  grid-template-columns: 1fr 360px;
+}
+
+.split-panel {
+  padding: 0;
+  overflow: hidden;
+  animation: slideIn .2s ease;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(20px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.panel-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-title {
+  font-size: .9rem; font-weight: 700;
+  display: flex; align-items: center; gap: 8px;
+  color: var(--text-primary);
+}
+.panel-title i { color: var(--accent); }
+.panel-secteur { color: var(--accent); }
+
+.btn-icon-only {
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); font-size: .85rem;
+  padding: 4px 6px; border-radius: var(--radius-sm);
+  transition: color .15s, background .15s;
+}
+.btn-icon-only:hover { color: var(--danger); background: rgba(239,68,68,.08); }
+
+.panel-loading, .empty-panel {
+  padding: 24px; text-align: center;
+  color: var(--text-muted); font-size: .875rem;
+}
+.empty-panel i { margin-right: 6px; opacity: .5; }
+
+.entreprise-list { padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+
+.entreprise-card {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 10px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  transition: border-color .15s;
+}
+.entreprise-card:hover { border-color: var(--accent); }
+
+.ent-icon {
+  width: 34px; height: 34px; flex-shrink: 0;
+  background: var(--accent-glow);
+  border: 1px solid rgba(240,165,0,.3);
+  border-radius: var(--radius-md);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--accent); font-size: .8rem;
+}
+
+.ent-info { flex: 1; min-width: 0; }
+.ent-name { font-weight: 600; font-size: .875rem; margin-bottom: 3px; }
+.ent-detail { font-size: .75rem; color: var(--text-muted); margin-bottom: 2px; }
+.ent-detail i { color: var(--accent); margin-right: 3px; }
+.ent-addr { font-size: .72rem; color: var(--text-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+.row-active { background: var(--accent-glow) !important; }
+.row-active td { border-color: rgba(240,165,0,.2); }
+
+.is-invalid { border-color: var(--danger) !important; }
+.form-error { font-size: .76rem; color: var(--danger); margin-top: 4px; }
