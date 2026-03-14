@@ -4,7 +4,8 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angu
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import {
-  DisponibiliteResponse, ServiceResponse, ConfigServiceResponse, JourSemaine, RessourceResponse
+  DisponibiliteResponse, ServiceResponse, ConfigServiceResponse,
+  JourSemaine, RessourceResponse, EntrepriseResponse
 } from '../../../core/models/api.models';
 
 const JOURS: JourSemaine[] = ['LUNDI','MARDI','MERCREDI','JEUDI','VENDREDI','SAMEDI','DIMANCHE'];
@@ -26,13 +27,13 @@ const TYPE_COLOR: Record<string,string> = {
 };
 
 @Component({
-  selector: 'app-gerant-disponibilites',
+  selector: 'app-sa-disponibilites',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
-  templateUrl: './gerant-disponibilites.component.html',
-  styleUrls: ['./gerant-disponibilites.component.css']
+  templateUrl: './sa-disponibilites.component.html',
+  styleUrls: ['./sa-disponibilites.component.css']
 })
-export class GerantDisponibilitesComponent implements OnInit {
+export class SaDisponibilitesComponent implements OnInit {
   private api   = inject(ApiService);
   private toast = inject(ToastService);
   private fb    = inject(FormBuilder);
@@ -44,7 +45,17 @@ export class GerantDisponibilitesComponent implements OnInit {
   dispos:   DisponibiliteResponse[] = [];
   filtered: DisponibiliteResponse[] = [];
   services: ServiceResponse[]       = [];
+  entreprises: EntrepriseResponse[] = [];
   configs   = new Map<number, ConfigServiceResponse>();
+
+  // Filtre entreprise
+  selectedEntrepriseId: number | null = null;
+  entFilterOpen = false;
+  entSearch = '';
+  filteredEntreprisesList: EntrepriseResponse[] = [];
+  entModalOpen = false;
+  entModalSearch = '';
+  filteredEntreprisesModal: EntrepriseResponse[] = [];
 
   showModal  = false;
   editing: DisponibiliteResponse | null = null;
@@ -74,18 +85,77 @@ export class GerantDisponibilitesComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    document.addEventListener('click', () => { this.filterOpen = false; });
-    // getServices() retourne automatiquement les services du gérant connecté (filtré côté backend)
+    document.addEventListener('click', () => {
+      this.filterOpen = false;
+      this.entFilterOpen = false;
+      this.entModalOpen = false;
+    });
+    this.api.getEntreprises().subscribe((e: EntrepriseResponse[]) => {
+      this.entreprises = e;
+      this.filteredEntreprisesList = [...e];
+      this.filteredEntreprisesModal = [...e];
+    });
+    this.loadServices();
+  }
+
+  // ── Dropdown entreprise ──
+  filterEntreprisesList(): void {
+    const q = this.entSearch.toLowerCase();
+    this.filteredEntreprisesList = this.entreprises.filter(e => e.nom.toLowerCase().includes(q));
+  }
+  selectEntreprise(e: EntrepriseResponse): void {
+    this.selectedEntrepriseId = e.id; this.entFilterOpen = false; this.onEntrepriseChange();
+  }
+  clearEntrepriseFilter(): void {
+    this.selectedEntrepriseId = null; this.entSearch = '';
+    this.filteredEntreprisesList = [...this.entreprises];
+    this.entFilterOpen = false; this.onEntrepriseChange();
+  }
+  filterEntreprisesModal(): void {
+    const q = this.entModalSearch.toLowerCase();
+    this.filteredEntreprisesModal = this.entreprises.filter(e => e.nom.toLowerCase().includes(q));
+  }
+  selectEntrepriseModal(e: EntrepriseResponse): void {
+    this.selectedEntrepriseId = e.id; this.entModalOpen = false; this.applyEntrepriseFilter();
+  }
+  clearEntrepriseModal(): void {
+    this.selectedEntrepriseId = null; this.entModalSearch = '';
+    this.filteredEntreprisesModal = [...this.entreprises];
+    this.entModalOpen = false; this.applyEntrepriseFilter();
+  }
+
+  loadServices(): void {
     this.api.getServices().subscribe((s: ServiceResponse[]) => {
-      this.services              = s.filter(x => !x.archived);
-      this.filteredServicesList  = this.services;
-      this.filteredModalServices = this.services;
+      this.services = s.filter(x => !x.archived);
       this.services.forEach(svc => {
         this.api.getConfigService(svc.id).subscribe({ next: (c: ConfigServiceResponse) => this.configs.set(svc.id, c), error: () => {} });
       });
+      this.applyEntrepriseFilter();
       this.loadAllDispos();
     });
   }
+
+  get servicesFiltresEntreprise(): ServiceResponse[] {
+    if (!this.selectedEntrepriseId) return this.services;
+    return this.services.filter(s => s.entrepriseId === this.selectedEntrepriseId);
+  }
+
+  getEntNom(id?: number | null): string {
+    return this.entreprises.find(e => e.id === id)?.nom || '';
+  }
+
+  applyEntrepriseFilter(): void {
+    const svcs = this.servicesFiltresEntreprise;
+    this.filteredServicesList  = svcs;
+    this.filteredModalServices = svcs;
+    if (this.selectedFilterService && !svcs.find(s => s.id === this.selectedFilterService!.id))
+      this.selectedFilterService = null;
+    if (this.modalSelectedService && !svcs.find(s => s.id === this.modalSelectedService!.id))
+      this.clearModalSelect();
+    this.applyFilter();
+  }
+
+  onEntrepriseChange(): void { this.applyEntrepriseFilter(); this.loadAllDispos(); }
 
   getConfig(sid?: number) { return sid ? this.configs.get(sid) : undefined; }
   getService(sid: number) { return this.services.find(s => s.id === sid); }
@@ -112,9 +182,8 @@ export class GerantDisponibilitesComponent implements OnInit {
       const [ah,am] = d.split(':').map(Number);
       const [bh,bm] = f.split(':').map(Number);
       const mins = (bh*60+bm) - (ah*60+am);
-      if (mins < this.modalSelectedService.dureeMinutes) {
+      if (mins < this.modalSelectedService.dureeMinutes)
         return `⚠ Créneau trop court ! Minimum ${this.modalSelectedService.dureeMinutes} min pour ce service`;
-      }
     }
     return dur;
   }
@@ -124,51 +193,50 @@ export class GerantDisponibilitesComponent implements OnInit {
     if (!d || !f || !this.modalSelectedService) return true;
     const [ah,am] = d.split(':').map(Number);
     const [bh,bm] = f.split(':').map(Number);
-    const mins = (bh*60+bm) - (ah*60+am);
-    return mins >= this.modalSelectedService.dureeMinutes;
+    return (bh*60+bm) - (ah*60+am) >= this.modalSelectedService.dureeMinutes;
   }
 
   loadAllDispos(): void {
-    if (!this.services.length) { this.dispos = []; this.filtered = []; return; }
+    const svcs = this.selectedEntrepriseId ? this.servicesFiltresEntreprise : this.services;
+    if (!svcs.length) { this.dispos = []; this.filtered = []; return; }
     const all: DisponibiliteResponse[] = [];
     let done = 0;
-    this.services.forEach(s => {
+    svcs.forEach((s: ServiceResponse) => {
       this.api.getDispoByService(s.id).subscribe((d: DisponibiliteResponse[]) => {
         all.push(...d);
-        if (++done === this.services.length) { this.dispos = all; this.applyFilter(); }
+        if (++done === svcs.length) { this.dispos = all; this.applyFilter(); }
       });
     });
   }
 
   applyFilter(): void {
-    this.filtered = this.selectedFilterService
-      ? this.dispos.filter(d => d.serviceId === this.selectedFilterService!.id)
+    let result = this.selectedEntrepriseId
+      ? this.dispos.filter(d => this.services.find(s => s.id === d.serviceId)?.entrepriseId === this.selectedEntrepriseId)
       : [...this.dispos];
+    if (this.selectedFilterService)
+      result = result.filter(d => d.serviceId === this.selectedFilterService!.id);
+    this.filtered = result;
   }
 
   filterServicesList(): void {
     const q = this.filterSearch.toLowerCase();
-    this.filteredServicesList = this.services.filter(s => s.nom.toLowerCase().includes(q));
+    this.filteredServicesList = this.servicesFiltresEntreprise.filter(s => s.nom.toLowerCase().includes(q));
   }
-
-  selectFilterService(s: ServiceResponse): void {
-    this.selectedFilterService = s; this.filterOpen = false; this.applyFilter();
-  }
-
+  selectFilterService(s: ServiceResponse): void { this.selectedFilterService = s; this.filterOpen = false; this.applyFilter(); }
   clearFilter(): void {
     this.selectedFilterService = null; this.filterSearch = '';
-    this.filteredServicesList  = this.services; this.filterOpen = false; this.applyFilter();
+    this.filteredServicesList = this.servicesFiltresEntreprise;
+    this.filterOpen = false; this.applyFilter();
   }
 
   filterModalServices(): void {
     const q = this.modalSearch.toLowerCase();
-    this.filteredModalServices = this.services.filter(s => s.nom.toLowerCase().includes(q));
+    this.filteredModalServices = this.servicesFiltresEntreprise.filter(s => s.nom.toLowerCase().includes(q));
   }
 
   selectModalService(s: ServiceResponse): void {
     this.modalSelectedService = s; this.modalSearch = s.nom;
     this.modalDropdownOpen = false; this.form.get('serviceId')?.setValue(String(s.id));
-    // Charger les ressources si RESSOURCE_PARTAGEE
     this.detailRessources = [];
     if (this.getConfig(s.id)?.typeService === 'RESSOURCE_PARTAGEE') {
       this.api.getRessourcesByService(s.id).subscribe({
@@ -179,15 +247,14 @@ export class GerantDisponibilitesComponent implements OnInit {
   }
 
   clearModalSelect(): void {
-    this.modalSelectedService  = null; this.modalSearch = '';
-    this.filteredModalServices = this.services; this.form.get('serviceId')?.setValue('');
+    this.modalSelectedService = null; this.modalSearch = '';
+    this.filteredModalServices = this.servicesFiltresEntreprise;
+    this.form.get('serviceId')?.setValue('');
     this.detailRessources = [];
   }
 
   openDetail(d: DisponibiliteResponse): void {
-    this.detailDispo = d;
-    this.detailRessources = [];
-    this.showDetail = true;
+    this.detailDispo = d; this.detailRessources = []; this.showDetail = true;
     if (this.getConfig(d.serviceId)?.typeService === 'RESSOURCE_PARTAGEE') {
       this.api.getRessourcesByService(d.serviceId).subscribe({
         next: (r: RessourceResponse[]) => this.detailRessources = r.filter(x => !x.archived),
@@ -200,10 +267,19 @@ export class GerantDisponibilitesComponent implements OnInit {
   openModal(d?: DisponibiliteResponse): void {
     this.editing = d ?? null;
     this.modalSearch = ''; this.modalSelectedService = null;
-    this.modalDropdownOpen = false; this.filteredModalServices = this.services;
+    this.modalDropdownOpen = false; this.detailRessources = [];
+    this.filteredModalServices = this.servicesFiltresEntreprise;
     if (d) {
       const svc = this.services.find(s => s.id === d.serviceId);
-      if (svc) { this.modalSelectedService = svc; this.modalSearch = svc.nom; }
+      if (svc) {
+        this.modalSelectedService = svc; this.modalSearch = svc.nom;
+        if (this.getConfig(svc.id)?.typeService === 'RESSOURCE_PARTAGEE') {
+          this.api.getRessourcesByService(svc.id).subscribe({
+            next: (r: RessourceResponse[]) => this.detailRessources = r.filter(x => !x.archived),
+            error: () => {}
+          });
+        }
+      }
       this.form.setValue({ serviceId: String(d.serviceId), jour: d.jour, heureDebut: d.heureDebut, heureFin: d.heureFin });
     } else {
       this.form.reset();
@@ -211,10 +287,7 @@ export class GerantDisponibilitesComponent implements OnInit {
     this.showModal = true;
   }
 
-  closeModal(): void {
-    this.showModal = false; this.editing = null;
-    this.clearModalSelect(); this.form.reset();
-  }
+  closeModal(): void { this.showModal = false; this.editing = null; this.clearModalSelect(); this.form.reset(); }
 
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); this.toast.error('Remplissez tous les champs'); return; }
@@ -226,11 +299,12 @@ export class GerantDisponibilitesComponent implements OnInit {
     const v = this.form.value;
     const body = { serviceId: Number(v.serviceId), jour: v.jour as JourSemaine, heureDebut: v.heureDebut!, heureFin: v.heureFin! };
     (this.editing ? this.api.updateDispo(this.editing.id, body) : this.api.createDispo(body)).subscribe({
-      next: () => {
-        this.toast.success(this.editing ? 'Créneau modifié !' : 'Créneau ajouté !');
-        this.loadAllDispos(); this.closeModal(); this.loading = false;
-      },
-      error: () => { this.toast.error('Erreur'); this.loading = false; }
+      next: () => { this.toast.success(this.editing ? 'Créneau modifié !' : 'Créneau ajouté !'); this.loadAllDispos(); this.closeModal(); this.loading = false; },
+      error: (err: any) => {
+        const msg = err?.error?.message || err?.error || 'Erreur';
+        this.toast.error(msg);
+        this.loading = false;
+      }
     });
   }
 
@@ -241,4 +315,29 @@ export class GerantDisponibilitesComponent implements OnInit {
       error: () => this.toast.error('Erreur')
     });
   }
+
+  getChevauchement(): string | null {
+  const serviceId = this.modalSelectedService?.id;
+  const jour = this.form.get('jour')?.value;
+  const debut = this.form.get('heureDebut')?.value;
+  const fin = this.form.get('heureFin')?.value;
+  if (!serviceId || !jour || !debut || !fin) return null;
+
+  const toMins = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
+  const newD = toMins(debut), newF = toMins(fin);
+  if (newF <= newD) return null; // déjà géré par isCreneauValide
+
+  const conflicts = this.dispos.filter(d => {
+    if (d.serviceId !== serviceId) return false;
+    if (d.jour !== jour) return false;
+    if (this.editing && d.id === this.editing.id) return false;
+    const exD = toMins(d.heureDebut.substring(0,5));
+    const exF = toMins(d.heureFin.substring(0,5));
+    return newF > exD && newD < exF;
+  });
+
+  if (!conflicts.length) return null;
+  const c = conflicts[0];
+  return `Chevauche le créneau ${this.fmt(c.heureDebut)} → ${this.fmt(c.heureFin)}`;
+}
 }

@@ -1,0 +1,391 @@
+<div class="dispo-root">
+
+  <!-- HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-title"><div class="title-icon"><i class="fas fa-calendar-week"></i></div>Disponibilités</div>
+      <div class="page-subtitle">Gestion des créneaux de toutes les entreprises</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+
+      <!-- FILTRE ENTREPRISE -->
+      <div class="filter-select" [class.open]="entFilterOpen" (click)="$event.stopPropagation()">
+        <div class="fs-trigger" (click)="entFilterOpen = !entFilterOpen">
+          <i class="fas fa-building fs-icon"></i>
+          <span class="fs-val">{{ selectedEntrepriseId ? getEntNom(selectedEntrepriseId) : 'Toutes les entreprises' }}</span>
+          <i class="fas fa-times fs-clear" *ngIf="selectedEntrepriseId" (click)="clearEntrepriseFilter(); $event.stopPropagation()"></i>
+          <i class="fas fa-chevron-down fs-arrow"></i>
+        </div>
+        <div class="fs-drop" *ngIf="entFilterOpen">
+          <div class="fs-search-wrap">
+            <i class="fas fa-search"></i>
+            <input class="fs-search" [(ngModel)]="entSearch" (input)="filterEntreprisesList()" placeholder="Rechercher..." autocomplete="off">
+          </div>
+          <div class="fs-list">
+            <div class="fs-opt" (mousedown)="clearEntrepriseFilter()">
+              <i class="fas fa-list" style="color:var(--text-muted)"></i> Toutes les entreprises
+            </div>
+            <div class="fs-opt" *ngFor="let e of filteredEntreprisesList" (mousedown)="selectEntreprise(e)">
+              <i class="fas fa-building" style="color:var(--accent)"></i> {{ e.nom }}
+            </div>
+            <div class="fs-empty" *ngIf="filteredEntreprisesList.length === 0">Aucun résultat</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTRE SERVICE -->
+      <div class="filter-select" [class.open]="filterOpen" (click)="$event.stopPropagation()">
+        <div class="fs-trigger" (click)="filterOpen = !filterOpen">
+          <i class="fas fa-filter fs-icon"></i>
+          <span class="fs-val">{{ selectedFilterService?.nom || 'Tous les services' }}</span>
+          <i class="fas fa-times fs-clear" *ngIf="selectedFilterService" (click)="clearFilter(); $event.stopPropagation()"></i>
+          <i class="fas fa-chevron-down fs-arrow"></i>
+        </div>
+        <div class="fs-drop" *ngIf="filterOpen">
+          <div class="fs-search-wrap">
+            <i class="fas fa-search"></i>
+            <input class="fs-search" [(ngModel)]="filterSearch" (input)="filterServicesList()" placeholder="Rechercher..." autocomplete="off">
+          </div>
+          <div class="fs-list">
+            <div class="fs-opt" (mousedown)="clearFilter()">
+              <i class="fas fa-list" style="color:var(--text-muted)"></i> Tous les services
+            </div>
+            <div class="fs-opt" *ngFor="let s of filteredServicesList" (mousedown)="selectFilterService(s)">
+              <i [class]="typeIconCls(getConfig(s.id)?.typeService)" [style.color]="typeColor(getConfig(s.id)?.typeService)"></i>
+              {{ s.nom }}
+              <span style="font-size:.72rem;color:var(--text-muted);margin-left:4px">{{ getEntNom(s.entrepriseId) }}</span>
+            </div>
+            <div class="fs-empty" *ngIf="filteredServicesList.length === 0">Aucun résultat</div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" (click)="openModal()"><i class="fas fa-plus"></i> Ajouter</button>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="card">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr><th>Entreprise</th><th>Service</th><th>Jour</th><th>Créneau</th><th>Durée</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let d of filtered" class="dispo-row" (click)="openDetail(d)" style="cursor:pointer">
+            <td>
+              <span style="font-size:.8rem;color:var(--text-secondary);font-weight:500">
+                {{ getEntNom(getService(d.serviceId)?.entrepriseId) }}
+              </span>
+            </td>
+            <td>
+              <div class="svc-cell">
+                <span class="svc-type-dot" [style.background]="typeColor(getConfig(d.serviceId)?.typeService)"></span>
+                <strong>{{ d.serviceNom }}</strong>
+              </div>
+            </td>
+            <td>
+              <span class="jour-badge" [class.we]="d.jour==='SAMEDI'||d.jour==='DIMANCHE'">
+                {{ JOUR_FULL[d.jour] }}
+              </span>
+            </td>
+            <td>
+              <span class="time-range">
+                <i class="fas fa-play-circle" style="color:var(--accent);font-size:.7rem"></i>
+                {{ fmt(d.heureDebut) }}
+                <span class="time-sep">→</span>
+                {{ fmt(d.heureFin) }}
+              </span>
+            </td>
+            <td><span class="dur-chip">{{ calcDur(d.heureDebut, d.heureFin) }}</span></td>
+            <td>
+              <div style="display:flex;gap:6px" (click)="$event.stopPropagation()">
+                <button class="btn btn-info btn-sm btn-icon" (click)="openModal(d)" title="Modifier"><i class="fas fa-pen"></i></button>
+                <button class="btn btn-danger btn-sm btn-icon" (click)="delete(d)" title="Supprimer"><i class="fas fa-trash"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filtered.length === 0">
+            <td colspan="6">
+              <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h3>Aucune disponibilité</h3>
+                <p>{{ selectedFilterService ? 'Aucune disponibilité pour ce service' : 'Ajoutez des créneaux pour commencer' }}</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ═══ POPUP DÉTAIL ═══ -->
+  @if (showDetail && detailDispo) {
+    <div class="modal-overlay" (click)="closeDetail()">
+      <div class="modal detail-modal" (click)="$event.stopPropagation()">
+        <div class="detail-bar" [style.background]="typeColor(getConfig(detailDispo.serviceId)?.typeService)"></div>
+        <div class="modal-header" style="border-top:none">
+          <div class="modal-title"><i class="fas fa-info-circle" style="color:var(--accent)"></i> Détail du créneau</div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Entreprise badge -->
+          <div style="margin-bottom:12px">
+            <span style="font-size:.8rem;font-weight:600;color:var(--text-secondary);background:var(--bg-secondary);padding:4px 10px;border-radius:8px;border:1px solid var(--border)">
+              <i class="fas fa-building" style="color:var(--accent)"></i>
+              {{ getEntNom(getService(detailDispo.serviceId)?.entrepriseId) }}
+            </span>
+          </div>
+
+          <div class="detail-horaire-block">
+            <div class="horaire-jour">
+              <span class="jour-badge lg" [class.we]="detailDispo.jour==='SAMEDI'||detailDispo.jour==='DIMANCHE'">
+                {{ JOUR_FULL[detailDispo.jour] }}
+              </span>
+            </div>
+            <div class="horaire-times">
+              <div class="h-time-item">
+                <div class="h-time-dot"></div>
+                <div><div class="h-time-label">Début</div><div class="h-time-val">{{ fmt(detailDispo.heureDebut) }}</div></div>
+              </div>
+              <div class="h-time-line"></div>
+              <div class="h-dur-chip">{{ calcDur(detailDispo.heureDebut, detailDispo.heureFin) }}</div>
+              <div class="h-time-line"></div>
+              <div class="h-time-item">
+                <div class="h-time-dot end"></div>
+                <div><div class="h-time-label">Fin</div><div class="h-time-val">{{ fmt(detailDispo.heureFin) }}</div></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="detail-service-block" *ngIf="getConfig(detailDispo.serviceId) as cfg">
+            <div class="dsb-header">
+              <div class="dsb-icon" [style.background]="typeColor(cfg.typeService) + '22'" [style.color]="typeColor(cfg.typeService)">
+                <i [class]="typeIconCls(cfg.typeService)"></i>
+              </div>
+              <div class="dsb-title-wrap">
+                <div class="dsb-name">{{ detailDispo.serviceNom }}</div>
+                <span class="dsb-type-pill" [style.background]="typeColor(cfg.typeService) + '22'" [style.color]="typeColor(cfg.typeService)" [style.border-color]="typeColor(cfg.typeService) + '55'">
+                  {{ TYPE_LABEL[cfg.typeService] || cfg.typeService }}
+                </span>
+              </div>
+            </div>
+            <div class="dsb-kpis">
+              <div class="dsb-kpi"><i class="fas fa-clock"></i><span>{{ cfg.dureeMinutes ? cfg.dureeMinutes + ' min / séance' : '—' }}</span></div>
+              <div class="dsb-kpi"><i class="fas fa-tag"></i><span>{{ getService(detailDispo.serviceId)?.tarif != null ? getService(detailDispo.serviceId)!.tarif + ' DT' : 'Gratuit' }}</span></div>
+            </div>
+            <div class="dsb-flags">
+              <span class="dsb-flag active" *ngIf="cfg.fileAttenteActive"><i class="fas fa-list-ol"></i> File d'attente active</span>
+              <span class="dsb-flag active" *ngIf="cfg.employeObligatoire"><i class="fas fa-user-tie"></i> Employé requis</span>
+              <span class="dsb-flag active" *ngIf="cfg.ressourceObligatoire"><i class="fas fa-layer-group"></i> Ressource requise</span>
+              <span class="dsb-flag" *ngIf="cfg.reservationEnGroupe"><i class="fas fa-users"></i> Groupe {{ cfg.capaciteMinPersonnes }}–{{ cfg.capaciteMaxPersonnes }} pers.</span>
+              <span class="dsb-flag" *ngIf="cfg.annulationHeures"><i class="fas fa-undo-alt"></i> Annulation {{ cfg.annulationHeures }}h avant</span>
+              <span class="dsb-flag" *ngIf="cfg.avanceReservationJours"><i class="fas fa-calendar-plus"></i> Réservation {{ cfg.avanceReservationJours }}j à l'avance</span>
+            </div>
+          </div>
+
+          <div class="no-config-warn" *ngIf="!getConfig(detailDispo.serviceId)">
+            <i class="fas fa-exclamation-triangle"></i> Ce service n'a pas encore de configuration.
+          </div>
+
+          <!-- RESSOURCES -->
+          <div *ngIf="getConfig(detailDispo.serviceId)?.typeService === 'RESSOURCE_PARTAGEE'" style="margin-top:12px">
+            <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+              <i class="fas fa-layer-group" style="color:#10b981"></i> Ressources disponibles
+            </div>
+            <div *ngIf="detailRessources.length === 0" style="font-size:.85rem;color:var(--text-muted);padding:8px 0">Aucune ressource associée</div>
+            <div *ngFor="let r of detailRessources" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px;background:var(--bg-secondary)">
+              <i class="fas fa-cube" style="color:#10b981;font-size:.85rem"></i>
+              <span style="font-weight:600;font-size:.875rem;flex:1">{{ r.nom }}</span>
+              <span *ngIf="r.capacite" style="font-size:.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:2px 8px;border-radius:8px;border:1px solid var(--border)">
+                <i class="fas fa-users" style="font-size:.65rem"></i> {{ r.capacite }} pers.
+              </span>
+              <span *ngIf="r.description" style="font-size:.75rem;color:var(--text-secondary)">{{ r.description }}</span>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDetail()">Fermer</button>
+          <button class="btn btn-info" (click)="closeDetail(); openModal(detailDispo)"><i class="fas fa-pen"></i> Modifier</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ═══ MODAL AJOUT / ÉDITION ═══ -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal form-modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fas fa-calendar-plus" style="color:var(--accent)"></i>
+          {{ editing ? 'Modifier le créneau' : 'Nouveau créneau' }}
+        </div>
+        <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="modal-body">
+
+          <!-- FILTRE ENTREPRISE dans le formulaire -->
+          <div class="form-group">
+            <label class="form-label"><i class="fas fa-building"></i> Entreprise</label>
+            <div class="filter-select" [class.open]="entModalOpen" (click)="$event.stopPropagation()">
+              <div class="fs-trigger" (click)="entModalOpen = !entModalOpen">
+                <i class="fas fa-building fs-icon"></i>
+                <span class="fs-val">{{ selectedEntrepriseId ? getEntNom(selectedEntrepriseId) : 'Toutes les entreprises' }}</span>
+                <i class="fas fa-times fs-clear" *ngIf="selectedEntrepriseId" (click)="clearEntrepriseModal(); $event.stopPropagation()"></i>
+                <i class="fas fa-chevron-down fs-arrow"></i>
+              </div>
+              <div class="fs-drop" *ngIf="entModalOpen">
+                <div class="fs-search-wrap">
+                  <i class="fas fa-search"></i>
+                  <input class="fs-search" [(ngModel)]="entModalSearch" [ngModelOptions]="{standalone:true}" (input)="filterEntreprisesModal()" placeholder="Rechercher..." autocomplete="off">
+                </div>
+                <div class="fs-list">
+                  <div class="fs-opt" (mousedown)="clearEntrepriseModal()">
+                    <i class="fas fa-list" style="color:var(--text-muted)"></i> Toutes les entreprises
+                  </div>
+                  <div class="fs-opt" *ngFor="let e of filteredEntreprisesModal" (mousedown)="selectEntrepriseModal(e)">
+                    <i class="fas fa-building" style="color:var(--accent)"></i> {{ e.nom }}
+                  </div>
+                  <div class="fs-empty" *ngIf="filteredEntreprisesModal.length === 0">Aucun résultat</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SÉLECTEUR SERVICE -->
+          <div class="form-group">
+            <label class="form-label">Service *</label>
+            <div class="svc-select" [class.open]="modalDropdownOpen" (click)="$event.stopPropagation()">
+              <div class="svs-trigger" (click)="modalDropdownOpen = !modalDropdownOpen">
+                <i class="fas fa-concierge-bell svs-icon"></i>
+                <input class="svs-input"
+                  [(ngModel)]="modalSearch" [ngModelOptions]="{standalone:true}"
+                  placeholder="Rechercher un service..."
+                  (focus)="modalDropdownOpen=true"
+                  (input)="filterModalServices()"
+                  autocomplete="off">
+                <i class="fas fa-times svs-clear" *ngIf="modalSelectedService" (click)="clearModalSelect();$event.stopPropagation()"></i>
+                <i class="fas fa-chevron-down svs-arrow"></i>
+              </div>
+              <div class="svs-drop" *ngIf="modalDropdownOpen">
+                <div class="svs-opt" *ngFor="let s of filteredModalServices" (mousedown)="selectModalService(s)">
+                  <i [class]="typeIconCls(getConfig(s.id)?.typeService)" [style.color]="typeColor(getConfig(s.id)?.typeService)" style="width:14px;flex-shrink:0"></i>
+                  <span class="svs-opt-name">{{ s.nom }}</span>
+                  <span class="svs-opt-meta" style="color:var(--text-muted)">{{ getEntNom(s.entrepriseId) }}</span>
+                  <span class="svs-opt-meta" *ngIf="s.dureeMinutes">{{ s.dureeMinutes }}min</span>
+                </div>
+                <div class="svs-empty" *ngIf="filteredModalServices.length === 0">Aucun résultat</div>
+              </div>
+            </div>
+            <input type="hidden" formControlName="serviceId">
+          </div>
+
+          <!-- PREVIEW SERVICE -->
+          <div class="svc-preview" *ngIf="modalSelectedService">
+            <div class="sp-bar" [style.background]="typeColor(getConfig(modalSelectedService.id)?.typeService)"></div>
+            <div class="sp-body">
+              <div class="sp-top">
+                <div class="sp-icon" [style.background]="typeColor(getConfig(modalSelectedService.id)?.typeService) + '22'" [style.color]="typeColor(getConfig(modalSelectedService.id)?.typeService)">
+                  <i [class]="typeIconCls(getConfig(modalSelectedService.id)?.typeService)"></i>
+                </div>
+                <div class="sp-info">
+                  <div class="sp-name">{{ modalSelectedService.nom }}</div>
+                  <span style="font-size:.72rem;color:var(--text-muted)">{{ getEntNom(modalSelectedService.entrepriseId) }}</span>
+                  <span class="sp-type"
+                    [style.background]="typeColor(getConfig(modalSelectedService.id)?.typeService) + '1a'"
+                    [style.color]="typeColor(getConfig(modalSelectedService.id)?.typeService)"
+                    [style.border-color]="typeColor(getConfig(modalSelectedService.id)?.typeService) + '44'">
+                    {{ TYPE_LABEL[getConfig(modalSelectedService.id)?.typeService || ''] || '—' }}
+                  </span>
+                </div>
+              </div>
+              <div class="sp-chips">
+                <span class="sp-chip" *ngIf="modalSelectedService.dureeMinutes"><i class="fas fa-clock"></i> {{ modalSelectedService.dureeMinutes }} min</span>
+                <span class="sp-chip"><i class="fas fa-tag"></i> {{ modalSelectedService.tarif != null ? modalSelectedService.tarif + ' DT' : 'Gratuit' }}</span>
+                <span class="sp-chip active" *ngIf="getConfig(modalSelectedService.id)?.fileAttenteActive"><i class="fas fa-list-ol"></i> File active</span>
+                <span class="sp-chip active" *ngIf="getConfig(modalSelectedService.id)?.employeObligatoire"><i class="fas fa-user-tie"></i> Employé requis</span>
+                <span class="sp-chip active" *ngIf="getConfig(modalSelectedService.id)?.ressourceObligatoire"><i class="fas fa-layer-group"></i> Ressource</span>
+                <span class="sp-chip" *ngIf="getConfig(modalSelectedService.id)?.reservationEnGroupe">
+                  <i class="fas fa-users"></i> {{ getConfig(modalSelectedService.id)?.capaciteMinPersonnes }}–{{ getConfig(modalSelectedService.id)?.capaciteMaxPersonnes }} pers.
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESSOURCES dans formulaire -->
+          <div *ngIf="modalSelectedService && getConfig(modalSelectedService.id)?.typeService === 'RESSOURCE_PARTAGEE' && detailRessources.length > 0" style="margin-top:12px">
+            <div style="font-size:.8rem;font-weight:700;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.06em;margin-bottom:8px">
+              <i class="fas fa-layer-group" style="color:#10b981"></i> Ressources de ce service
+            </div>
+            <div *ngFor="let r of detailRessources" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px;background:var(--bg-secondary)">
+              <i class="fas fa-cube" style="color:#10b981;font-size:.85rem"></i>
+              <span style="font-weight:600;font-size:.875rem;flex:1">{{ r.nom }}</span>
+              <span *ngIf="r.capacite" style="font-size:.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:2px 8px;border-radius:8px;border:1px solid var(--border)">
+                <i class="fas fa-users" style="font-size:.65rem"></i> {{ r.capacite }} pers.
+              </span>
+            </div>
+          </div>
+
+          <!-- JOUR pills -->
+          <div class="form-group">
+            <label class="form-label">Jour *</label>
+            <div class="jour-pills">
+              <button type="button" class="jour-pill"
+                *ngFor="let j of JOURS"
+                [class.sel]="form.get('jour')?.value === j"
+                [class.we]="j==='SAMEDI'||j==='DIMANCHE'"
+                (click)="form.get('jour')?.setValue(j)">
+                {{ JOUR_FULL[j].slice(0,3) }}
+              </button>
+            </div>
+            <input type="hidden" formControlName="jour">
+          </div>
+
+          <!-- HORAIRES -->
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Heure début *</label>
+              <div class="time-box" [class.focused]="focusDebut">
+                <i class="fas fa-play-circle tbi start"></i>
+                <input formControlName="heureDebut" type="time" class="time-inp" (focus)="focusDebut=true" (blur)="focusDebut=false">
+              </div>
+            </div>
+            <div class="time-arrow"><i class="fas fa-arrow-right"></i></div>
+            <div class="form-group">
+              <label class="form-label">Heure fin *</label>
+              <div class="time-box" [class.focused]="focusFin">
+                <i class="fas fa-stop-circle tbi end"></i>
+                <input formControlName="heureFin" type="time" class="time-inp" (focus)="focusFin=true" (blur)="focusFin=false">
+              </div>
+            </div>
+          </div>
+
+          <!-- APERÇU DURÉE -->
+          <div class="dur-preview" *ngIf="form.get('heureDebut')?.value && form.get('heureFin')?.value">
+            <i class="fas fa-hourglass-half"></i>
+            Durée du créneau :
+            <strong [style.color]="modalDur().startsWith('⚠') ? 'var(--danger)' : 'var(--accent)'">{{ modalDur() }}</strong>
+          </div>
+
+          <!-- AVERTISSEMENT CHEVAUCHEMENT -->
+          <div class="overlap-warn" *ngIf="getChevauchement()">
+            <i class="fas fa-exclamation-triangle"></i>
+            {{ getChevauchement() }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading || !isCreneauValide() || !!getChevauchement()">
+            <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+            <i class="fas fa-save" *ngIf="!loading"></i>
+            {{ loading ? 'Enregistrement...' : (editing ? 'Modifier' : 'Ajouter') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>

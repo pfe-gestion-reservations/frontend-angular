@@ -21,18 +21,22 @@ export interface EmployeResponse {
   specialite: string; archived: boolean;
 }
 // Retourné par GET /api/employes/check-email
+// Retourné par GET /api/employes/check-email
+// status: FREE | BUSY | ALREADY_IN_THIS_COMPANY | NOT_FOUND | EMAIL_OTHER_ROLE
 export interface EmployeCheckResponse {
-  statut: 'NOUVEAU' | 'LIBRE' | 'OCCUPE';
-  message: string;
-  userId: number | null;
+  status: string;
+  message?: string;       // présent pour EMAIL_OTHER_ROLE et cas d'erreur
   nom: string | null;
   prenom: string | null;
   email: string;
+  specialite?: string;
+  archived?: boolean;
+  entrepriseNom?: string;
 }
 
 export interface RattachementRequest {
-  userId: number;
-  entrepriseId?: number;
+  email: string;          // email de l'employé FREE à rattacher
+  entrepriseId?: number;  // fourni par SA ; omis pour GÉRANT (déduit côté back)
   specialite?: string;
 }
 
@@ -42,12 +46,20 @@ export interface ClientRequest {
 export interface ClientResponse {
   id: number; nom: string; prenom: string; email: string;
   numtel: string; archived: boolean; createdBy: string;
+  entreprises?: { id: number; nom: string; secteur?: string }[];
+}
+
+export interface RessourceInlineRequest {
+  nom: string;
+  description?: string;
+  capacite?: number;
 }
 
 export interface ServiceRequest {
   nom: string; description?: string; dureeMinutes: number; tarif?: number | null;
   entrepriseId?: number;
   typeService?: string;
+  ressources?: RessourceInlineRequest[];  // RESSOURCE_PARTAGEE uniquement
 }
 export interface ServiceResponse {
   id: number; nom: string; description: string;
@@ -159,6 +171,22 @@ export interface AvisResponse {
 export interface GerantResponse {
   id: number; nom: string; prenom: string; email: string; archived: boolean;
 }
+
+export interface GerantResponse {
+  id: number; nom: string; prenom: string; email: string; archived: boolean;
+  entrepriseNom?: string;
+  entrepriseSecteur?: string;
+  entrepriseTelephone?: string;
+  entrepriseAdresse?: string;
+}
+export interface EmployeResponse {
+  id: number; nom: string; prenom: string; email: string;
+  specialite: string; archived: boolean;
+  entrepriseNom?: string;
+}
+
+
+
 
 export type StatutReservation = 'EN_ATTENTE' | 'CONFIRMEE' | 'EN_COURS' | 'ANNULEE' | 'TERMINEE';
 export type StatutFileAttente = 'EN_ATTENTE' | 'APPELE' | 'EN_COURS' | 'TERMINE' | 'ANNULE';

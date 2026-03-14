@@ -6,6 +6,8 @@ import { AuthService } from '../../../core/services/auth.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { GerantResponse } from '../../../core/models/api.models';
 
+type GerantCreateStep = 'email-check' | 'email-occupe' | 'email-libre' | 'email-other-role' | 'new-form';
+
 @Component({
   selector: 'app-gerants',
   standalone: true,
@@ -22,10 +24,18 @@ export class GerantsComponent implements OnInit {
   gerants:  GerantResponse[] = [];
   filtered: GerantResponse[] = [];
   showModal  = false;
-  showCreate = false;
+  showCreate      = false;
+  showCreateModal = false;
+
+  // Flux email-check création gérant
+  createStep: GerantCreateStep = 'email-check';
+  emailToCheck  = '';
+  checking      = false;
+  checkResult: any = null;
   editing: GerantResponse | null = null;
   loading      = false;
-  showArchived = false;
+  showArchived    = false;
+  selectedGerant: GerantResponse | null = null;
 
   // Création
   createForm = this.fb.group({
@@ -74,8 +84,58 @@ export class GerantsComponent implements OnInit {
     this.filtered = [...list.filter(g => !g.archived), ...list.filter(g => g.archived)];
   }
 
+  // ── DRAWER ──
+  openDrawer(g: GerantResponse): void  { this.selectedGerant = g; }
+  closeDrawer(): void                  { this.selectedGerant = null; }
+
   // ── CRÉATION ──
   toggleCreate(): void { this.showCreate = !this.showCreate; this.justCreated = false; this.createError = ''; this.createForm.reset(); }
+
+  openCreateModal(): void {
+    this.justCreated    = false;
+    this.createError    = '';
+    this.createStep     = 'email-check';
+    this.emailToCheck   = '';
+    this.checkResult    = null;
+    this.createForm.reset();
+    this.showCreateModal = true;
+  }
+
+  closeCreateModal(): void {
+    this.showCreateModal = false;
+    this.createStep      = 'email-check';
+    this.emailToCheck    = '';
+    this.checkResult     = null;
+    this.createForm.reset();
+    this.createError = '';
+  }
+
+  doCheckGerantEmail(): void {
+    if (!this.emailToCheck.trim()) return;
+    this.checking = true;
+    this.api.checkGerantEmail(this.emailToCheck.trim()).subscribe({
+      next: (res: any) => {
+        this.checking    = false;
+        this.checkResult = res;
+        const s = res.statut || res.status;
+        if (s === 'NOUVEAU') {
+          // Aucun compte → on peut créer
+          this.createForm.patchValue({ email: this.emailToCheck.trim() });
+          this.createStep = 'new-form';
+        } else if (s === 'OCCUPE') {
+          // Gérant actif déjà assigné à une entreprise
+          this.createStep = 'email-occupe';
+        } else if (s === 'LIBRE') {
+          // Gérant archivé ou sans entreprise
+          this.createStep = 'email-libre';
+        } else {
+          // Autre rôle (client, employé, super-admin...)
+          this.createStep = 'email-other-role';
+        }
+      },
+      error: () => { this.checking = false; this.toast.error('Erreur lors de la vérification'); }
+    });
+  }
 
   onCreate(): void {
     if (this.createForm.invalid) { this.createForm.markAllAsTouched(); return; }
@@ -84,13 +144,10 @@ export class GerantsComponent implements OnInit {
     this.justCreated   = false;
     this.auth.createGerant(this.createForm.value as any).subscribe({
       next: (res: any) => {
-        this.toast.success('Gérant créé !');
-        this.createdId    = res.id;
-        this.createdEmail = res.email;
-        this.justCreated  = true;
-        this.createForm.reset();
         this.createLoading = false;
         this.load();
+        this.closeCreateModal();
+        this.toast.success('Gérant créé !');
       },
       error: (e: any) => {
         this.createError   = e?.error?.message || e?.error || 'Erreur lors de la création';
@@ -146,6 +203,20 @@ export class GerantsComponent implements OnInit {
         this.toast.error(e?.error?.message || e?.error || 'Erreur lors de l\'archivage');
         this.archiverLoading = false;
       }
+    });
+  }
+
+  // ── DÉSARCHIVER depuis modal création ──
+  desarchiverDepuisModal(): void {
+    if (!this.checkResult?.userId && !this.checkResult?.id) return;
+    const id = this.checkResult.userId || this.checkResult.id;
+    this.api.desarchiverGerant(id).subscribe({
+      next: () => {
+        this.toast.success('Gérant désarchivé !');
+        this.load();
+        this.closeCreateModal();
+      },
+      error: () => this.toast.error('Erreur lors du désarchivage')
     });
   }
 

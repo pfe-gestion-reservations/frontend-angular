@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Renderer2 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -197,6 +197,13 @@ type ModalStep = 'type' | 'form';
                     </button>
                   </div>
                 </div>
+                <!-- ⚠️ Avertissement ressource obligatoire -->
+                <div *ngIf="inlineRessources.length === 0 && !editingService"
+                  style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:10px;margin-bottom:10px;font-size:.82rem;color:#f87171">
+                  <i class="fas fa-exclamation-circle" style="font-size:1rem;flex-shrink:0"></i>
+                  <span><strong>Au moins une ressource est obligatoire</strong> pour ce type de service (terrain, salle, équipement…)</span>
+                </div>
+
                 <div class="inline-add-ressource">
                   <ng-container *ngIf="!showInlineRessourceForm">
                     <button type="button" class="btn btn-secondary btn-add-ressource" (click)="showInlineRessourceForm=true">
@@ -259,7 +266,9 @@ type ModalStep = 'type' | 'form';
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
-            <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <button type="submit" class="btn btn-primary"
+              [disabled]="loading || (selectedType === 'RESSOURCE_PARTAGEE' && !editingService && inlineRessources.length === 0)"
+              [title]="selectedType === 'RESSOURCE_PARTAGEE' && !editingService && inlineRessources.length === 0 ? 'Ajoutez au moins une ressource' : ''">
               <span *ngIf="loading"><i class="fas fa-spinner fa-spin"></i> Enregistrement...</span>
               <span *ngIf="!loading"><i class="fas fa-save"></i> {{ editingService ? 'Modifier' : 'Créer le service' }}</span>
             </button>
@@ -302,28 +311,6 @@ type ModalStep = 'type' | 'form';
       </div>
     </div>
 
-    <!-- ══ POPUP DOUBLON ACTIF ══ -->
-    <div class="dup-overlay" *ngIf="showDuplicatePopup" (click)="showDuplicatePopup=false">
-      <div class="dup-popup" (click)="$event.stopPropagation()">
-        <div class="dup-icon" style="color:#ef4444"><i class="fas fa-exclamation-circle"></i></div>
-        <div class="dup-title">Service déjà existant</div>
-        <div class="dup-msg">Un service avec le même nom, prix et durée existe déjà dans cette entreprise.</div>
-        <button class="btn btn-primary" (click)="showDuplicatePopup=false">OK, compris</button>
-      </div>
-    </div>
-
-    <!-- ══ POPUP DOUBLON ARCHIVÉ ══ -->
-    <div class="dup-overlay" *ngIf="showArchivedPopup" (click)="showArchivedPopup=false">
-      <div class="dup-popup" (click)="$event.stopPropagation()">
-        <div class="dup-icon" style="color:#f59e0b"><i class="fas fa-archive"></i></div>
-        <div class="dup-title">Service archivé</div>
-        <div class="dup-msg">Ce service existe déjà mais est archivé. Voulez-vous le désarchiver ?</div>
-        <div style="display:flex;gap:8px;justify-content:center">
-          <button class="btn btn-secondary" (click)="showArchivedPopup=false">Non</button>
-          <button class="btn btn-primary" (click)="confirmDesarchiver()"><i class="fas fa-undo"></i> Oui, désarchiver</button>
-        </div>
-      </div>
-    </div>
   </div>`,
   styles: [`
     .ressource-btn { display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:.78rem;font-weight:600;border-radius:var(--radius-md);white-space:nowrap; }
@@ -405,6 +392,7 @@ export class SaServicesComponent implements OnInit {
   private api   = inject(ApiService);
   private toast = inject(ToastService);
   private fb    = inject(FormBuilder);
+  private renderer = inject(Renderer2);
 
   services:    ServiceResponse[]                  = [];
   entreprises: EntrepriseResponse[]               = [];
@@ -566,13 +554,67 @@ export class SaServicesComponent implements OnInit {
     this.showInlineRessourceForm = false;
   }
 
+  openBodyDialog(type: 'duplicate' | 'archived', customMsg?: string): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed');
+    this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)');
+    this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex');
+    this.renderer.setStyle(overlay, 'align-items', 'center');
+    this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e');
+    this.renderer.setStyle(box, 'border', '1px solid rgba(255,255,255,0.1)');
+    this.renderer.setStyle(box, 'border-radius', '16px');
+    this.renderer.setStyle(box, 'padding', '36px 32px');
+    this.renderer.setStyle(box, 'text-align', 'center');
+    this.renderer.setStyle(box, 'max-width', '380px');
+    this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)');
+    this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    if (type === 'duplicate') {
+      const msg = customMsg || 'Un service identique (même nom, durée, tarif) est déjà actif dans cette entreprise.';
+      box.innerHTML = `
+        <div style="font-size:2.5rem;margin-bottom:14px">⚠️</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service déjà existant</div>
+        <div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">${msg}</div>
+        <button id="dup-ok" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer">OK</button>
+      `;
+    } else {
+      box.innerHTML = `
+        <div style="font-size:2.5rem;margin-bottom:14px">📦</div>
+        <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service archivé</div>
+        <div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">
+          Ce service existe déjà mais est archivé.<br>Voulez-vous le <strong style="color:#f59e0b">désarchiver</strong> ?
+        </div>
+        <div style="display:flex;gap:10px;justify-content:center">
+          <button id="arch-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:10px 20px;border-radius:8px;font-size:.9rem;cursor:pointer">Annuler</button>
+          <button id="arch-ok" style="background:#f59e0b;color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer">✦ Désarchiver</button>
+        </div>
+      `;
+    }
+    this.renderer.appendChild(overlay, box);
+    this.renderer.appendChild(document.body, overlay);
+    if (type === 'duplicate') {
+      box.querySelector('#dup-ok')!.addEventListener('click', close);
+    } else {
+      box.querySelector('#arch-cancel')!.addEventListener('click', close);
+      box.querySelector('#arch-ok')!.addEventListener('click', () => {
+        close();
+        this.confirmDesarchiver();
+      });
+    }
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
+  }
+
   confirmDesarchiver(): void {
     if (!this.archivedServiceId) return;
     this.api.desarchiverService(this.archivedServiceId).subscribe({
       next: () => {
         this.toast.success('Service désarchivé !');
         this.api.getServices().subscribe(d => this.services = d);
-        this.showArchivedPopup = false;
       },
       error: () => this.toast.error('Erreur lors du désarchivage')
     });
@@ -590,10 +632,20 @@ export class SaServicesComponent implements OnInit {
 
   save(): void {
     if (this.form.invalid || !this.selectedType || !this.selectedEntrepriseId) { this.form.markAllAsTouched(); return; }
+    if (!this.editingService && this.selectedType === 'RESSOURCE_PARTAGEE' && this.inlineRessources.length === 0) {
+      this.toast.error('Veuillez ajouter au moins une ressource avant de créer ce service.');
+      return;
+    }
     this.loading = true;
     const v     = this.form.getRawValue();
     const flags = this.autoFlags;
-    const serviceBody = { nom: v.nom!, description: v.description || '', dureeMinutes: v.dureeMinutes ?? 0, tarif: v.tarif ?? null, entrepriseId: this.selectedEntrepriseId, typeService: this.selectedType };
+    console.log('[DEBUG save()] selectedType:', this.selectedType, '| editingService:', !!this.editingService, '| inlineRessources:', JSON.stringify(this.inlineRessources));
+    const serviceBody: any = { nom: v.nom!, description: v.description || '', dureeMinutes: v.dureeMinutes ?? 0, tarif: v.tarif ?? null, entrepriseId: this.selectedEntrepriseId, typeService: this.selectedType };
+    // RESSOURCE_PARTAGEE : envoyer les ressources inline dans le body (back les crée atomiquement)
+    if (!this.editingService && this.selectedType === 'RESSOURCE_PARTAGEE') {
+      serviceBody.ressources = this.inlineRessources;
+    }
+    console.log('[DEBUG] serviceBody envoyé:', JSON.stringify(serviceBody));
     const configBody  = { typeService: this.selectedType, dureeMinutes: v.dureeMinutes, capaciteMinPersonnes: v.capaciteMinPersonnes, capaciteMaxPersonnes: v.capaciteMaxPersonnes, ...flags, annulationHeures: v.annulationHeures, avanceReservationJours: v.avanceReservationJours };
 
     // ── Vérification doublon côté frontend (avant appel API) ──
@@ -608,11 +660,11 @@ export class SaServicesComponent implements OnInit {
         this.loading = false;
         if (!doublon.archived) {
           this.closeModal();
-          this.showDuplicatePopup = true;
+          this.openBodyDialog('duplicate');
         } else {
           this.archivedServiceId = doublon.id;
           this.closeModal();
-          this.showArchivedPopup = true;
+          this.openBodyDialog('archived');
         }
         return;
       }
@@ -638,20 +690,12 @@ export class SaServicesComponent implements OnInit {
     } else {
       this.api.createService(serviceBody).subscribe({
         next: (s) => {
+          const finish = () => { this.toast.success('Service créé !'); this.reloadAll(); this.closeModal(); this.loading = false; };
+          // RESSOURCE_PARTAGEE : le back crée config + ressources atomiquement
+          if (this.selectedType === 'RESSOURCE_PARTAGEE') { finish(); return; }
           this.api.saveConfigService({ ...configBody, serviceId: s.id } as any).subscribe({
             next: () => {
-              if (this.selectedType === 'RESSOURCE_PARTAGEE' && this.inlineRessources.length > 0) {
-                const ressourceCreations = this.inlineRessources.map(r =>
-                  this.api.createRessource({ ...r, serviceId: s.id })
-                );
-                let done = 0;
-                ressourceCreations.forEach(obs => obs.subscribe({
-                  next: () => { done++; if (done === ressourceCreations.length) { this.toast.success('Service créé avec ' + done + ' ressource(s) !'); this.reloadAll(); this.closeModal(); this.loading = false; } },
-                  error: () => { done++; if (done === ressourceCreations.length) { this.toast.success('Service créé (certaines ressources ont échoué)'); this.reloadAll(); this.closeModal(); this.loading = false; } }
-                }));
-              } else {
-                this.toast.success('Service créé !'); this.reloadAll(); this.closeModal(); this.loading = false;
-              }
+              finish();
             },
             error: () => { this.toast.error('Config échouée'); this.loading = false; }
           });
@@ -659,13 +703,15 @@ export class SaServicesComponent implements OnInit {
         error: (err) => {
           this.closeModal();
           if (err?.status === 409) {
-            this.showDuplicatePopup = true;
+            const errMsg = err?.error?.message || (typeof err?.error === 'string' ? err?.error : null);
+            this.openBodyDialog('duplicate', errMsg || undefined);
           } else if (err?.status === 410) {
             const body = err?.error || '';
-            const bodyStr = typeof body === 'string' ? body : (body?.message || JSON.stringify(body));
-            const match = bodyStr.match(/ARCHIVED:(\d+)/);
+            const fullStr = JSON.stringify(body) + (err?.message || '');
+            const match = fullStr.match(/ARCHIVED:(\d+)/);
             this.archivedServiceId = match ? +match[1] : null;
-            this.showArchivedPopup = true;
+            console.log('[410] body:', body, '| archivedServiceId:', this.archivedServiceId);
+            this.openBodyDialog('archived');
           } else {
             this.toast.error('Erreur lors de la création');
           }
@@ -712,4 +758,4 @@ export class SaServicesComponent implements OnInit {
   desarchiverRessource(r: RessourceResponse): void {
     this.api.desarchiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') });
   }
-} 
+}
