@@ -19,13 +19,12 @@ export interface EmployeRequest {
 export interface EmployeResponse {
   id: number; nom: string; prenom: string; email: string;
   specialite: string; archived: boolean;
+  entrepriseNom?: string;
 }
-// Retourné par GET /api/employes/check-email
-// Retourné par GET /api/employes/check-email
-// status: FREE | BUSY | ALREADY_IN_THIS_COMPANY | NOT_FOUND | EMAIL_OTHER_ROLE
+
 export interface EmployeCheckResponse {
   status: string;
-  message?: string;       // présent pour EMAIL_OTHER_ROLE et cas d'erreur
+  message?: string;
   nom: string | null;
   prenom: string | null;
   email: string;
@@ -35,13 +34,14 @@ export interface EmployeCheckResponse {
 }
 
 export interface RattachementRequest {
-  email: string;          // email de l'employé FREE à rattacher
-  entrepriseId?: number;  // fourni par SA ; omis pour GÉRANT (déduit côté back)
+  email: string;
+  entrepriseId?: number;
   specialite?: string;
 }
 
 export interface ClientRequest {
   nom: string; prenom: string; email: string; password: string; numtel: string;
+  entrepriseId?: number;
 }
 export interface ClientResponse {
   id: number; nom: string; prenom: string; email: string;
@@ -59,7 +59,7 @@ export interface ServiceRequest {
   nom: string; description?: string; dureeMinutes: number; tarif?: number | null;
   entrepriseId?: number;
   typeService?: string;
-  ressources?: RessourceInlineRequest[];  // RESSOURCE_PARTAGEE uniquement
+  ressources?: RessourceInlineRequest[];
 }
 export interface ServiceResponse {
   id: number; nom: string; description: string;
@@ -170,23 +170,31 @@ export interface AvisResponse {
 
 export interface GerantResponse {
   id: number; nom: string; prenom: string; email: string; archived: boolean;
-}
-
-export interface GerantResponse {
-  id: number; nom: string; prenom: string; email: string; archived: boolean;
   entrepriseNom?: string;
   entrepriseSecteur?: string;
   entrepriseTelephone?: string;
   entrepriseAdresse?: string;
 }
-export interface EmployeResponse {
-  id: number; nom: string; prenom: string; email: string;
-  specialite: string; archived: boolean;
-  entrepriseNom?: string;
+
+export interface AuthUser {
+  id: number;
+  email: string;
+  roles: string[];
+  token: string;
+  nom: string;
+  prenom: string;
+  entrepriseId?: number | null;
 }
 
-
-
+export interface JwtResponse {
+  id: number;
+  email: string;
+  roles: string[];
+  token: string;
+  nom: string;
+  prenom: string;
+  entrepriseId?: number | null;
+}
 
 export type StatutReservation = 'EN_ATTENTE' | 'CONFIRMEE' | 'EN_COURS' | 'ANNULEE' | 'TERMINEE';
 export type StatutFileAttente = 'EN_ATTENTE' | 'APPELE' | 'EN_COURS' | 'TERMINE' | 'ANNULE';

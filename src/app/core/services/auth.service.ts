@@ -23,7 +23,8 @@ export class AuthService {
           roles: res.roles,
           token: res.token,
           nom: res.nom,
-          prenom: res.prenom
+          prenom: res.prenom,
+          entrepriseId: res.entrepriseId ?? null
         };
         localStorage.setItem(this.STORAGE_KEY, JSON.stringify(user));
         this.currentUser.set(user);
@@ -46,7 +47,9 @@ export class AuthService {
   }
 
   getToken(): string | null {
-    return this.currentUser()?.token ?? null;
+    const raw = localStorage.getItem(this.STORAGE_KEY);
+    if (!raw) return null;
+    try { return JSON.parse(raw)?.token ?? null; } catch { return null; }
   }
 
   hasRole(role: string): boolean {
@@ -58,13 +61,28 @@ export class AuthService {
   isEmploye(): boolean    { return this.hasRole('EMPLOYE'); }
   isClient(): boolean     { return this.hasRole('CLIENT'); }
 
+  gerantHasEntreprise(): boolean {
+    return this.isGerant() && !!this.currentUser()?.entrepriseId;
+  }
+
+  getEntrepriseId(): number | null {
+    return this.currentUser()?.entrepriseId ?? null;
+  }
+
   redirectToDashboard(): void {
     const user = this.currentUser();
     if (!user) { this.router.navigate(['/auth/login']); return; }
     if (this.isSuperAdmin()) { this.router.navigate(['/super-admin']); return; }
-    if (this.isGerant())     { this.router.navigate(['/gerant']); return; }
-    if (this.isEmploye())    { this.router.navigate(['/employe']); return; }
-    if (this.isClient())     { this.router.navigate(['/client']); return; }
+    if (this.isGerant()) {
+      if (!this.gerantHasEntreprise()) {
+        this.router.navigate(['/gerant/no-entreprise']);
+      } else {
+        this.router.navigate(['/gerant']);
+      }
+      return;
+    }
+    if (this.isEmploye()) { this.router.navigate(['/employe']); return; }
+    if (this.isClient())  { this.router.navigate(['/client']);  return; }
   }
 
   private loadUser(): AuthUser | null {

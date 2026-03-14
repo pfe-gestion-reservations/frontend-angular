@@ -1,10 +1,17 @@
 import { Routes } from '@angular/router';
 import { GerantLayoutComponent } from './layout/gerant-layout.component';
+import { gerantEntrepriseGuard } from '../../core/guards/gerant.guard';
 
 export const gerantRoutes: Routes = [
   {
+    path: 'no-entreprise',
+    loadComponent: () => import('./no-entreprise/no-entreprise.component')
+      .then(m => m.NoEntrepriseComponent)
+  },
+  {
     path: '',
     component: GerantLayoutComponent,
+    canActivate: [gerantEntrepriseGuard],
     children: [
       { path: '', redirectTo: 'dashboard', pathMatch: 'full' },
       { path: 'dashboard',      loadComponent: () => import('./dashboard/gerant-dashboard.component').then(m => m.GerantDashboardComponent) },

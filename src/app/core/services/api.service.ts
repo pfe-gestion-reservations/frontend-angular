@@ -137,6 +137,9 @@ export class ApiService {
     return this.http.get<CreneauResponse[]>(`${this.api}/creneaux`, { params });
   }
 
+  // ── AUTH ─────────────────────────────────────────────────────
+  getMe(): Observable<any> { return this.http.get<any>(`${this.api}/auth/me`); }
+
   // ── GERANTS ───────────────────────────────────────────────
   checkGerantEmail(email: string): Observable<any> {
     return this.http.get<any>(`${this.api}/gerants/check-email?email=${encodeURIComponent(email)}`);
