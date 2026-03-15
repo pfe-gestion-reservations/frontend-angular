@@ -44,14 +44,15 @@ type ModalStep = 'type' | 'form';
 
     <!-- GRID -->
     <div class="services-grid">
-      <div class="service-card" *ngFor="let s of filteredServices" [class.archived]="s.archived">
+      <div class="service-card" *ngFor="let s of filteredServices" [class.archived]="s.archived"
+           (click)="openDetail(s)" style="cursor:pointer">
         <div class="service-header">
           <div class="service-header-top">
             <div class="type-badge" [ngClass]="'type-' + getConfig(s.id)?.typeService?.toLowerCase()">
               <i [class]="typeIcon(getConfig(s.id)?.typeService)"></i>
               {{ typeLabel(getConfig(s.id)?.typeService) }}
             </div>
-            <div class="service-actions">
+            <div class="service-actions" (click)="$event.stopPropagation()">
               <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(s)" title="Modifier"><i class="fas fa-pen"></i></button>
               <button class="btn btn-secondary btn-sm ressource-btn" (click)="openRessourcePanel(s)"
                 *ngIf="getConfig(s.id)?.ressourceObligatoire" title="Gérer les ressources">
@@ -82,6 +83,90 @@ type ModalStep = 'type' | 'form';
         <i class="fas fa-concierge-bell"></i>
         <h3>Aucun service{{ selectedEntrepriseId ? ' pour cette entreprise' : '' }}</h3>
         <p *ngIf="!selectedEntrepriseId">Sélectionnez une entreprise pour créer des services</p>
+      </div>
+    </div>
+
+    <!-- ═══ MODAL DÉTAIL SERVICE ═══ -->
+    <div class="modal-overlay" *ngIf="showDetail" (click)="closeDetail()">
+      <div class="modal modal-detail" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title">
+            <div class="type-pill" *ngIf="getConfig(detailService!.id) as c"
+                 [ngClass]="'type-' + c.typeService?.toLowerCase()">
+              <i [class]="typeIcon(c.typeService)"></i> {{ typeLabel(c.typeService) }}
+            </div>
+            {{ detailService?.nom }}
+            <span class="ent-label">{{ getEntNom(detailService?.entrepriseId ?? null) }}</span>
+          </div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" *ngIf="detailService as s">
+          <div class="detail-section">
+            <p *ngIf="s.description" class="detail-desc">{{ s.description }}</p>
+            <div class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-clock"></i> Durée</div>
+                <div class="detail-value">{{ s.dureeMinutes }} min</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-tag"></i> Tarif</div>
+                <div class="detail-value" style="color:var(--accent);font-weight:700">
+                  {{ s.tarif != null ? (s.tarif | number:'1.2-2') + ' DT' : 'Gratuit' }}
+                  <span *ngIf="s.tarif != null && getConfig(s.id)?.tarifParPersonne"
+                        style="font-size:.75rem;color:var(--text-muted);font-weight:400"> × pers.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <ng-container *ngIf="getConfig(s.id) as c">
+            <div class="detail-section" *ngIf="c.reservationEnGroupe || c.annulationHeures || c.avanceReservationJours">
+              <div class="detail-section-title">Règles</div>
+              <div class="detail-row">
+                <div class="detail-item" *ngIf="c.reservationEnGroupe">
+                  <div class="detail-label"><i class="fas fa-users"></i> Groupe</div>
+                  <div class="detail-value">{{ c.capaciteMinPersonnes }} – {{ c.capaciteMaxPersonnes }} pers.</div>
+                </div>
+                <div class="detail-item" *ngIf="c.annulationHeures">
+                  <div class="detail-label"><i class="fas fa-ban"></i> Annulation</div>
+                  <div class="detail-value">Avant {{ c.annulationHeures }}h</div>
+                </div>
+                <div class="detail-item" *ngIf="c.avanceReservationJours">
+                  <div class="detail-label"><i class="fas fa-calendar-alt"></i> Avance max</div>
+                  <div class="detail-value">{{ c.avanceReservationJours }} jours</div>
+                </div>
+              </div>
+            </div>
+            <div class="detail-section" *ngIf="c.ressourceObligatoire">
+              <div class="detail-section-title">
+                <i class="fas fa-layer-group" style="color:var(--accent);margin-right:6px"></i>
+                Ressources disponibles
+                <span class="ressource-count">{{ detailRessources.length }}</span>
+              </div>
+              <div class="ressource-blocs">
+                <div class="ressource-bloc" *ngFor="let r of detailRessources" [class.archived]="r.archived">
+                  <div class="ressource-bloc-icon"><i class="fas fa-cube"></i></div>
+                  <div class="ressource-bloc-info">
+                    <div class="ressource-bloc-nom">{{ r.nom }}</div>
+                    <div class="ressource-bloc-meta">
+                      <span><i class="fas fa-users"></i> {{ r.capacite }} pers.</span>
+                      <span *ngIf="r.description" class="ressource-bloc-desc">{{ r.description }}</span>
+                      <span *ngIf="r.archived" class="archived-chip"><i class="fas fa-archive"></i> Archivée</span>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="detailRessources.length === 0" style="color:var(--text-muted);font-size:.85rem;padding:12px 0">
+                  Aucune ressource configurée
+                </div>
+              </div>
+            </div>
+          </ng-container>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDetail()">Fermer</button>
+          <button class="btn btn-info" (click)="closeDetail(); openEdit(detailService!)">
+            <i class="fas fa-pen"></i> Modifier
+          </button>
+        </div>
       </div>
     </div>
 
@@ -161,6 +246,26 @@ type ModalStep = 'type' | 'form';
               <div class="form-group">
                 <label class="form-label">Tarif (DT) <span class="optional">optionnel</span></label>
                 <input formControlName="tarif" type="number" step="0.01" class="form-control" placeholder="Laisser vide si gratuit">
+              </div>
+              <div class="form-group" *ngIf="form.get('tarif')?.value != null && selectedType === 'RESSOURCE_PARTAGEE'">
+                <label class="form-label">Mode de tarification</label>
+                <div style="display:flex;gap:8px;margin-top:4px">
+                  <button type="button"
+                    [class]="!form.get('tarifParPersonne')?.value ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
+                    (click)="form.get('tarifParPersonne')?.setValue(false)">
+                    <i class="fas fa-tag"></i> Tarif fixe
+                  </button>
+                  <button type="button"
+                    [class]="form.get('tarifParPersonne')?.value ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
+                    (click)="form.get('tarifParPersonne')?.setValue(true)">
+                    <i class="fas fa-users"></i> Tarif × personnes
+                  </button>
+                </div>
+                <small style="color:var(--text-muted);font-size:.75rem;margin-top:4px;display:block">
+                  {{ form.get('tarifParPersonne')?.value
+                    ? 'Prix = ' + (form.get('tarif')?.value || 0) + ' DT × nombre de personnes'
+                    : 'Prix fixe = ' + (form.get('tarif')?.value || 0) + ' DT par réservation' }}
+                </small>
               </div>
             </div>
             <ng-container *ngIf="selectedType === 'RESSOURCE_PARTAGEE'">
@@ -386,6 +491,28 @@ type ModalStep = 'type' | 'form';
     .ressource-info { display:flex;align-items:center;gap:12px;font-size:.875rem; }
     .ressource-cap,.ressource-desc { color:var(--text-muted);font-size:.8rem; }
     .ressource-actions { display:flex;gap:6px; }
+    /* DETAIL MODAL */
+    .modal-detail { max-width:520px; }
+    .detail-section { padding:14px 0;border-bottom:1px solid var(--border); }
+    .detail-section:last-child { border-bottom:none; }
+    .detail-section-title { font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:12px; }
+    .detail-desc { font-size:.875rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6; }
+    .detail-row { display:flex;gap:20px;flex-wrap:wrap; }
+    .detail-item { display:flex;flex-direction:column;gap:4px;min-width:100px; }
+    .detail-label { font-size:.75rem;color:var(--text-muted);font-weight:600; }
+    .detail-label i { margin-right:4px; }
+    .detail-value { font-size:.95rem;font-weight:600;color:var(--text-primary); }
+    .ressource-count { display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent-glow);border:1px solid rgba(240,165,0,.3);font-size:.72rem;font-weight:700;color:var(--accent);margin-left:6px; }
+    .ressource-blocs { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px; }
+    .ressource-bloc { display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);transition:border-color .2s; }
+    .ressource-bloc:hover { border-color:var(--accent); }
+    .ressource-bloc.archived { opacity:.5;border-style:dashed; }
+    .ressource-bloc-icon { width:34px;height:34px;border-radius:var(--radius-sm);background:rgba(16,185,129,.15);color:#34d399;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0; }
+    .ressource-bloc-info { display:flex;flex-direction:column;gap:3px;min-width:0; }
+    .ressource-bloc-nom { font-weight:700;font-size:.85rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .ressource-bloc-meta { display:flex;flex-wrap:wrap;gap:6px;font-size:.75rem;color:var(--text-muted); }
+    .ressource-bloc-meta i { margin-right:2px; }
+    .archived-chip { font-size:.7rem;padding:1px 6px;background:rgba(156,163,175,.15);border-radius:10px;color:var(--text-muted); }
   `]
 })
 export class SaServicesComponent implements OnInit {
@@ -415,6 +542,7 @@ export class SaServicesComponent implements OnInit {
     description:            [''],
     dureeMinutes:           [null as number | null],
     tarif:                  [null as number | null],
+    tarifParPersonne:       [false],
     capaciteMinPersonnes:   [null as number | null],
     capaciteMaxPersonnes:   [null as number | null],
     annulationHeures:       [null as number | null],
@@ -437,6 +565,11 @@ export class SaServicesComponent implements OnInit {
   showDuplicatePopup = false;
   showArchivedPopup  = false;
   archivedServiceId: number | null = null;
+
+  // Detail modal
+  showDetail        = false;
+  detailService:    ServiceResponse | null   = null;
+  detailRessources: RessourceResponse[]      = [];
 
   // Ressources inline (création RESSOURCE_PARTAGEE)
   inlineRessources: { nom: string; description: string; capacite: number }[] = [];
@@ -488,6 +621,18 @@ export class SaServicesComponent implements OnInit {
   getConfig(id: number): ConfigServiceResponse | undefined { return this.configs.get(id); }
   getEntNom(id: number | null): string { return this.entreprises.find(e => e.id === id)?.nom ?? ''; }
 
+  openDetail(s: ServiceResponse): void {
+    this.detailService = s;
+    this.detailRessources = [];
+    const c = this.configs.get(s.id);
+    if (c?.ressourceObligatoire) {
+      this.api.getRessourcesByService(s.id).subscribe(r => this.detailRessources = r);
+    }
+    this.showDetail = true;
+  }
+
+  closeDetail(): void { this.showDetail = false; this.detailService = null; this.detailRessources = []; }
+
   ngOnInit(): void {
     forkJoin({ s: this.api.getServices(), e: this.api.getEntreprises() }).subscribe(d => {
       this.services    = d.s;
@@ -529,7 +674,8 @@ export class SaServicesComponent implements OnInit {
     this.form.patchValue({
       nom: s.nom, description: s.description ?? '', dureeMinutes: s.dureeMinutes, tarif: s.tarif,
       capaciteMinPersonnes: c?.capaciteMinPersonnes ?? null, capaciteMaxPersonnes: c?.capaciteMaxPersonnes ?? null,
-      annulationHeures: c?.annulationHeures ?? null, avanceReservationJours: c?.avanceReservationJours ?? null
+      annulationHeures: c?.annulationHeures ?? null, avanceReservationJours: c?.avanceReservationJours ?? null,
+      tarifParPersonne: c?.tarifParPersonne ?? false
     });
     this.step      = 'form';
     this.showModal = true;
@@ -646,7 +792,7 @@ export class SaServicesComponent implements OnInit {
       serviceBody.ressources = this.inlineRessources;
     }
     console.log('[DEBUG] serviceBody envoyé:', JSON.stringify(serviceBody));
-    const configBody  = { typeService: this.selectedType, dureeMinutes: v.dureeMinutes, capaciteMinPersonnes: v.capaciteMinPersonnes, capaciteMaxPersonnes: v.capaciteMaxPersonnes, ...flags, annulationHeures: v.annulationHeures, avanceReservationJours: v.avanceReservationJours };
+    const configBody  = { typeService: this.selectedType, dureeMinutes: v.dureeMinutes, capaciteMinPersonnes: v.capaciteMinPersonnes, capaciteMaxPersonnes: v.capaciteMaxPersonnes, ...flags, annulationHeures: v.annulationHeures, avanceReservationJours: v.avanceReservationJours, tarifParPersonne: v.tarifParPersonne ?? false };
 
     // ── Vérification doublon côté frontend (avant appel API) ──
     if (!this.editingService && this.selectedType !== 'RESSOURCE_PARTAGEE') {

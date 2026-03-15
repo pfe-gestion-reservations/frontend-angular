@@ -56,6 +56,8 @@ export class GerantEmployesComponent implements OnInit, OnDestroy {
     specialite: ['']
   });
 
+  get entrepriseId(): number | null { return this.auth.getEntrepriseId(); }
+
   get totalActifs()   { return this.employes.filter(e => !e.archived).length; }
   get totalArchives() { return this.employes.filter(e =>  e.archived).length; }
 
@@ -107,12 +109,13 @@ export class GerantEmployesComponent implements OnInit, OnDestroy {
   checkEmail(): void {
     if (!this.emailToCheck.trim()) return;
     this.checking = true;
-    this.api.checkEmployeEmail(this.emailToCheck.trim()).subscribe({
+    this.api.checkEmployeEmail(this.emailToCheck.trim(), this.entrepriseId ?? undefined).subscribe({
       next: (res: any) => {
         this.checking = false;
         this.checkResult = res;
         const s = res.status;
-        if      (s === 'FREE')                  this.step = 'result-free';
+        if (s === 'FREE' && res.archived)        this.step = 'result-archived';
+        else if (s === 'FREE')                  this.step = 'result-free';
         else if (s === 'BUSY')                  this.step = 'result-busy';
         else if (s === 'ALREADY_IN_THIS_COMPANY') this.step = 'result-already';
         else if (s === 'EMAIL_OTHER_ROLE')      this.step = 'result-other-role';
@@ -138,17 +141,17 @@ export class GerantEmployesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ─── Désarchiver depuis le modal ──────────────────────────────────────────
+  // ─── Désarchiver + rattacher depuis le modal ─────────────────────────────
   desarchiverDepuisModal(): void {
     const id = this.checkResult?.id;
     if (!id) return;
     this.loading = true;
-    this.api.desarchiverEmploye(id).subscribe({
+    this.api.desarchiverEtRattacherEmploye(id).subscribe({
       next: () => {
-        this.toast.success('Employé désarchivé !');
+        this.toast.success('Employé désarchivé et ajouté à votre entreprise !');
         this.loading = false; this.load(); this.closeModal();
       },
-      error: () => { this.toast.error('Erreur'); this.loading = false; }
+      error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.loading = false; }
     });
   }
 

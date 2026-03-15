@@ -129,7 +129,7 @@ export class EntreprisesComponent implements OnInit {
     this.loadingEmployes  = true;
     this.showDetail       = true;
     this.api.getEmployesByEntreprise(e.id).subscribe({
-      next: emps => { this.detailEmployes = emps; this.loadingEmployes = false; },
+      next: emps => { this.detailEmployes = emps.filter(e => !e.archived); this.loadingEmployes = false; },
       error: ()   => { this.loadingEmployes = false; }
     });
   }

@@ -19,7 +19,7 @@ export interface JwtResponse {
   roles: string[];
   nom: string;
   prenom: string;
-  entrepriseId?: number | null;
+  entrepriseId: number | null;  // null si pas GÉRANT
 }
 
 export interface AuthUser {
@@ -29,5 +29,5 @@ export interface AuthUser {
   token: string;
   nom: string;
   prenom: string;
-  entrepriseId?: number | null;
+  entrepriseId: number | null;  // null si pas GÉRANT
 }

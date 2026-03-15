@@ -5,7 +5,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { EmployeResponse, EntrepriseResponse } from '../../../core/models/api.models';
 
-type ModalStep = 'email-check' | 'result-exists' | 'result-other-role' | 'result-archived' | 'new-form';
+type ModalStep = 'email-check' | 'result-employe-exists' | 'result-other-role' | 'result-archived' | 'new-form';
 
 const AV_COLORS = [
   '#2563eb','#16a34a','#d97706','#dc2626','#7c3aed',
@@ -149,13 +149,17 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
         this.checking = false;
         this.checkResult = res;
         const s = res.status;
-        if (s === 'FREE' || s === 'BUSY' || s === 'ALREADY_IN_THIS_COMPANY') {
-          this.step = 'result-exists';
-        } else if (s === 'EMAIL_OTHER_ROLE') {
-          this.step = 'result-other-role';
-        } else if (s === 'ARCHIVED') {
+        // ── Archivé en priorité absolue ─────────────────────────────────
+        if (res.archived) {
           this.step = 'result-archived';
+        } else if (s === 'FREE' || s === 'BUSY' || s === 'ALREADY_IN_THIS_COMPANY') {
+          // Email appartient à un employé (actif, libre ou rattaché)
+          this.step = 'result-employe-exists';
+        } else if (s === 'EMAIL_OTHER_ROLE') {
+          // Email appartient à un autre rôle (client, gérant, SA...)
+          this.step = 'result-other-role';
         } else {
+          // NOT_FOUND → formulaire création
           this.form.patchValue({ email: this.emailToCheck.trim() });
           this.step = 'new-form';
         }
@@ -164,20 +168,21 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     });
   }
 
+  // ── Désarchiver depuis modal ────────────────────────────────────────────
   desarchiverDepuisModal(): void {
-  const id = this.checkResult?.id;
-  if (!id) return;
-  this.loading = true;
-  this.api.desarchiverEmploye(id).subscribe({
-    next: () => {
-      this.toast.success('Employé désarchivé !');
-      this.loading = false;
-      this.load();
-      this.closeModal();
-    },
-    error: () => { this.toast.error('Erreur'); this.loading = false; }
-  });
-}
+    const id = this.checkResult?.id;
+    if (!id) return;
+    this.loading = true;
+    this.api.desarchiverEtRattacherEmploye(id).subscribe({
+      next: () => {
+        this.toast.success('Employé désarchivé !');
+        this.loading = false;
+        this.load();
+        this.closeModal();
+      },
+      error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.loading = false; }
+    });
+  }
 
   // ── Dropdown entreprise dans le modal ──────────────────────────────────
   filterModalEnts(): void {

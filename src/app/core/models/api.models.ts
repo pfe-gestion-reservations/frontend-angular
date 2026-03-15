@@ -19,7 +19,8 @@ export interface EmployeRequest {
 export interface EmployeResponse {
   id: number; nom: string; prenom: string; email: string;
   specialite: string; archived: boolean;
-  entrepriseNom?: string;
+  entrepriseId: number | null;
+  entrepriseNom: string | null;
 }
 
 export interface EmployeCheckResponse {
@@ -80,6 +81,7 @@ export interface ConfigServiceRequest {
   fileAttenteActive: boolean;
   avanceReservationJours?: number | null;
   annulationHeures?: number | null;
+  tarifParPersonne?: boolean;  // false=tarif fixe, true=tarif × nombre de personnes
 }
 export interface ConfigServiceResponse {
   id: number;
@@ -94,6 +96,7 @@ export interface ConfigServiceResponse {
   fileAttenteActive: boolean;
   avanceReservationJours: number | null;
   annulationHeures: number | null;
+  tarifParPersonne: boolean;   // false=tarif fixe, true=tarif × nombre de personnes
 }
 
 export interface RessourceRequest {
@@ -183,7 +186,7 @@ export interface AuthUser {
   token: string;
   nom: string;
   prenom: string;
-  entrepriseId?: number | null;
+  entrepriseId: number | null;
 }
 
 export interface JwtResponse {
@@ -193,7 +196,7 @@ export interface JwtResponse {
   token: string;
   nom: string;
   prenom: string;
-  entrepriseId?: number | null;
+  entrepriseId: number | null;
 }
 
 export type StatutReservation = 'EN_ATTENTE' | 'CONFIRMEE' | 'EN_COURS' | 'ANNULEE' | 'TERMINEE';

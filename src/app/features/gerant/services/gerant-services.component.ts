@@ -33,13 +33,14 @@ type ModalStep = 'type' | 'form';
 
     <!-- GRID -->
     <div class="services-grid">
-      <div class="service-card" *ngFor="let s of displayedServices" [class.archived]="s.archived">
+      <div class="service-card" *ngFor="let s of displayedServices" [class.archived]="s.archived"
+           (click)="openDetail(s)" style="cursor:pointer">
         <div class="service-header">
           <div class="type-badge" [ngClass]="'type-' + getConfig(s.id)?.typeService?.toLowerCase()">
             <i [class]="typeIcon(getConfig(s.id)?.typeService)"></i>
             {{ typeLabel(getConfig(s.id)?.typeService) }}
           </div>
-          <div class="service-actions">
+          <div class="service-actions" (click)="$event.stopPropagation()">
             <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(s)" title="Modifier"><i class="fas fa-pen"></i></button>
             <button class="btn btn-secondary btn-sm ressource-btn" (click)="openRessourcePanel(s)"
               *ngIf="getConfig(s.id)?.ressourceObligatoire" title="Gérer les ressources">
@@ -56,7 +57,6 @@ type ModalStep = 'type' | 'form';
           <span><i class="fas fa-clock"></i> {{ s.dureeMinutes }} min</span>
           <span class="service-price">{{ s.tarif != null ? (s.tarif | number:'1.2-2') + ' DT' : 'Gratuit' }}</span>
         </div>
-        <!-- CONFIG SUMMARY -->
         <div class="config-summary" *ngIf="getConfig(s.id) as c">
           <span *ngIf="c.employeObligatoire" class="badge-flag"><i class="fas fa-user-tie"></i> Employé requis</span>
           <span *ngIf="c.ressourceObligatoire" class="badge-flag"><i class="fas fa-layer-group"></i> Ressource requise</span>
@@ -74,7 +74,97 @@ type ModalStep = 'type' | 'form';
       </div>
     </div>
 
-    <!-- ═══ MODAL CRÉATION — ÉTAPE 1 : CHOISIR LE TYPE ═══ -->
+    <!-- ═══ MODAL DÉTAIL SERVICE ═══ -->
+    <div class="modal-overlay" *ngIf="showDetail" (click)="closeDetail()">
+      <div class="modal modal-detail" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title">
+            <div class="type-pill" *ngIf="getConfig(detailService!.id) as c"
+                 [ngClass]="'type-' + c.typeService?.toLowerCase()">
+              <i [class]="typeIcon(c.typeService)"></i> {{ typeLabel(c.typeService) }}
+            </div>
+            {{ detailService?.nom }}
+          </div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body" *ngIf="detailService as s">
+
+          <!-- Infos générales -->
+          <div class="detail-section">
+            <p *ngIf="s.description" class="detail-desc">{{ s.description }}</p>
+            <div class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-clock"></i> Durée</div>
+                <div class="detail-value">{{ s.dureeMinutes }} min</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label"><i class="fas fa-tag"></i> Tarif</div>
+                <div class="detail-value" style="color:var(--accent);font-weight:700">
+                  {{ s.tarif != null ? (s.tarif | number:'1.2-2') + ' DT' : 'Gratuit' }}
+                  <span *ngIf="s.tarif != null && getConfig(s.id)?.tarifParPersonne"
+                        style="font-size:.75rem;color:var(--text-muted);font-weight:400"> × pers.</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Config -->
+          <ng-container *ngIf="getConfig(s.id) as c">
+            <div class="detail-section" *ngIf="c.reservationEnGroupe || c.annulationHeures || c.avanceReservationJours">
+              <div class="detail-section-title">Règles</div>
+              <div class="detail-row">
+                <div class="detail-item" *ngIf="c.reservationEnGroupe">
+                  <div class="detail-label"><i class="fas fa-users"></i> Groupe</div>
+                  <div class="detail-value">{{ c.capaciteMinPersonnes }} – {{ c.capaciteMaxPersonnes }} pers.</div>
+                </div>
+                <div class="detail-item" *ngIf="c.annulationHeures">
+                  <div class="detail-label"><i class="fas fa-ban"></i> Annulation</div>
+                  <div class="detail-value">Avant {{ c.annulationHeures }}h</div>
+                </div>
+                <div class="detail-item" *ngIf="c.avanceReservationJours">
+                  <div class="detail-label"><i class="fas fa-calendar-alt"></i> Avance max</div>
+                  <div class="detail-value">{{ c.avanceReservationJours }} jours</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Ressources (RESSOURCE_PARTAGEE / HYBRIDE) -->
+            <div class="detail-section" *ngIf="c.ressourceObligatoire">
+              <div class="detail-section-title">
+                <i class="fas fa-layer-group" style="color:var(--accent);margin-right:6px"></i>
+                Ressources disponibles
+                <span class="ressource-count">{{ detailRessources.length }}</span>
+              </div>
+              <div class="ressource-blocs">
+                <div class="ressource-bloc" *ngFor="let r of detailRessources" [class.archived]="r.archived">
+                  <div class="ressource-bloc-icon"><i class="fas fa-cube"></i></div>
+                  <div class="ressource-bloc-info">
+                    <div class="ressource-bloc-nom">{{ r.nom }}</div>
+                    <div class="ressource-bloc-meta">
+                      <span><i class="fas fa-users"></i> {{ r.capacite }} pers.</span>
+                      <span *ngIf="r.description" class="ressource-bloc-desc">{{ r.description }}</span>
+                      <span *ngIf="r.archived" class="archived-chip"><i class="fas fa-archive"></i> Archivée</span>
+                    </div>
+                  </div>
+                </div>
+                <div *ngIf="detailRessources.length === 0" style="color:var(--text-muted);font-size:.85rem;padding:12px 0">
+                  Aucune ressource configurée
+                </div>
+              </div>
+            </div>
+          </ng-container>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDetail()">Fermer</button>
+          <button class="btn btn-info" (click)="closeDetail(); openEdit(detailService!)">
+            <i class="fas fa-pen"></i> Modifier
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ MODAL CRÉATION — ÉTAPE 1 : TYPE ═══ -->
     <div class="modal-overlay" *ngIf="showModal && step === 'type'" (click)="closeModal()">
       <div class="modal modal-type" (click)="$event.stopPropagation()">
         <div class="modal-header">
@@ -83,41 +173,36 @@ type ModalStep = 'type' | 'form';
         </div>
         <div class="modal-body">
           <div class="type-grid">
-
             <button class="type-card" (click)="selectType('EMPLOYE_DEDIE')">
               <div class="type-card-icon type-employe"><i class="fas fa-user-tie"></i></div>
               <div class="type-card-label">Employé dédié</div>
               <div class="type-card-desc">Le client choisit un praticien spécifique</div>
               <div class="type-card-examples">Coiffure · Médecin · Esthétique</div>
             </button>
-
             <button class="type-card" (click)="selectType('RESSOURCE_PARTAGEE')">
               <div class="type-card-icon type-ressource"><i class="fas fa-layer-group"></i></div>
               <div class="type-card-label">Ressource partagée</div>
               <div class="type-card-desc">Le client réserve un espace ou équipement</div>
               <div class="type-card-examples">Padel · Tennis · Salle de sport</div>
             </button>
-
             <button class="type-card" (click)="selectType('FILE_ATTENTE_PURE')">
               <div class="type-card-icon type-file"><i class="fas fa-list-ol"></i></div>
               <div class="type-card-label">File d'attente pure</div>
               <div class="type-card-desc">Le client arrive et prend un numéro</div>
               <div class="type-card-examples">Pharmacie · Administration · Banque</div>
             </button>
-
             <button class="type-card" (click)="selectType('HYBRIDE')">
               <div class="type-card-icon type-hybride"><i class="fas fa-random"></i></div>
               <div class="type-card-label">Hybride</div>
               <div class="type-card-desc">Créneau + ressource + file d'attente</div>
               <div class="type-card-examples">Garage · Clinique · Laboratoire</div>
             </button>
-
           </div>
         </div>
       </div>
     </div>
 
-    <!-- ═══ MODAL — ÉTAPE 2 : FORMULAIRE ADAPTÉ AU TYPE ═══ -->
+    <!-- ═══ ÉTAPE 2 : FORMULAIRE ═══ -->
     <div class="modal-overlay" *ngIf="showModal && step === 'form'" (click)="closeModal()">
       <div class="modal modal-lg" (click)="$event.stopPropagation()">
         <div class="modal-header">
@@ -132,11 +217,8 @@ type ModalStep = 'type' | 'form';
           </div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
-
         <form [formGroup]="form" (ngSubmit)="save()">
           <div class="modal-body">
-
-            <!-- INFOS DE BASE — commun à tous les types -->
             <div class="section-title">Informations générales</div>
             <div class="form-group">
               <label class="form-label">Nom du service *</label>
@@ -157,9 +239,28 @@ type ModalStep = 'type' | 'form';
                 <label class="form-label">Tarif (DT) <span class="optional">optionnel</span></label>
                 <input formControlName="tarif" type="number" step="0.01" class="form-control" placeholder="Laisser vide si gratuit">
               </div>
+              <div class="form-group" *ngIf="form.get('tarif')?.value != null && selectedType === 'RESSOURCE_PARTAGEE'">
+                <label class="form-label">Mode de tarification</label>
+                <div style="display:flex;gap:8px;margin-top:4px">
+                  <button type="button"
+                    [class]="!form.get('tarifParPersonne')?.value ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
+                    (click)="form.get('tarifParPersonne')?.setValue(false)">
+                    <i class="fas fa-tag"></i> Tarif fixe
+                  </button>
+                  <button type="button"
+                    [class]="form.get('tarifParPersonne')?.value ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
+                    (click)="form.get('tarifParPersonne')?.setValue(true)">
+                    <i class="fas fa-users"></i> Tarif × personnes
+                  </button>
+                </div>
+                <small style="color:var(--text-muted);font-size:.75rem;margin-top:4px;display:block">
+                  {{ form.get('tarifParPersonne')?.value
+                    ? 'Prix = ' + (form.get('tarif')?.value || 0) + ' DT × nombre de personnes'
+                    : 'Prix fixe = ' + (form.get('tarif')?.value || 0) + ' DT par réservation' }}
+                </small>
+              </div>
             </div>
 
-            <!-- RESSOURCE_PARTAGEE — capacité groupe -->
             <ng-container *ngIf="selectedType === 'RESSOURCE_PARTAGEE'">
               <div class="section-title">Capacité par réservation</div>
               <div class="form-row">
@@ -174,16 +275,12 @@ type ModalStep = 'type' | 'form';
                     [class.is-invalid]="form.get('capaciteMaxPersonnes')?.invalid && form.get('capaciteMaxPersonnes')?.touched">
                 </div>
               </div>
-
-              <!-- ══ SECTION RESSOURCES INLINE (création uniquement) ══ -->
               <ng-container *ngIf="!editingService">
                 <div class="section-title" style="margin-top:18px">
                   <i class="fas fa-layer-group" style="margin-right:6px;color:var(--accent)"></i>
                   Ressources (terrains, salles…)
                   <span style="margin-left:6px;font-size:.75rem;color:var(--danger);font-weight:600;text-transform:none;letter-spacing:0">* obligatoire — au moins 1</span>
                 </div>
-
-                <!-- liste des ressources déjà ajoutées -->
                 <div class="inline-ressources-list" *ngIf="inlineRessources.length > 0">
                   <div class="inline-ressource-item" *ngFor="let r of inlineRessources; let i = index">
                     <div class="inline-ressource-info">
@@ -191,21 +288,17 @@ type ModalStep = 'type' | 'form';
                       <span class="inline-ressource-cap"><i class="fas fa-users"></i> {{ r.capacite }}</span>
                       <span *ngIf="r.description" class="inline-ressource-desc">{{ r.description }}</span>
                     </div>
-                    <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeInlineRessource(i)" title="Supprimer">
+                    <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeInlineRessource(i)">
                       <i class="fas fa-times"></i>
                     </button>
                   </div>
                 </div>
-
-                <!-- ⚠️ Avertissement ressource obligatoire -->
-                <div *ngIf="inlineRessources.length === 0 && !editingService"
+                <div *ngIf="inlineRessources.length === 0"
                   style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:10px;margin-bottom:10px;font-size:.82rem;color:#f87171">
                   <i class="fas fa-exclamation-circle" style="font-size:1rem;flex-shrink:0"></i>
-                  <span><strong>Au moins une ressource est obligatoire</strong> pour ce type de service (terrain, salle, équipement…)</span>
+                  <span><strong>Au moins une ressource est obligatoire</strong> pour ce type de service</span>
                 </div>
-
-                <!-- formulaire ajout ressource inline -->
-                <div class="inline-add-ressource" [class.open]="showInlineRessourceForm">
+                <div class="inline-add-ressource">
                   <ng-container *ngIf="!showInlineRessourceForm">
                     <button type="button" class="btn btn-secondary btn-add-ressource" (click)="showInlineRessourceForm=true">
                       <i class="fas fa-plus"></i> Ajouter une ressource
@@ -240,7 +333,6 @@ type ModalStep = 'type' | 'form';
               </ng-container>
             </ng-container>
 
-            <!-- RÈGLES — commun sauf FILE_ATTENTE_PURE -->
             <ng-container *ngIf="selectedType !== 'FILE_ATTENTE_PURE'">
               <div class="section-title">Règles de réservation</div>
               <div class="form-row">
@@ -257,31 +349,20 @@ type ModalStep = 'type' | 'form';
               </div>
             </ng-container>
 
-            <!-- RÉCAPITULATIF CONFIG AUTO -->
             <div class="config-auto">
               <div class="config-auto-title"><i class="fas fa-magic"></i> Configuration automatique</div>
               <div class="config-auto-flags">
-                <div class="auto-flag" [class.active]="autoFlags.employeObligatoire">
-                  <i class="fas fa-user-tie"></i> Employé obligatoire
-                </div>
-                <div class="auto-flag" [class.active]="autoFlags.ressourceObligatoire">
-                  <i class="fas fa-layer-group"></i> Ressource obligatoire
-                </div>
-                <div class="auto-flag" [class.active]="autoFlags.reservationEnGroupe">
-                  <i class="fas fa-users"></i> Réservation en groupe
-                </div>
-                <div class="auto-flag" [class.active]="autoFlags.fileAttenteActive">
-                  <i class="fas fa-list-ol"></i> File d'attente active
-                </div>
+                <div class="auto-flag" [class.active]="autoFlags.employeObligatoire"><i class="fas fa-user-tie"></i> Employé obligatoire</div>
+                <div class="auto-flag" [class.active]="autoFlags.ressourceObligatoire"><i class="fas fa-layer-group"></i> Ressource obligatoire</div>
+                <div class="auto-flag" [class.active]="autoFlags.reservationEnGroupe"><i class="fas fa-users"></i> Réservation en groupe</div>
+                <div class="auto-flag" [class.active]="autoFlags.fileAttenteActive"><i class="fas fa-list-ol"></i> File d'attente active</div>
               </div>
             </div>
-
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
             <button type="submit" class="btn btn-primary"
-              [disabled]="loading || (selectedType === 'RESSOURCE_PARTAGEE' && !editingService && inlineRessources.length === 0)"
-              [title]="selectedType === 'RESSOURCE_PARTAGEE' && !editingService && inlineRessources.length === 0 ? 'Ajoutez au moins une ressource' : ''">
+              [disabled]="loading || (selectedType === 'RESSOURCE_PARTAGEE' && !editingService && inlineRessources.length === 0)">
               <span *ngIf="loading"><i class="fas fa-spinner fa-spin"></i> Enregistrement...</span>
               <span *ngIf="!loading"><i class="fas fa-save"></i> {{ editingService ? 'Modifier' : 'Créer le service' }}</span>
             </button>
@@ -300,15 +381,9 @@ type ModalStep = 'type' | 'form';
         <div class="modal-body">
           <form [formGroup]="ressourceForm" (ngSubmit)="saveRessource()" class="ressource-add-form">
             <div class="form-row">
-              <div class="form-group" style="flex:2">
-                <input formControlName="nom" class="form-control" placeholder="Nom (ex: Terrain 1)">
-              </div>
-              <div class="form-group" style="flex:1">
-                <input formControlName="capacite" type="number" class="form-control" placeholder="Capacité">
-              </div>
-              <div class="form-group" style="flex:1">
-                <input formControlName="description" class="form-control" placeholder="Description">
-              </div>
+              <div class="form-group" style="flex:2"><input formControlName="nom" class="form-control" placeholder="Nom (ex: Terrain 1)"></div>
+              <div class="form-group" style="flex:1"><input formControlName="capacite" type="number" class="form-control" placeholder="Capacité"></div>
+              <div class="form-group" style="flex:1"><input formControlName="description" class="form-control" placeholder="Description"></div>
               <button type="submit" class="btn btn-primary" [disabled]="loadingRessource"><i class="fas fa-plus"></i></button>
             </div>
           </form>
@@ -324,9 +399,7 @@ type ModalStep = 'type' | 'form';
                 <button *ngIf="r.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiverRessource(r)"><i class="fas fa-undo"></i></button>
               </div>
             </div>
-            <div class="empty-state" *ngIf="ressources.length === 0">
-              <i class="fas fa-layer-group"></i><p>Aucune ressource — ajoutez-en ci-dessus</p>
-            </div>
+            <div class="empty-state" *ngIf="ressources.length === 0"><i class="fas fa-layer-group"></i><p>Aucune ressource</p></div>
           </div>
         </div>
       </div>
@@ -335,11 +408,6 @@ type ModalStep = 'type' | 'form';
   </div>`,
   styles: [`
     .ressource-btn { display:flex;align-items:center;gap:5px;padding:4px 10px;font-size:.78rem;font-weight:600;border-radius:var(--radius-md);white-space:nowrap; }
-    .dup-overlay { position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;display:flex;align-items:center;justify-content:center; }
-    .dup-popup { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px 28px;text-align:center;max-width:340px;width:90%;box-shadow:0 20px 60px rgba(0,0,0,.4); }
-    .dup-icon { font-size:2.4rem;margin-bottom:12px; }
-    .dup-title { font-size:1.1rem;font-weight:700;margin-bottom:8px; }
-    .dup-msg { font-size:.875rem;color:var(--text-muted);margin-bottom:20px;line-height:1.5; }
     .services-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px; }
     .service-card { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;transition:all .25s; }
     .service-card:hover { border-color:var(--accent);box-shadow:var(--shadow-accent); }
@@ -355,12 +423,36 @@ type ModalStep = 'type' | 'form';
     .badge-flag { font-size:.72rem;padding:3px 8px;background:var(--accent-glow);border:1px solid rgba(240,165,0,.25);border-radius:20px;color:var(--text-secondary); }
     .badge-flag i { color:var(--accent);margin-right:3px; }
     .no-config { font-size:.75rem;color:var(--danger);margin-top:8px;padding-top:8px;border-top:1px solid var(--border); }
-    .no-config i { margin-right:4px; }
     .type-badge { display:inline-flex;align-items:center;gap:5px;font-size:.72rem;font-weight:600;padding:4px 10px;border-radius:20px; }
     .type-employe_dedie { background:rgba(99,102,241,.15);color:#818cf8;border:1px solid rgba(99,102,241,.3); }
     .type-ressource_partagee { background:rgba(16,185,129,.15);color:#34d399;border:1px solid rgba(16,185,129,.3); }
     .type-file_attente_pure { background:rgba(245,158,11,.15);color:#fbbf24;border:1px solid rgba(245,158,11,.3); }
     .type-hybride { background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3); }
+    /* DETAIL MODAL */
+    .modal-detail { max-width:520px; }
+    .detail-section { padding:14px 0;border-bottom:1px solid var(--border); }
+    .detail-section:last-child { border-bottom:none; }
+    .detail-section-title { font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);margin-bottom:12px; }
+    .detail-desc { font-size:.875rem;color:var(--text-secondary);margin-bottom:14px;line-height:1.6; }
+    .detail-row { display:flex;gap:20px;flex-wrap:wrap; }
+    .detail-item { display:flex;flex-direction:column;gap:4px;min-width:100px; }
+    .detail-label { font-size:.75rem;color:var(--text-muted);font-weight:600; }
+    .detail-label i { margin-right:4px; }
+    .detail-value { font-size:.95rem;font-weight:600;color:var(--text-primary); }
+    /* RESSOURCE BLOCS */
+    .ressource-count { display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:var(--accent-glow);border:1px solid rgba(240,165,0,.3);font-size:.72rem;font-weight:700;color:var(--accent);margin-left:6px; }
+    .ressource-blocs { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px; }
+    .ressource-bloc { display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);transition:border-color .2s; }
+    .ressource-bloc:hover { border-color:var(--accent); }
+    .ressource-bloc.archived { opacity:.5;border-style:dashed; }
+    .ressource-bloc-icon { width:34px;height:34px;border-radius:var(--radius-sm);background:rgba(16,185,129,.15);color:#34d399;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0; }
+    .ressource-bloc-info { display:flex;flex-direction:column;gap:3px;min-width:0; }
+    .ressource-bloc-nom { font-weight:700;font-size:.85rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
+    .ressource-bloc-meta { display:flex;flex-wrap:wrap;gap:6px;font-size:.75rem;color:var(--text-muted); }
+    .ressource-bloc-meta i { margin-right:2px; }
+    .ressource-bloc-desc { color:var(--text-muted); }
+    .archived-chip { font-size:.7rem;padding:1px 6px;background:rgba(156,163,175,.15);border-radius:10px;color:var(--text-muted); }
+    /* MODAL common */
     .modal-type { max-width:640px; }
     .type-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
     .type-card { background:var(--bg-secondary);border:2px solid var(--border);border-radius:var(--radius-lg);padding:20px;cursor:pointer;transition:all .2s;text-align:left;width:100%; }
@@ -386,10 +478,8 @@ type ModalStep = 'type' | 'form';
     .config-auto-title { font-size:.8rem;font-weight:600;color:var(--text-muted);margin-bottom:10px; }
     .config-auto-flags { display:grid;grid-template-columns:1fr 1fr;gap:8px; }
     .auto-flag { display:flex;align-items:center;gap:8px;font-size:.8rem;padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);color:var(--text-muted);transition:all .2s; }
-    .auto-flag i { font-size:.85rem; }
     .auto-flag.active { background:var(--accent-glow);border-color:rgba(240,165,0,.3);color:var(--text-primary); }
     .auto-flag.active i { color:var(--accent); }
-    /* Ressources inline */
     .btn-add-ressource { display:flex;align-items:center;gap:6px;font-size:.8rem;padding:7px 14px;border-radius:var(--radius-md);border-style:dashed;width:100%;justify-content:center;margin-top:8px; }
     .inline-ressources-list { display:flex;flex-direction:column;gap:6px;margin-bottom:8px; }
     .inline-ressource-item { display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md); }
@@ -399,7 +489,6 @@ type ModalStep = 'type' | 'form';
     .inline-ressource-cap,.inline-ressource-desc { color:var(--text-muted);font-size:.78rem; }
     .inline-ressource-form { background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px;margin-top:8px; }
     .inline-ressource-actions { display:flex;gap:8px;justify-content:flex-end;margin-top:10px; }
-    /* Panel ressources */
     .ressource-add-form .form-row { align-items:flex-end;gap:8px; }
     .ressource-add-form .form-group { margin-bottom:0; }
     .ressources-list { margin-top:16px;display:flex;flex-direction:column;gap:8px; }
@@ -411,41 +500,44 @@ type ModalStep = 'type' | 'form';
   `]
 })
 export class GerantServicesComponent implements OnInit {
-  private api   = inject(ApiService);
-  private toast = inject(ToastService);
-  private fb    = inject(FormBuilder);
+  private api      = inject(ApiService);
+  private toast    = inject(ToastService);
+  private fb       = inject(FormBuilder);
   private renderer = inject(Renderer2);
 
-  services: ServiceResponse[]           = [];
-  showArchived = false;
-  showDuplicatePopup = false;
-  showArchivedPopup  = false;
-  archivedServiceId: number | null = null;
+  services:  ServiceResponse[]                   = [];
+  configs:   Map<number, ConfigServiceResponse>  = new Map();
+  ressources: RessourceResponse[]                = [];
+  selectedService:  ServiceResponse | null       = null;
+  editingService:   ServiceResponse | null       = null;
 
-  get displayedServices(): ServiceResponse[] {
-    return this.showArchived ? this.services : this.services.filter(s => !s.archived);
-  }
-  configs:  Map<number, ConfigServiceResponse> = new Map();
-  ressources: RessourceResponse[]       = [];
-  selectedService: ServiceResponse | null = null;
-  editingService:  ServiceResponse | null = null;
+  // Detail modal
+  showDetail       = false;
+  detailService:   ServiceResponse | null        = null;
+  detailRessources: RessourceResponse[]          = [];
 
+  showArchived     = false;
   showModal        = false;
   showRessourcePanel = false;
   step: ModalStep  = 'type';
   selectedType: TypeService | null = null;
-  loading         = false;
+  loading          = false;
   loadingRessource = false;
+  archivedServiceId: number | null = null;
 
-  // Ressources inline (pour création RESSOURCE_PARTAGEE)
   inlineRessources: { nom: string; description: string; capacite: number }[] = [];
   showInlineRessourceForm = false;
+
+  get displayedServices(): ServiceResponse[] {
+    return this.showArchived ? this.services : this.services.filter(s => !s.archived);
+  }
 
   form = this.fb.group({
     nom:                    ['', Validators.required],
     description:            [''],
     dureeMinutes:           [null as number | null],
     tarif:                  [null as number | null],
+    tarifParPersonne:       [false],
     capaciteMinPersonnes:   [null as number | null],
     capaciteMaxPersonnes:   [null as number | null],
     annulationHeures:       [null as number | null],
@@ -453,41 +545,34 @@ export class GerantServicesComponent implements OnInit {
   });
 
   ressourceForm = this.fb.group({
-    nom:         ['', Validators.required],
-    description: [''],
-    capacite:    [1]
+    nom: ['', Validators.required], description: [''], capacite: [1]
   });
 
   inlineRessourceForm = this.fb.group({
-    nom:         ['', Validators.required],
-    description: [''],
-    capacite:    [1]
+    nom: ['', Validators.required], description: [''], capacite: [1]
   });
 
+  // ✅ FIX: RESSOURCE_PARTAGEE n'a PAS de file d'attente numérotée
   get autoFlags() {
     return {
-      employeObligatoire:  this.selectedType === 'EMPLOYE_DEDIE' || this.selectedType === 'HYBRIDE',
+      employeObligatoire:   this.selectedType === 'EMPLOYE_DEDIE' || this.selectedType === 'HYBRIDE',
       ressourceObligatoire: this.selectedType === 'RESSOURCE_PARTAGEE' || this.selectedType === 'HYBRIDE',
       reservationEnGroupe:  this.selectedType === 'RESSOURCE_PARTAGEE',
-      fileAttenteActive:    true  // RESSOURCE_PARTAGEE appartient aussi à la file d'attente
+      fileAttenteActive:    this.selectedType !== 'RESSOURCE_PARTAGEE'
     };
   }
 
   get nomPlaceholder(): string {
     const p: Partial<Record<TypeService, string>> = {
-      EMPLOYE_DEDIE:      'Ex: Coupe homme, Consultation médecin...',
-      RESSOURCE_PARTAGEE: 'Ex: Location terrain padel, Salle de sport...',
-      FILE_ATTENTE_PURE:  'Ex: Consultation pharmacie, Guichet admin...',
-      HYBRIDE:            'Ex: Vidange, Révision générale...'
+      EMPLOYE_DEDIE: 'Ex: Coupe homme, Consultation médecin...', RESSOURCE_PARTAGEE: 'Ex: Location terrain padel...',
+      FILE_ATTENTE_PURE: 'Ex: Consultation pharmacie...', HYBRIDE: 'Ex: Vidange, Révision générale...'
     };
     return this.selectedType ? (p[this.selectedType] ?? 'Nom du service') : 'Nom du service';
   }
 
   get dureePlaceholder(): string {
     const p: Partial<Record<TypeService, string>> = {
-      EMPLOYE_DEDIE:      '30 (coupe) / 90 (coloration)',
-      RESSOURCE_PARTAGEE: '90 (padel) / 60 (tennis)',
-      HYBRIDE:            '60 (vidange) / 120 (révision)'
+      EMPLOYE_DEDIE: '30 (coupe) / 90 (coloration)', RESSOURCE_PARTAGEE: '90 (padel) / 60 (tennis)', HYBRIDE: '60 (vidange)'
     };
     return this.selectedType ? (p[this.selectedType] ?? '30') : '30';
   }
@@ -508,33 +593,35 @@ export class GerantServicesComponent implements OnInit {
     return t ? (i[t] ?? 'fas fa-concierge-bell') : 'fas fa-concierge-bell';
   }
 
-  getConfig(serviceId: number): ConfigServiceResponse | undefined {
-    return this.configs.get(serviceId);
-  }
+  getConfig(id: number): ConfigServiceResponse | undefined { return this.configs.get(id); }
 
   ngOnInit(): void { this.load(); }
 
   load(): void {
     this.api.getServices().subscribe(services => {
       this.services = services;
-      services.forEach(s => {
-        this.api.getConfigService(s.id).subscribe({
-          next: c => this.configs.set(s.id, c),
-          error: () => {}
-        });
-      });
+      services.forEach(s => this.api.getConfigService(s.id).subscribe({ next: c => this.configs.set(s.id, c), error: () => {} }));
     });
   }
 
+  // ── DETAIL ──────────────────────────────────────────────────────────────────
+  openDetail(s: ServiceResponse): void {
+    this.detailService = s;
+    this.detailRessources = [];
+    const c = this.configs.get(s.id);
+    if (c?.ressourceObligatoire) {
+      this.api.getRessourcesByService(s.id).subscribe(r => this.detailRessources = r);
+    }
+    this.showDetail = true;
+  }
+
+  closeDetail(): void { this.showDetail = false; this.detailService = null; this.detailRessources = []; }
+
+  // ── CREATE / EDIT ────────────────────────────────────────────────────────────
   openCreate(): void {
-    this.editingService = null;
-    this.selectedType   = null;
-    this.form.reset();
-    this.inlineRessources = [];
-    this.showInlineRessourceForm = false;
-    this.inlineRessourceForm.reset({ capacite: 1 });
-    this.step      = 'type';
-    this.showModal = true;
+    this.editingService = null; this.selectedType = null;
+    this.form.reset(); this.inlineRessources = []; this.showInlineRessourceForm = false;
+    this.inlineRessourceForm.reset({ capacite: 1 }); this.step = 'type'; this.showModal = true;
   }
 
   selectType(t: TypeService): void {
@@ -542,21 +629,10 @@ export class GerantServicesComponent implements OnInit {
     const duree = this.form.get('dureeMinutes');
     const cMin  = this.form.get('capaciteMinPersonnes');
     const cMax  = this.form.get('capaciteMaxPersonnes');
-
-    duree?.clearValidators();
-    cMin?.clearValidators();
-    cMax?.clearValidators();
-
+    duree?.clearValidators(); cMin?.clearValidators(); cMax?.clearValidators();
     if (t !== 'FILE_ATTENTE_PURE') duree?.setValidators(Validators.required);
-    if (t === 'RESSOURCE_PARTAGEE') {
-      cMin?.setValidators(Validators.required);
-      cMax?.setValidators(Validators.required);
-    }
-
-    duree?.updateValueAndValidity();
-    cMin?.updateValueAndValidity();
-    cMax?.updateValueAndValidity();
-
+    if (t === 'RESSOURCE_PARTAGEE') { cMin?.setValidators(Validators.required); cMax?.setValidators(Validators.required); }
+    duree?.updateValueAndValidity(); cMin?.updateValueAndValidity(); cMax?.updateValueAndValidity();
     this.step = 'form';
   }
 
@@ -564,235 +640,129 @@ export class GerantServicesComponent implements OnInit {
     this.editingService = s;
     const c = this.configs.get(s.id);
     this.selectedType = c?.typeService ?? null;
-
     if (this.selectedType) this.selectType(this.selectedType);
-
     this.form.patchValue({
-      nom: s.nom, description: s.description ?? '',
-      dureeMinutes: s.dureeMinutes, tarif: s.tarif,
-      capaciteMinPersonnes: c?.capaciteMinPersonnes ?? null,
-      capaciteMaxPersonnes: c?.capaciteMaxPersonnes ?? null,
-      annulationHeures: c?.annulationHeures ?? null,
-      avanceReservationJours: c?.avanceReservationJours ?? null
+      nom: s.nom, description: s.description ?? '', dureeMinutes: s.dureeMinutes, tarif: s.tarif,
+      capaciteMinPersonnes: c?.capaciteMinPersonnes ?? null, capaciteMaxPersonnes: c?.capaciteMaxPersonnes ?? null,
+      annulationHeures: c?.annulationHeures ?? null, avanceReservationJours: c?.avanceReservationJours ?? null,
+      tarifParPersonne: c?.tarifParPersonne ?? false
     });
-
-    this.step      = 'form';
-    this.showModal = true;
+    this.step = 'form'; this.showModal = true;
   }
 
-  // Ressources inline
   addInlineRessource(): void {
     this.inlineRessourceForm.markAllAsTouched();
     if (this.inlineRessourceForm.invalid) return;
     const v = this.inlineRessourceForm.getRawValue();
     this.inlineRessources.push({ nom: v.nom!, description: v.description || '', capacite: v.capacite ?? 1 });
-    this.inlineRessourceForm.reset({ capacite: 1 });
-    this.showInlineRessourceForm = false;
+    this.inlineRessourceForm.reset({ capacite: 1 }); this.showInlineRessourceForm = false;
   }
 
-  removeInlineRessource(index: number): void {
-    this.inlineRessources.splice(index, 1);
-  }
-
-  cancelInlineRessource(): void {
-    this.inlineRessourceForm.reset({ capacite: 1 });
-    this.showInlineRessourceForm = false;
-  }
-
-  openBodyDialog(type: 'duplicate' | 'archived', customMsg?: string): void {
-    const overlay = this.renderer.createElement('div');
-    this.renderer.setStyle(overlay, 'position', 'fixed');
-    this.renderer.setStyle(overlay, 'inset', '0');
-    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)');
-    this.renderer.setStyle(overlay, 'z-index', '99999');
-    this.renderer.setStyle(overlay, 'display', 'flex');
-    this.renderer.setStyle(overlay, 'align-items', 'center');
-    this.renderer.setStyle(overlay, 'justify-content', 'center');
-    const box = this.renderer.createElement('div');
-    this.renderer.setStyle(box, 'background', '#1e1e2e');
-    this.renderer.setStyle(box, 'border', '1px solid rgba(255,255,255,0.1)');
-    this.renderer.setStyle(box, 'border-radius', '16px');
-    this.renderer.setStyle(box, 'padding', '36px 32px');
-    this.renderer.setStyle(box, 'text-align', 'center');
-    this.renderer.setStyle(box, 'max-width', '380px');
-    this.renderer.setStyle(box, 'width', '90%');
-    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)');
-    this.renderer.setStyle(box, 'font-family', 'inherit');
-    const close = () => this.renderer.removeChild(document.body, overlay);
-    if (type === 'duplicate') {
-      const msg = customMsg || 'Un service identique (même nom, durée, tarif) est déjà actif dans votre entreprise.';
-      box.innerHTML = `
-        <div style="font-size:2.5rem;margin-bottom:14px">⚠️</div>
-        <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service déjà existant</div>
-        <div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">${msg}</div>
-        <button id="dup-ok" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer">OK</button>
-      `;
-    } else {
-      box.innerHTML = `
-        <div style="font-size:2.5rem;margin-bottom:14px">📦</div>
-        <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service archivé</div>
-        <div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">
-          Ce service existe déjà mais est archivé.<br>Voulez-vous le <strong style="color:#f59e0b">désarchiver</strong> ?
-        </div>
-        <div style="display:flex;gap:10px;justify-content:center">
-          <button id="arch-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:10px 20px;border-radius:8px;font-size:.9rem;cursor:pointer">Annuler</button>
-          <button id="arch-ok" style="background:#f59e0b;color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer">✦ Désarchiver</button>
-        </div>
-      `;
-    }
-    this.renderer.appendChild(overlay, box);
-    this.renderer.appendChild(document.body, overlay);
-    if (type === 'duplicate') {
-      box.querySelector('#dup-ok')!.addEventListener('click', close);
-    } else {
-      box.querySelector('#arch-cancel')!.addEventListener('click', close);
-      box.querySelector('#arch-ok')!.addEventListener('click', () => {
-        close();
-        this.confirmDesarchiver();
-      });
-    }
-    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
-  }
-
-  confirmDesarchiver(): void {
-    if (!this.archivedServiceId) return;
-    this.api.desarchiverService(this.archivedServiceId).subscribe({
-      next: () => {
-        this.toast.success('Service désarchivé !');
-        this.load();
-      },
-      error: () => this.toast.error('Erreur lors du désarchivage')
-    });
-  }
+  removeInlineRessource(index: number): void { this.inlineRessources.splice(index, 1); }
+  cancelInlineRessource(): void { this.inlineRessourceForm.reset({ capacite: 1 }); this.showInlineRessourceForm = false; }
 
   closeModal(): void {
-    this.showModal      = false;
-    this.editingService = null;
-    this.selectedType   = null;
-    this.form.reset();
-    this.inlineRessources = [];
-    this.showInlineRessourceForm = false;
+    this.showModal = false; this.editingService = null; this.selectedType = null;
+    this.form.reset(); this.inlineRessources = []; this.showInlineRessourceForm = false;
     this.inlineRessourceForm.reset({ capacite: 1 });
   }
 
   save(): void {
     if (this.form.invalid || !this.selectedType) { this.form.markAllAsTouched(); return; }
-
-    // ── RESSOURCE_PARTAGEE : au moins 1 ressource obligatoire ──
     if (!this.editingService && this.selectedType === 'RESSOURCE_PARTAGEE' && this.inlineRessources.length === 0) {
-      this.toast.error('Veuillez ajouter au moins une ressource (terrain, salle…) avant de créer ce service.');
-      return;
+      this.toast.error('Veuillez ajouter au moins une ressource.'); return;
     }
-
     this.loading = true;
     const v = this.form.getRawValue();
     const flags = this.autoFlags;
-    console.log('[DEBUG save()] selectedType:', this.selectedType, '| editingService:', !!this.editingService, '| inlineRessources:', JSON.stringify(this.inlineRessources));
-
-    const serviceBody: any = {
-      nom: v.nom!, description: v.description || '',
-      dureeMinutes: v.dureeMinutes ?? 0, tarif: v.tarif ?? null,
-      typeService: this.selectedType
-    };
-
-    // Envoyer les ressources inline dans le body (le backend les crée atomiquement)
-    if (!this.editingService && this.selectedType === 'RESSOURCE_PARTAGEE') {
-      serviceBody.ressources = this.inlineRessources;
-    }
-
+    const serviceBody: any = { nom: v.nom!, description: v.description || '', dureeMinutes: v.dureeMinutes ?? 0, tarif: v.tarif ?? null, typeService: this.selectedType };
+    if (!this.editingService && this.selectedType === 'RESSOURCE_PARTAGEE') serviceBody.ressources = this.inlineRessources;
     const configBody = {
-      typeService:            this.selectedType,
-      dureeMinutes:           v.dureeMinutes,
-      capaciteMinPersonnes:   v.capaciteMinPersonnes,
-      capaciteMaxPersonnes:   v.capaciteMaxPersonnes,
-      ressourceObligatoire:   flags.ressourceObligatoire,
-      employeObligatoire:     flags.employeObligatoire,
-      reservationEnGroupe:    flags.reservationEnGroupe,
-      fileAttenteActive:      flags.fileAttenteActive,
-      annulationHeures:       v.annulationHeures,
-      avanceReservationJours: v.avanceReservationJours
+      typeService: this.selectedType, dureeMinutes: v.dureeMinutes,
+      capaciteMinPersonnes: v.capaciteMinPersonnes, capaciteMaxPersonnes: v.capaciteMaxPersonnes,
+      ...flags, annulationHeures: v.annulationHeures, avanceReservationJours: v.avanceReservationJours,
+      tarifParPersonne: v.tarifParPersonne ?? false
     };
 
-    // ── Vérification doublon côté frontend (avant appel API) ──
     if (!this.editingService && this.selectedType !== 'RESSOURCE_PARTAGEE') {
       const doublon = this.services.find(s =>
         s.nom.trim().toLowerCase() === (v.nom || '').trim().toLowerCase() &&
-        s.dureeMinutes === (v.dureeMinutes ?? 0) &&
-        String(s.tarif ?? '') === String(v.tarif ?? '')
+        s.dureeMinutes === (v.dureeMinutes ?? 0) && String(s.tarif ?? '') === String(v.tarif ?? '')
       );
       if (doublon) {
-        this.loading = false;
-        this.closeModal();
-        if (!doublon.archived) {
-          this.openBodyDialog('duplicate');
-        } else {
-          this.archivedServiceId = doublon.id;
-          this.openBodyDialog('archived');
-        }
+        this.loading = false; this.closeModal();
+        doublon.archived ? (() => { this.archivedServiceId = doublon.id; this.openBodyDialog('archived'); })() : this.openBodyDialog('duplicate');
         return;
       }
     }
 
     if (this.editingService) {
       this.api.updateService(this.editingService.id, serviceBody).subscribe({
-        next: (s) => {
-          const fullConfig = { ...configBody, serviceId: s.id };
-          this.api.saveConfigService(fullConfig as any).subscribe({
-            next: () => { this.toast.success('Service modifié !'); this.load(); this.closeModal(); this.loading = false; },
-            error: () => { this.toast.error('Erreur config'); this.loading = false; }
-          });
-        },
+        next: (s) => this.api.saveConfigService({ ...configBody, serviceId: s.id } as any).subscribe({
+          next: () => { this.toast.success('Service modifié !'); this.load(); this.closeModal(); this.loading = false; },
+          error: () => { this.toast.error('Config échouée'); this.loading = false; }
+        }),
         error: () => { this.toast.error('Erreur'); this.loading = false; }
       });
     } else {
-      console.log('[DEBUG] serviceBody envoyé:', JSON.stringify(serviceBody));
       this.api.createService(serviceBody).subscribe({
         next: (s) => {
           const finish = () => { this.toast.success('Service créé !'); this.load(); this.closeModal(); this.loading = false; };
-          // RESSOURCE_PARTAGEE : le back crée config + ressources atomiquement → on saute saveConfigService
-          if (this.selectedType === 'RESSOURCE_PARTAGEE') {
-            finish();
-            return;
-          }
-          const fullConfig = { ...configBody, serviceId: s.id };
-          this.api.saveConfigService(fullConfig as any).subscribe({
+          if (this.selectedType === 'RESSOURCE_PARTAGEE') { finish(); return; }
+          this.api.saveConfigService({ ...configBody, serviceId: s.id } as any).subscribe({
             next: () => finish(),
-            error: () => { this.toast.error('Service créé mais config échouée'); this.load(); this.closeModal(); this.loading = false; }
+            error: () => { this.toast.error('Config échouée'); this.loading = false; }
           });
         },
         error: (err) => {
           this.closeModal();
-          if (err?.status === 409) {
-            const errMsg = err?.error?.message || (typeof err?.error === 'string' ? err?.error : null);
-            this.openBodyDialog('duplicate', errMsg || undefined);
-          } else if (err?.status === 410) {
-            const body = err?.error || '';
-            const fullStr = JSON.stringify(body) + (err?.message || '');
-            const match = fullStr.match(/ARCHIVED:(\d+)/);
-            this.archivedServiceId = match ? +match[1] : null;
-            console.log('[410] body:', body, '| archivedServiceId:', this.archivedServiceId);
-            this.openBodyDialog('archived');
-          } else {
-            this.toast.error('Erreur lors de la création');
-          }
+          if (err?.status === 409) { const m = err?.error?.message || null; this.openBodyDialog('duplicate', m || undefined); }
+          else if (err?.status === 410) {
+            const match = (JSON.stringify(err?.error || '') + (err?.message || '')).match(/ARCHIVED:(\d+)/);
+            this.archivedServiceId = match ? +match[1] : null; this.openBodyDialog('archived');
+          } else this.toast.error('Erreur lors de la création');
           this.loading = false;
         }
       });
     }
   }
 
-  archiver(s: ServiceResponse): void {
-    this.api.archiverService(s.id).subscribe({ next: () => { this.toast.success('Archivé'); this.load(); }, error: () => this.toast.error('Erreur') });
-  }
-  desarchiver(s: ServiceResponse): void {
-    this.api.desarchiverService(s.id).subscribe({ next: () => { this.toast.success('Désarchivé'); this.load(); }, error: () => this.toast.error('Erreur') });
+  openBodyDialog(type: 'duplicate' | 'archived', customMsg?: string): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(255,255,255,0.1)');
+    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '36px 32px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '380px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    if (type === 'duplicate') {
+      box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:14px">⚠️</div><div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service déjà existant</div><div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">${customMsg || 'Un service identique existe déjà.'}</div><button id="dup-ok" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer">OK</button>`;
+    } else {
+      box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:14px">📦</div><div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service archivé</div><div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">Ce service existe déjà mais est archivé.<br>Voulez-vous le <strong style="color:#f59e0b">désarchiver</strong> ?</div><div style="display:flex;gap:10px;justify-content:center"><button id="arch-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:10px 20px;border-radius:8px;font-size:.9rem;cursor:pointer">Annuler</button><button id="arch-ok" style="background:#f59e0b;color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer">✦ Désarchiver</button></div>`;
+    }
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    if (type === 'duplicate') { box.querySelector('#dup-ok')!.addEventListener('click', close); }
+    else { box.querySelector('#arch-cancel')!.addEventListener('click', close); box.querySelector('#arch-ok')!.addEventListener('click', () => { close(); this.confirmDesarchiver(); }); }
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 
+  confirmDesarchiver(): void {
+    if (!this.archivedServiceId) return;
+    this.api.desarchiverService(this.archivedServiceId).subscribe({
+      next: () => { this.toast.success('Service désarchivé !'); this.load(); },
+      error: () => this.toast.error('Erreur lors du désarchivage')
+    });
+  }
+
+  archiver(s: ServiceResponse): void { this.api.archiverService(s.id).subscribe({ next: () => { this.toast.success('Archivé'); this.load(); }, error: () => this.toast.error('Erreur') }); }
+  desarchiver(s: ServiceResponse): void { this.api.desarchiverService(s.id).subscribe({ next: () => { this.toast.success('Désarchivé'); this.load(); }, error: () => this.toast.error('Erreur') }); }
+
   openRessourcePanel(s: ServiceResponse): void {
-    this.selectedService = s;
-    this.ressourceForm.reset({ capacite: 1 });
-    this.api.getRessourcesByService(s.id).subscribe(r => this.ressources = r);
-    this.showRessourcePanel = true;
+    this.selectedService = s; this.ressourceForm.reset({ capacite: 1 });
+    this.api.getRessourcesByService(s.id).subscribe(r => this.ressources = r); this.showRessourcePanel = true;
   }
   closeRessourcePanel(): void { this.showRessourcePanel = false; this.selectedService = null; this.ressources = []; }
 
@@ -805,10 +775,6 @@ export class GerantServicesComponent implements OnInit {
       error: () => { this.toast.error('Erreur'); this.loadingRessource = false; }
     });
   }
-  archiverRessource(r: RessourceResponse): void {
-    this.api.archiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') });
-  }
-  desarchiverRessource(r: RessourceResponse): void {
-    this.api.desarchiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') });
-  }
+  archiverRessource(r: RessourceResponse): void { this.api.archiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') }); }
+  desarchiverRessource(r: RessourceResponse): void { this.api.desarchiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') }); }
 }

@@ -111,31 +111,34 @@ export class GerantsComponent implements OnInit {
   }
 
   doCheckGerantEmail(): void {
-    if (!this.emailToCheck.trim()) return;
-    this.checking = true;
-    this.api.checkGerantEmail(this.emailToCheck.trim()).subscribe({
-      next: (res: any) => {
-        this.checking    = false;
-        this.checkResult = res;
-        const s = res.statut || res.status;
-        if (s === 'NOUVEAU') {
-          // Aucun compte → on peut créer
+  if (!this.emailToCheck.trim()) return;
+  this.checking = true;
+  this.api.checkGerantEmail(this.emailToCheck.trim()).subscribe({
+    next: (res: any) => {
+      this.checking    = false;
+      this.checkResult = res;
+      const s = res.statut || res.status;
+      switch (s) {
+        case 'NOUVEAU':
           this.createForm.patchValue({ email: this.emailToCheck.trim() });
           this.createStep = 'new-form';
-        } else if (s === 'OCCUPE') {
-          // Gérant actif déjà assigné à une entreprise
+          break;
+        case 'OCCUPE':
           this.createStep = 'email-occupe';
-        } else if (s === 'LIBRE') {
-          // Gérant archivé ou sans entreprise
+          break;
+        case 'LIBRE':
           this.createStep = 'email-libre';
-        } else {
-          // Autre rôle (client, employé, super-admin...)
+          break;
+        case 'EMAIL_OTHER_ROLE':
           this.createStep = 'email-other-role';
-        }
-      },
-      error: () => { this.checking = false; this.toast.error('Erreur lors de la vérification'); }
-    });
-  }
+          break;
+        default:
+          this.createStep = 'email-other-role';
+      }
+    },
+    error: () => { this.checking = false; this.toast.error('Erreur lors de la vérification'); }
+  });
+}
 
   onCreate(): void {
     if (this.createForm.invalid) { this.createForm.markAllAsTouched(); return; }
