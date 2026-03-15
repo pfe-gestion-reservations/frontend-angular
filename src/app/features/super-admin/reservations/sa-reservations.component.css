@@ -1,0 +1,110 @@
+/* ── Stats ─────────────────────────────────────────────── */
+.stat-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:12px; margin-bottom:16px; }
+.stat-value { font-size:1.5rem; font-weight:800; color:var(--text-primary); }
+.stat-label { font-size:.68rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+.stat-icon.indigo { background:rgba(99,102,241,.12); color:#818cf8; }
+.stat-icon.red    { background:rgba(239,68,68,.12);  color:#f87171; }
+
+/* ── Filtres ────────────────────────────────────────────── */
+.filters-card  { padding:14px 16px; margin-bottom:16px; }
+.filters-row   { display:flex; align-items:flex-end; gap:14px; flex-wrap:wrap; }
+.filter-group  { display:flex; flex-direction:column; gap:5px; }
+.filter-label  { font-size:.75rem; font-weight:600; color:var(--text-muted); }
+.filter-label i { margin-right:4px; }
+.filter-count  { font-size:.8rem; color:var(--primary); font-weight:600; margin-left:auto; padding:4px 0; }
+
+/* ── Table ──────────────────────────────────────────────── */
+.loading-state { text-align:center; padding:40px; color:var(--text-muted); }
+.loading-state i { margin-right:8px; }
+.id-cell { color:var(--text-muted); font-size:.78rem; font-weight:600; width:55px; }
+.person-cell { display:flex; align-items:center; gap:10px; }
+.avatar { width:34px; height:34px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:.7rem; font-weight:700; color:white; flex-shrink:0; }
+.person-name { font-weight:600; font-size:.875rem; }
+.person-sub  { font-size:.72rem; color:var(--text-muted); margin-top:1px; }
+.person-sub i { margin-right:3px; }
+.service-name { font-weight:600; font-size:.875rem; }
+.creneau-date { font-size:.8rem; font-weight:600; color:var(--text-primary); }
+.creneau-time { font-size:.75rem; color:var(--text-muted); }
+.creneau-date i, .creneau-time i { margin-right:4px; color:var(--accent); font-size:.68rem; }
+.ressource-cell { font-size:.82rem; color:#34d399; display:flex; align-items:center; gap:5px; }
+.employe-cell   { font-size:.82rem; color:#818cf8; display:flex; align-items:center; gap:5px; }
+.no-data { color:var(--text-muted); font-size:.82rem; }
+.prix    { font-weight:700; color:var(--accent); font-size:.875rem; }
+.gratuit { font-size:.78rem; color:var(--text-muted); font-style:italic; }
+.row-annulee td { opacity:.5; }
+.row-terminee td { opacity:.7; }
+.row-selected { background:var(--blue-50,#eff6ff) !important; }
+.row-clickable { cursor:pointer; transition:background .12s; }
+.row-clickable:hover { background:var(--gray-50,#f9fafb); }
+.row-actions { display:flex; gap:5px; }
+
+/* ── Statut badges ──────────────────────────────────────── */
+.statut-badge { display:inline-flex; align-items:center; padding:3px 9px; border-radius:20px; font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.03em; white-space:nowrap; }
+.statut-en_attente { background:rgba(245,158,11,.15); color:#fbbf24; }
+.statut-confirmee  { background:rgba(59,130,246,.15);  color:#60a5fa; }
+.statut-en_cours   { background:rgba(99,102,241,.15);  color:#818cf8; }
+.statut-annulee    { background:rgba(239,68,68,.15);   color:#f87171; }
+.statut-terminee   { background:rgba(16,185,129,.15);  color:#34d399; }
+.statut-badge.ml   { margin-left:10px; }
+
+/* ── Modal détail ───────────────────────────────────────── */
+.modal-detail { max-width:560px; }
+.detail-section { padding:14px 0; border-bottom:1px solid var(--border); }
+.detail-section:last-child { border-bottom:none; }
+.detail-section-title { font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--text-muted); margin-bottom:12px; display:flex; align-items:center; gap:6px; }
+.detail-row   { display:flex; gap:20px; flex-wrap:wrap; }
+.detail-item  { display:flex; flex-direction:column; gap:4px; min-width:110px; }
+.detail-label { font-size:.72rem; color:var(--text-muted); font-weight:600; }
+.detail-value { font-size:.9rem; font-weight:600; color:var(--text-primary); }
+.prix-big     { font-size:1.1rem; color:var(--accent); }
+.notes-block  { margin-top:12px; }
+.notes-text   { font-size:.85rem; color:var(--text-secondary); line-height:1.6; margin-top:5px; padding:10px 12px; background:var(--bg-secondary,#f8fafc); border:1px solid var(--border); border-radius:var(--radius-md); }
+.statut-btns  { display:flex; gap:8px; flex-wrap:wrap; margin-top:4px; }
+.statut-btn   { border:1.5px solid var(--border); background:var(--bg-secondary,#f8fafc); color:var(--text-secondary); font-size:.75rem; font-weight:600; padding:6px 12px; border-radius:20px; cursor:pointer; transition:all .15s; }
+.statut-btn:hover:not(:disabled) { border-color:var(--primary); color:var(--primary); background:var(--blue-50,#eff6ff); }
+.statut-btn:disabled { opacity:.4; cursor:not-allowed; }
+.statut-btn.active { background:var(--primary); color:white; border-color:var(--primary); }
+.statut-btn-annulee.active  { background:#ef4444; border-color:#ef4444; }
+.statut-btn-terminee.active { background:#10b981; border-color:#10b981; }
+.statut-btn-en_cours.active { background:#6366f1; border-color:#6366f1; }
+
+/* ── Modal formulaire ───────────────────────────────────── */
+.modal-form { max-width:620px; }
+.form-section { padding:14px 0; border-bottom:1px solid var(--border); }
+.form-section:last-child { border-bottom:none; }
+.form-section-title { display:flex; align-items:center; gap:8px; font-size:.8rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:14px; }
+.step-num { width:22px; height:22px; border-radius:50%; background:var(--primary); color:white; display:flex; align-items:center; justify-content:center; font-size:.72rem; font-weight:700; flex-shrink:0; }
+.section-disabled { opacity:.45; pointer-events:none; }
+.config-info { display:flex; align-items:center; gap:6px; flex-wrap:wrap; font-size:.78rem; color:var(--text-muted); background:var(--bg-secondary,#f8fafc); border:1px solid var(--border); border-radius:var(--radius-md); padding:8px 12px; margin-top:8px; }
+.config-info i { color:var(--primary); }
+.is-invalid { border-color:var(--danger) !important; }
+textarea.form-control { resize:vertical; min-height:60px; }
+
+/* ── Service cell dans table ──────────────────────────────── */
+.svc-cell { display:flex; align-items:center; gap:8px; }
+.svc-dot  { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+/* ── Service detail card (modale détail) ──────────────────── */
+.svc-detail-card { display:flex; border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; margin-top:6px; }
+.sdc-bar  { width:4px; flex-shrink:0; }
+.sdc-body { flex:1; padding:12px 14px; }
+.sdc-top  { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.sdc-icon { width:34px; height:34px; border-radius:var(--radius-md); display:flex; align-items:center; justify-content:center; font-size:.85rem; flex-shrink:0; }
+.sdc-name { font-weight:700; font-size:.9rem; color:var(--text-primary); margin-bottom:4px; }
+.sdc-type { display:inline-flex; align-items:center; font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:20px; border:1px solid; }
+.sdc-chips { display:flex; flex-wrap:wrap; gap:6px; }
+.sdc-chip  { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; padding:3px 8px; border-radius:20px; background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-muted); }
+.sdc-chip.active { background:rgba(240,165,0,.1); border-color:rgba(240,165,0,.3); color:var(--accent); }
+.sdc-chip i { font-size:.65rem; }
+
+/* ── Service preview card (modale form) ───────────────────── */
+.svc-preview-card { display:flex; border:1px solid var(--border); border-radius:var(--radius-md); overflow:hidden; margin-top:10px; }
+.spc-bar  { width:4px; flex-shrink:0; }
+.spc-body { flex:1; padding:10px 12px; display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.spc-left { display:flex; align-items:center; gap:8px; }
+.spc-icon { width:30px; height:30px; border-radius:var(--radius-sm); display:flex; align-items:center; justify-content:center; font-size:.8rem; flex-shrink:0; }
+.spc-type { display:inline-flex; align-items:center; font-size:.7rem; font-weight:700; padding:2px 8px; border-radius:20px; border:1px solid; }
+.spc-chips { display:flex; flex-wrap:wrap; gap:5px; }
+.spc-chip  { display:inline-flex; align-items:center; gap:4px; font-size:.72rem; padding:3px 8px; border-radius:20px; background:var(--bg-secondary); border:1px solid var(--border); color:var(--text-muted); }
+.spc-chip.active { background:rgba(240,165,0,.1); border-color:rgba(240,165,0,.3); color:var(--accent); }
+.spc-chip i { font-size:.65rem; }

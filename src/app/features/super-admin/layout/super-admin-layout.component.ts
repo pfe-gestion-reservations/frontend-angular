@@ -28,6 +28,8 @@ export class SuperAdminLayoutComponent {
     { label: 'Employés',        icon: 'fa-users-cog',      route: '/super-admin/employes' },
     { label: 'Services',        icon: 'fa-concierge-bell', route: '/super-admin/services' },
     { label: 'Disponibilités',  icon: 'fa-calendar-week',  route: '/super-admin/disponibilites' },
+    { label: 'File d\'attente', icon: 'fa-list-ol',        route: '/super-admin/file-attente' },
     { label: 'Clients',         icon: 'fa-user-friends',   route: '/super-admin/clients' },
+    { label: 'Réservations',    icon: 'fa-layer-group',    route: '/super-admin/reservations' }
   ];
 }

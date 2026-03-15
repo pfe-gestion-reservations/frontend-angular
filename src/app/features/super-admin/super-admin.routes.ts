@@ -14,7 +14,10 @@ export const superAdminRoutes: Routes = [
       { path: 'employes',       loadComponent: () => import('./employes/sa-employes.component').then(m => m.SaEmployesComponent) },
       { path: 'clients',        loadComponent: () => import('./clients/sa-clients.component').then(m => m.SaClientsComponent) },
       { path: 'services',       loadComponent: () => import('./services/sa-services.component').then(m => m.SaServicesComponent) },
-      { path: 'disponibilites', loadComponent: () => import('./disponibilites/sa-disponibilites.component').then(m => m.SaDisponibilitesComponent) }
+      { path: 'disponibilites', loadComponent: () => import('./disponibilites/sa-disponibilites.component').then(m => m.SaDisponibilitesComponent) },
+      { path: 'file-attente',   loadComponent: () => import('./file-attente/sa-file-attente.component').then(m => m.SaFileAttenteComponent) },
+      { path: 'reservations',   loadComponent: () => import('./reservations/sa-reservations.component').then(m => m.SaReservationsComponent)
+}
     ]
   }
 ];

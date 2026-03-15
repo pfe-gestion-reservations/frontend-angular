@@ -126,7 +126,7 @@ export class SaDisponibilitesComponent implements OnInit {
 
   loadServices(): void {
     this.api.getServices().subscribe((s: ServiceResponse[]) => {
-      this.services = s.filter(x => !x.archived);
+      this.services = s;
       this.services.forEach(svc => {
         this.api.getConfigService(svc.id).subscribe({ next: (c: ConfigServiceResponse) => this.configs.set(svc.id, c), error: () => {} });
       });
@@ -300,11 +300,7 @@ export class SaDisponibilitesComponent implements OnInit {
     const body = { serviceId: Number(v.serviceId), jour: v.jour as JourSemaine, heureDebut: v.heureDebut!, heureFin: v.heureFin! };
     (this.editing ? this.api.updateDispo(this.editing.id, body) : this.api.createDispo(body)).subscribe({
       next: () => { this.toast.success(this.editing ? 'Créneau modifié !' : 'Créneau ajouté !'); this.loadAllDispos(); this.closeModal(); this.loading = false; },
-      error: (err: any) => {
-        const msg = err?.error?.message || err?.error || 'Erreur';
-        this.toast.error(msg);
-        this.loading = false;
-      }
+      error: () => { this.toast.error('Erreur'); this.loading = false; }
     });
   }
 
@@ -316,28 +312,27 @@ export class SaDisponibilitesComponent implements OnInit {
     });
   }
 
+  // Vérifie chevauchement avec les créneaux existants du même service/jour
   getChevauchement(): string | null {
-  const serviceId = this.modalSelectedService?.id;
-  const jour = this.form.get('jour')?.value;
-  const debut = this.form.get('heureDebut')?.value;
-  const fin = this.form.get('heureFin')?.value;
-  if (!serviceId || !jour || !debut || !fin) return null;
+    const sid  = this.form.get('serviceId')?.value;
+    const jour = this.form.get('jour')?.value;
+    const debut = this.form.get('heureDebut')?.value;
+    const fin   = this.form.get('heureFin')?.value;
+    if (!sid || !jour || !debut || !fin) return null;
 
-  const toMins = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
-  const newD = toMins(debut), newF = toMins(fin);
-  if (newF <= newD) return null; // déjà géré par isCreneauValide
+    const toMin = (t: string) => { const [h, m] = t.split(':').map(Number); return h * 60 + m; };
+    const dMin = toMin(debut), fMin = toMin(fin);
+    if (fMin <= dMin) return null;
 
-  const conflicts = this.dispos.filter(d => {
-    if (d.serviceId !== serviceId) return false;
-    if (d.jour !== jour) return false;
-    if (this.editing && d.id === this.editing.id) return false;
-    const exD = toMins(d.heureDebut.substring(0,5));
-    const exF = toMins(d.heureFin.substring(0,5));
-    return newF > exD && newD < exF;
-  });
+    const doublon = this.dispos.find(d => {
+      if (d.serviceId !== Number(sid)) return false;
+      if (d.jour !== jour) return false;
+      if (this.editing && d.id === this.editing.id) return false;
+      return dMin < toMin(d.heureFin) && fMin > toMin(d.heureDebut);
+    });
 
-  if (!conflicts.length) return null;
-  const c = conflicts[0];
-  return `Chevauche le créneau ${this.fmt(c.heureDebut)} → ${this.fmt(c.heureFin)}`;
-}
+    return doublon
+      ? `Chevauchement avec le créneau ${this.fmt(doublon.heureDebut)}–${this.fmt(doublon.heureFin)}`
+      : null;
+  }
 }

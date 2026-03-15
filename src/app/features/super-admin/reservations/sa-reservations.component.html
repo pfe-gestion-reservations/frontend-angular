@@ -1,0 +1,441 @@
+<div>
+
+  <!-- ══ HEADER ══ -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        <div class="title-icon"><i class="fas fa-calendar-check"></i></div>
+        Réservations
+      </div>
+      <div class="page-subtitle">Gestion globale · {{ reservations.length }} réservation(s)</div>
+    </div>
+    <div class="hdr-right">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="searchQuery" placeholder="Client, service..." class="search-inp">
+      </div>
+      <button class="btn btn-secondary" (click)="loadAll()">
+        <i class="fas fa-sync"></i> Actualiser
+      </button>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <i class="fas fa-plus"></i> Nouvelle réservation
+      </button>
+    </div>
+  </div>
+
+  <!-- ══ STATS ══ -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-calendar-alt"></i></div>
+      <div><div class="stat-value">{{ reservations.length }}</div><div class="stat-label">Total</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fas fa-clock"></i></div>
+      <div><div class="stat-value">{{ countByStatut('EN_ATTENTE') }}</div><div class="stat-label">En attente</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon blue2"><i class="fas fa-check"></i></div>
+      <div><div class="stat-value">{{ countByStatut('CONFIRMEE') }}</div><div class="stat-label">Confirmées</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon indigo"><i class="fas fa-play-circle"></i></div>
+      <div><div class="stat-value">{{ countByStatut('EN_COURS') }}</div><div class="stat-label">En cours</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+      <div><div class="stat-value">{{ countByStatut('TERMINEE') }}</div><div class="stat-label">Terminées</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
+      <div><div class="stat-value">{{ countByStatut('ANNULEE') }}</div><div class="stat-label">Annulées</div></div>
+    </div>
+  </div>
+
+  <!-- ══ FILTRES ══ -->
+  <div class="card filters-card">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label class="filter-label"><i class="fas fa-filter"></i> Statut</label>
+        <select class="form-control" [(ngModel)]="filtreStatut">
+          <option value="">Tous</option>
+          <option *ngFor="let s of STATUTS" [value]="s">{{ statutLabel(s) }}</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label"><i class="fas fa-calendar"></i> Date</label>
+        <input type="date" class="form-control" [(ngModel)]="filtreDate">
+      </div>
+      <button class="btn btn-secondary btn-sm" (click)="resetFiltres()"
+        *ngIf="filtreStatut || filtreDate || searchQuery">
+        <i class="fas fa-times"></i> Réinitialiser
+      </button>
+      <span class="filter-count" *ngIf="filtered.length !== reservations.length">
+        {{ filtered.length }} résultat(s)
+      </span>
+    </div>
+  </div>
+
+  <!-- ══ TABLE ══ -->
+  <div class="card">
+    <div class="table-container">
+      <div class="loading-state" *ngIf="loading">
+        <i class="fas fa-spinner fa-spin"></i> Chargement...
+      </div>
+      <table *ngIf="!loading">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Client</th>
+            <th>Service</th>
+            <th>Créneau</th>
+            <th>Prix</th>
+            <th>Statut</th>
+            <th style="width:110px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let r of filtered"
+              class="row-clickable"
+              [class.row-annulee]="r.statut === 'ANNULEE'"
+              [class.row-terminee]="r.statut === 'TERMINEE'"
+              [class.row-selected]="selectedDetail?.id === r.id"
+              (click)="openDetail(r)">
+
+            <td class="id-cell">#{{ r.id }}</td>
+
+            <td>
+              <div class="person-cell">
+                <div class="avatar" [style.background]="'hsl(' + ((r.clientId ?? 0) * 47 % 360) + ',55%,52%)'">
+                  {{ r.clientNom?.charAt(0) }}{{ r.clientPrenom?.charAt(0) }}
+                </div>
+                <div>
+                  <div class="person-name">{{ r.clientNom }} {{ r.clientPrenom }}</div>
+                  <div class="person-sub">#{{ r.clientId }}</div>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <div class="svc-cell">
+                <div class="svc-dot" [style.background]="typeColor(getConfig(r.serviceId)?.typeService)"></div>
+                <div>
+                  <div class="service-name">{{ r.serviceNom }}</div>
+                  <div class="person-sub" *ngIf="r.nombrePersonnes && r.nombrePersonnes > 1">
+                    <i class="fas fa-users"></i> {{ r.nombrePersonnes }} pers.
+                  </div>
+                </div>
+              </div>
+            </td>
+
+            <td>
+              <div class="creneau-date"><i class="fas fa-calendar"></i> {{ r.heureDebut | date:'dd/MM/yyyy' }}</div>
+              <div class="creneau-time"><i class="fas fa-clock"></i> {{ r.heureDebut | date:'HH:mm' }} – {{ r.heureFin | date:'HH:mm' }}</div>
+            </td>
+
+            <td>
+              <span class="prix"    *ngIf="r.prixTotal != null">{{ r.prixTotal | number:'1.2-2' }} DT</span>
+              <span class="gratuit" *ngIf="r.prixTotal == null">Gratuit</span>
+            </td>
+
+            <td>
+              <span class="statut-badge" [ngClass]="'statut-' + r.statut.toLowerCase()">
+                {{ statutLabel(r.statut) }}
+              </span>
+            </td>
+
+            <td>
+              <div class="row-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-info btn-sm btn-icon"
+                  *ngIf="r.statut !== 'ANNULEE' && r.statut !== 'TERMINEE'"
+                  (click)="openEdit(r)" title="Modifier">
+                  <i class="fas fa-pen"></i>
+                </button>
+                <button class="btn btn-danger btn-sm btn-icon"
+                  *ngIf="r.statut !== 'ANNULEE' && r.statut !== 'TERMINEE'"
+                  (click)="annuler(r)" title="Annuler">
+                  <i class="fas fa-ban"></i>
+                </button>
+                <button class="btn btn-danger btn-sm btn-icon"
+                  *ngIf="r.statut === 'ANNULEE'"
+                  (click)="supprimer(r)" title="Supprimer">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </td>
+          </tr>
+
+          <tr *ngIf="filtered.length === 0 && !loading">
+            <td colspan="7">
+              <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h3>{{ searchQuery || filtreStatut || filtreDate ? 'Aucun résultat' : 'Aucune réservation' }}</h3>
+                <p>{{ searchQuery || filtreStatut || filtreDate ? 'Modifiez vos filtres' : 'Cliquez sur « Nouvelle réservation » pour commencer' }}</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ MODALE DÉTAIL ══ -->
+  @if (selectedDetail) {
+    <div class="modal-overlay" (click)="closeDetail()">
+      <div class="modal modal-detail" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title">
+            <i class="fas fa-calendar-check"></i>
+            Réservation #{{ selectedDetail.id }}
+            <span class="statut-badge ml" [ngClass]="'statut-' + selectedDetail.statut.toLowerCase()">
+              {{ statutLabel(selectedDetail.statut) }}
+            </span>
+          </div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+
+          <!-- Client -->
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fas fa-user"></i> Client</div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label">Nom complet</div>
+                <div class="detail-value">{{ selectedDetail.clientNom }} {{ selectedDetail.clientPrenom }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">ID</div>
+                <div class="detail-value">#{{ selectedDetail.clientId }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Service -->
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fas fa-concierge-bell"></i> Service</div>
+            <div class="svc-detail-card" *ngIf="getConfig(selectedDetail.serviceId) as cfg">
+              <div class="sdc-bar" [style.background]="typeColor(cfg.typeService)"></div>
+              <div class="sdc-body">
+                <div class="sdc-top">
+                  <div class="sdc-icon"
+                    [style.background]="typeColor(cfg.typeService) + '22'"
+                    [style.color]="typeColor(cfg.typeService)">
+                    <i [class]="typeIcon(cfg.typeService)"></i>
+                  </div>
+                  <div>
+                    <div class="sdc-name">{{ selectedDetail.serviceNom }}</div>
+                    <span class="sdc-type"
+                      [style.background]="typeColor(cfg.typeService) + '1a'"
+                      [style.color]="typeColor(cfg.typeService)"
+                      [style.border-color]="typeColor(cfg.typeService) + '44'">
+                      {{ typeLabel(cfg.typeService) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="sdc-chips">
+                  <span class="sdc-chip" *ngIf="cfg.dureeMinutes">
+                    <i class="fas fa-clock"></i> {{ cfg.dureeMinutes }} min
+                  </span>
+                  <span class="sdc-chip" *ngIf="selectedDetail.nombrePersonnes && selectedDetail.nombrePersonnes > 1">
+                    <i class="fas fa-users"></i> {{ selectedDetail.nombrePersonnes }} pers.
+                  </span>
+                  <span class="sdc-chip active" *ngIf="cfg.fileAttenteActive">
+                    <i class="fas fa-list-ol"></i> File active
+                  </span>
+                </div>
+              </div>
+            </div>
+            <!-- fallback sans config -->
+            <div *ngIf="!getConfig(selectedDetail.serviceId)" class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label">Nom</div>
+                <div class="detail-value">{{ selectedDetail.serviceNom }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Créneau -->
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fas fa-clock"></i> Créneau</div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label">Date</div>
+                <div class="detail-value">{{ selectedDetail.heureDebut | date:'dd/MM/yyyy' }}</div>
+              </div>
+              <div class="detail-item">
+                <div class="detail-label">Horaire</div>
+                <div class="detail-value">{{ selectedDetail.heureDebut | date:'HH:mm' }} → {{ selectedDetail.heureFin | date:'HH:mm' }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Prix -->
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fas fa-receipt"></i> Facturation</div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label">Prix total</div>
+                <div class="detail-value prix-big">
+                  {{ selectedDetail.prixTotal != null ? (selectedDetail.prixTotal | number:'1.2-2') + ' DT' : 'Gratuit' }}
+                </div>
+              </div>
+            </div>
+            <div class="notes-block" *ngIf="selectedDetail.notes">
+              <div class="detail-label" style="margin-bottom:5px"><i class="fas fa-sticky-note"></i> Notes</div>
+              <div class="notes-text">{{ selectedDetail.notes }}</div>
+            </div>
+          </div>
+
+          <!-- Changer statut -->
+          <div class="detail-section" *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'">
+            <div class="detail-section-title"><i class="fas fa-exchange-alt"></i> Changer le statut</div>
+            <div class="statut-btns">
+              <button *ngFor="let s of STATUTS"
+                class="btn btn-sm statut-btn"
+                [class.active]="selectedDetail.statut === s"
+                [ngClass]="'statut-btn-' + s.toLowerCase()"
+                [disabled]="selectedDetail.statut === s"
+                (click)="changerStatut(selectedDetail, s)">
+                {{ statutLabel(s) }}
+              </button>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDetail()">Fermer</button>
+          <button class="btn btn-info"
+            *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'"
+            (click)="openEdit(selectedDetail)">
+            <i class="fas fa-pen"></i> Modifier
+          </button>
+          <button class="btn btn-danger"
+            *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'"
+            (click)="annuler(selectedDetail)">
+            <i class="fas fa-ban"></i> Annuler
+          </button>
+          <button class="btn btn-danger"
+            *ngIf="selectedDetail.statut === 'ANNULEE'"
+            (click)="supprimer(selectedDetail)">
+            <i class="fas fa-trash"></i> Supprimer
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ══ MODALE CRÉATION / ÉDITION ══ -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal modal-form" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fas fa-calendar-plus"></i>
+          {{ modalMode === 'create' ? 'Nouvelle réservation' : 'Modifier #' + editing?.id }}
+        </div>
+        <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="modal-body">
+
+          <!-- ÉTAPE 1 : Entreprise -->
+          <div class="form-section">
+            <div class="form-section-title"><span class="step-num">1</span> Entreprise</div>
+            <select class="form-control" [(ngModel)]="formEntrepriseId" [ngModelOptions]="{standalone:true}"
+              (change)="onEntrepriseChange()">
+              <option [ngValue]="0">-- Sélectionner --</option>
+              <option *ngFor="let e of entreprises" [ngValue]="e.id">{{ e.nom }}</option>
+            </select>
+          </div>
+
+          <!-- ÉTAPE 2 : Service -->
+          <div class="form-section" [class.section-disabled]="!formEntrepriseId">
+            <div class="form-section-title"><span class="step-num">2</span> Service</div>
+            <select class="form-control" formControlName="serviceId" (change)="onServiceChange()"
+              [class.is-invalid]="form.get('serviceId')?.invalid && form.get('serviceId')?.touched">
+              <option [ngValue]="null">-- Sélectionner --</option>
+              <option *ngFor="let s of filteredServices" [ngValue]="s.id">{{ s.nom }}</option>
+            </select>
+
+            <!-- Preview service sélectionné -->
+            <div class="svc-preview-card" *ngIf="selectedConfig">
+              <div class="spc-bar" [style.background]="typeColor(selectedConfig.typeService)"></div>
+              <div class="spc-body">
+                <div class="spc-left">
+                  <div class="spc-icon"
+                    [style.background]="typeColor(selectedConfig.typeService) + '22'"
+                    [style.color]="typeColor(selectedConfig.typeService)">
+                    <i [class]="typeIcon(selectedConfig.typeService)"></i>
+                  </div>
+                  <div>
+                    <span class="spc-type"
+                      [style.background]="typeColor(selectedConfig.typeService) + '1a'"
+                      [style.color]="typeColor(selectedConfig.typeService)"
+                      [style.border-color]="typeColor(selectedConfig.typeService) + '44'">
+                      {{ typeLabel(selectedConfig.typeService) }}
+                    </span>
+                  </div>
+                </div>
+                <div class="spc-chips">
+                  <span class="spc-chip" *ngIf="selectedConfig.dureeMinutes">
+                    <i class="fas fa-clock"></i> {{ selectedConfig.dureeMinutes }} min
+                  </span>
+                  <span class="spc-chip active" *ngIf="selectedConfig.fileAttenteActive">
+                    <i class="fas fa-list-ol"></i> File active
+                  </span>
+                  <span class="spc-chip active" *ngIf="selectedConfig.employeObligatoire">
+                    <i class="fas fa-user-tie"></i> Employé requis
+                  </span>
+                  <span class="spc-chip active" *ngIf="selectedConfig.ressourceObligatoire">
+                    <i class="fas fa-layer-group"></i> Ressource auto
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- ÉTAPE 3 : Client & Créneau -->
+          <div class="form-section" [class.section-disabled]="!form.get('serviceId')?.value">
+            <div class="form-section-title"><span class="step-num">3</span> Client & Créneau</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Client *</label>
+                <select class="form-control" formControlName="clientId"
+                  [class.is-invalid]="form.get('clientId')?.invalid && form.get('clientId')?.touched">
+                  <option [ngValue]="null">-- Sélectionner --</option>
+                  <option *ngFor="let c of filteredClients" [ngValue]="c.id">{{ c.nom }} {{ c.prenom }}</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Date & heure *</label>
+                <input type="datetime-local" formControlName="heureDebut" class="form-control"
+                  [class.is-invalid]="form.get('heureDebut')?.invalid && form.get('heureDebut')?.touched">
+              </div>
+            </div>
+            <div class="form-group" *ngIf="selectedConfig?.typeService === 'RESSOURCE_PARTAGEE'">
+              <label class="form-label">Nombre de personnes</label>
+              <input type="number" formControlName="nombrePersonnes" class="form-control" min="1"
+                [placeholder]="'Min ' + (selectedConfig?.capaciteMinPersonnes ?? 1) + ' — Max ' + (selectedConfig?.capaciteMaxPersonnes ?? 'N/A')">
+              <small class="form-hint" *ngIf="selectedConfig?.capaciteMinPersonnes || selectedConfig?.capaciteMaxPersonnes">
+                Capacité : {{ selectedConfig?.capaciteMinPersonnes }} – {{ selectedConfig?.capaciteMaxPersonnes }} personnes
+              </small>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Notes <span style="color:var(--text-muted);font-weight:400">(optionnel)</span></label>
+              <textarea formControlName="notes" class="form-control" rows="2" placeholder="Remarques..."></textarea>
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="loadingModal">
+            <i class="fas fa-spinner fa-spin" *ngIf="loadingModal"></i>
+            <i class="fas fa-save" *ngIf="!loadingModal"></i>
+            {{ loadingModal ? 'Enregistrement...' : (modalMode === 'create' ? 'Créer' : 'Enregistrer') }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>

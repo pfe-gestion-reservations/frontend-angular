@@ -1,0 +1,287 @@
+<div>
+
+  <!-- ══ HEADER ══ -->
+  <div class="page-header">
+    <div>
+      <div class="page-title"><div class="title-icon"><i class="fas fa-list-ol"></i></div>File d'attente</div>
+      <div class="page-subtitle">Gestion globale · {{ fileAttente.length }} entrée(s)</div>
+    </div>
+    <div class="hdr-right">
+      <button class="btn btn-secondary" (click)="loadAll()"><i class="fas fa-sync"></i> Actualiser</button>
+      <button class="btn btn-primary" (click)="openCreate()"><i class="fas fa-plus"></i> Inscrire un client</button>
+    </div>
+  </div>
+
+  <!-- ══ STATS ══ -->
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-icon gray"><i class="fas fa-clock"></i></div><div><div class="stat-value">{{ countByStatut('EN_ATTENTE') }}</div><div class="stat-label">En attente</div></div></div>
+    <div class="stat-card"><div class="stat-icon amber"><i class="fas fa-bell"></i></div><div><div class="stat-value">{{ countByStatut('APPELE') }}</div><div class="stat-label">Appelés</div></div></div>
+    <div class="stat-card"><div class="stat-icon indigo"><i class="fas fa-play"></i></div><div><div class="stat-value">{{ countByStatut('EN_COURS') }}</div><div class="stat-label">En cours</div></div></div>
+    <div class="stat-card"><div class="stat-icon green"><i class="fas fa-check"></i></div><div><div class="stat-value">{{ countByStatut('TERMINE') }}</div><div class="stat-label">Terminés</div></div></div>
+    <div class="stat-card"><div class="stat-icon red"><i class="fas fa-times"></i></div><div><div class="stat-value">{{ countByStatut('ANNULE') }}</div><div class="stat-label">Annulés</div></div></div>
+  </div>
+
+  <!-- ══ FILTRES ══ -->
+  <div class="card filters-card">
+    <div class="filters-row">
+      <div class="filter-group">
+        <label class="filter-label"><i class="fas fa-building"></i> Entreprise</label>
+        <select class="form-control" [(ngModel)]="filtreEntrepriseId">
+          <option [ngValue]="null">Toutes</option>
+          <option *ngFor="let e of entreprises" [ngValue]="e.id">{{ e.nom }}</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <label class="filter-label"><i class="fas fa-filter"></i> Statut</label>
+        <select class="form-control" [(ngModel)]="filtreStatut">
+          <option value="">Tous</option>
+          <option value="EN_ATTENTE">En attente</option>
+          <option value="APPELE">Appelé</option>
+          <option value="EN_COURS">En cours</option>
+          <option value="TERMINE">Terminé</option>
+          <option value="ANNULE">Annulé</option>
+        </select>
+      </div>
+      <button class="btn btn-secondary btn-sm" (click)="resetFiltres()"
+        *ngIf="filtreEntrepriseId || filtreStatut">
+        <i class="fas fa-times"></i> Réinitialiser
+      </button>
+      <span class="filter-count" *ngIf="filtered.length !== fileAttente.length">
+        {{ filtered.length }} résultat(s)
+      </span>
+    </div>
+  </div>
+
+  <!-- ══ TABLE ══ -->
+  <div class="card">
+    <div class="loading-state" *ngIf="loading"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
+    <div class="table-container" *ngIf="!loading">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Client</th>
+            <th>Service</th>
+            <th>Entreprise</th>
+            <th>Arrivée</th>
+            <th>Créneau / RDV</th>
+            <th>Statut</th>
+            <th style="width:160px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let fa of filtered"
+              class="row-clickable"
+              [class.row-selected]="selectedDetail?.id === fa.id"
+              [ngClass]="'row-' + fa.statut.toLowerCase()"
+              (click)="openDetail(fa)">
+
+            <td class="id-cell">#{{ fa.id }}</td>
+            <td>
+              <div class="person-cell">
+                <div class="avatar" [style.background]="'hsl(' + ((fa.clientId ?? 0) * 47 % 360) + ',55%,52%)'">
+                  {{ fa.clientNom?.charAt(0) }}{{ fa.clientPrenom?.charAt(0) }}
+                </div>
+                <div class="person-name">{{ fa.clientNom }} {{ fa.clientPrenom }}</div>
+              </div>
+            </td>
+            <td>
+              <div class="service-name">{{ fa.serviceNom }}</div>
+              <div class="person-sub" *ngIf="fa.employeNom">
+                <i class="fas fa-user-tie"></i> {{ fa.employeNom }} {{ fa.employePrenom }}
+              </div>
+            </td>
+            <td>
+              <span class="ent-badge" *ngIf="fa.entrepriseNom">
+                <i class="fas fa-building"></i> {{ fa.entrepriseNom }}
+              </span>
+            </td>
+            <td class="time-cell">{{ fa.heureArrivee | date:'HH:mm' }}</td>
+            <td>
+              <div class="creneau-badge" *ngIf="fa.dateHeureRdv">
+                <i class="fas fa-check-circle"></i> {{ fa.dateHeureRdv | date:'dd/MM HH:mm' }}
+              </div>
+              <span class="no-data" *ngIf="!fa.dateHeureRdv">—</span>
+            </td>
+            <td>
+              <span class="statut-badge" [ngClass]="'statut-' + fa.statut.toLowerCase()">
+                {{ statutLabel(fa.statut) }}
+              </span>
+            </td>
+            <td>
+              <div class="row-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-warning btn-sm btn-icon" *ngIf="fa.statut === 'EN_ATTENTE'"
+                  (click)="appeler(fa)" title="Appeler"><i class="fas fa-bell"></i></button>
+                <button class="btn btn-indigo btn-sm btn-icon" *ngIf="fa.statut === 'APPELE'"
+                  (click)="demarrer(fa)" title="Démarrer"><i class="fas fa-play"></i></button>
+                <button class="btn btn-success btn-sm btn-icon" *ngIf="fa.statut === 'EN_COURS'"
+                  (click)="terminer(fa)" title="Terminer"><i class="fas fa-check"></i></button>
+                <button class="btn btn-danger btn-sm btn-icon"
+                  *ngIf="fa.statut !== 'TERMINE' && fa.statut !== 'ANNULE'"
+                  (click)="annulerAdmin(fa)" title="Annuler"><i class="fas fa-times"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filtered.length === 0 && !loading">
+            <td colspan="8">
+              <div class="empty-state">
+                <i class="fas fa-list-ol"></i>
+                <h3>Aucune entrée en file d'attente</h3>
+                <p>Cliquez sur « Inscrire un client » pour commencer</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- ══ MODALE DÉTAIL ══ -->
+  @if (selectedDetail) {
+    <div class="modal-overlay" (click)="closeDetail()">
+      <div class="modal modal-detail" (click)="$event.stopPropagation()">
+        <div class="modal-header">
+          <div class="modal-title">
+            <i class="fas fa-list-ol"></i> Entrée #{{ selectedDetail.id }}
+            <span class="statut-badge ml" [ngClass]="'statut-' + selectedDetail.statut.toLowerCase()">
+              {{ statutLabel(selectedDetail.statut) }}
+            </span>
+          </div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fas fa-user"></i> Client</div>
+            <div class="detail-value">{{ selectedDetail.clientNom }} {{ selectedDetail.clientPrenom }}</div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fas fa-concierge-bell"></i> Service & Entreprise</div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label">Service</div>
+                <div class="detail-value">{{ selectedDetail.serviceNom }}</div>
+              </div>
+              <div class="detail-item" *ngIf="selectedDetail.entrepriseNom">
+                <div class="detail-label">Entreprise</div>
+                <div class="detail-value">{{ selectedDetail.entrepriseNom }}</div>
+              </div>
+              <div class="detail-item" *ngIf="selectedDetail.employeNom">
+                <div class="detail-label">Employé</div>
+                <div class="detail-value">{{ selectedDetail.employeNom }} {{ selectedDetail.employePrenom }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="detail-section">
+            <div class="detail-section-title"><i class="fas fa-clock"></i> Horaires</div>
+            <div class="detail-row">
+              <div class="detail-item">
+                <div class="detail-label">Arrivée</div>
+                <div class="detail-value">{{ selectedDetail.heureArrivee | date:'dd/MM HH:mm' }}</div>
+              </div>
+              <div class="detail-item" *ngIf="selectedDetail.dateHeureRdv">
+                <div class="detail-label">RDV</div>
+                <div class="detail-value">{{ selectedDetail.dateHeureRdv | date:'dd/MM HH:mm' }}</div>
+              </div>
+            </div>
+          </div>
+          <div class="detail-section" *ngIf="selectedDetail.statut !== 'TERMINE' && selectedDetail.statut !== 'ANNULE'">
+            <div class="detail-section-title"><i class="fas fa-bolt"></i> Actions</div>
+            <div class="action-btns-detail">
+              <button class="btn btn-warning" *ngIf="selectedDetail.statut === 'EN_ATTENTE'" (click)="appeler(selectedDetail)">
+                <i class="fas fa-bell"></i> Appeler
+              </button>
+              <button class="btn btn-indigo" *ngIf="selectedDetail.statut === 'APPELE'" (click)="demarrer(selectedDetail)">
+                <i class="fas fa-play"></i> Démarrer
+              </button>
+              <button class="btn btn-success" *ngIf="selectedDetail.statut === 'EN_COURS'" (click)="terminer(selectedDetail)">
+                <i class="fas fa-check"></i> Terminer
+              </button>
+              <button class="btn btn-danger" (click)="annulerAdmin(selectedDetail)">
+                <i class="fas fa-times"></i> Annuler
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeDetail()">Fermer</button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ══ MODALE INSCRIPTION ══ -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal modal-form" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-user-plus"></i> Inscrire un client en file</div>
+        <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+
+        <!-- ÉTAPE 1 : Entreprise -->
+        <div class="form-section">
+          <div class="form-section-title"><span class="step-num">1</span> Entreprise</div>
+          <select class="form-control" [(ngModel)]="formEntrepriseId" (change)="onEntrepriseChange()">
+            <option [ngValue]="0">-- Sélectionner --</option>
+            <option *ngFor="let e of entreprises" [ngValue]="e.id">{{ e.nom }}</option>
+          </select>
+        </div>
+
+        <!-- ÉTAPE 2 : Client -->
+        <div class="form-section" [class.section-disabled]="!formEntrepriseId">
+          <div class="form-section-title"><span class="step-num">2</span> Client</div>
+          <select class="form-control" [(ngModel)]="formClientId" (change)="onClientChange()">
+            <option [ngValue]="null">-- Sélectionner --</option>
+            <option *ngFor="let c of filteredClients" [ngValue]="c.id">{{ c.nom }} {{ c.prenom }}</option>
+          </select>
+          <div class="info-hint" *ngIf="formEntrepriseId && filteredClients.length === 0">
+            <i class="fas fa-exclamation-triangle"></i> Aucun client associé à cette entreprise.
+          </div>
+        </div>
+
+        <!-- ÉTAPE 3 : Réservations confirmées -->
+        <div class="form-section" [class.section-disabled]="!formClientId">
+          <div class="form-section-title"><span class="step-num">3</span> Réservation confirmée</div>
+
+          <div class="info-hint" *ngIf="formClientId && filteredReservations.length === 0">
+            <i class="fas fa-exclamation-triangle"></i> Aucune réservation confirmée pour ce client.
+          </div>
+
+          <div class="resa-list" *ngIf="filteredReservations.length > 0">
+            <div class="resa-item"
+              *ngFor="let r of filteredReservations"
+              [class.resa-selected]="selectedReservation?.id === r.id"
+              (click)="selectReservation(r)">
+              <div class="resa-icon"><i class="fas fa-calendar-check"></i></div>
+              <div class="resa-info">
+                <div class="resa-service">{{ r.serviceNom }}</div>
+                <div class="resa-date">
+                  <i class="fas fa-clock"></i>
+                  {{ r.heureDebut | date:'dd/MM/yyyy HH:mm' }} → {{ r.heureFin | date:'HH:mm' }}
+                </div>
+                <div class="resa-employe" *ngIf="r.employeNom">
+                  <i class="fas fa-user-tie"></i> {{ r.employeNom }} {{ r.employePrenom }}
+                </div>
+              </div>
+              <div class="resa-check" *ngIf="selectedReservation?.id === r.id">
+                <i class="fas fa-check-circle"></i>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+        <button class="btn btn-primary"
+          [disabled]="!selectedReservation || loadingModal"
+          (click)="save()">
+          <i class="fas fa-spinner fa-spin" *ngIf="loadingModal"></i>
+          <i class="fas fa-user-plus" *ngIf="!loadingModal"></i>
+          {{ loadingModal ? 'Inscription...' : 'Inscrire en file' }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+</div>

@@ -156,9 +156,6 @@
             <div *ngFor="let r of detailRessources" style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px;background:var(--bg-secondary)">
               <i class="fas fa-cube" style="color:#10b981;font-size:.85rem"></i>
               <span style="font-weight:600;font-size:.875rem;flex:1">{{ r.nom }}</span>
-              <span *ngIf="r.capacite" style="font-size:.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:2px 8px;border-radius:8px;border:1px solid var(--border)">
-                <i class="fas fa-users" style="font-size:.65rem"></i> {{ r.capacite }} pers.
-              </span>
               <span *ngIf="r.description" style="font-size:.75rem;color:var(--text-secondary)">{{ r.description }}</span>
             </div>
           </div>
@@ -293,9 +290,7 @@
                  style="display:flex;align-items:center;gap:10px;padding:8px 12px;border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:6px;background:var(--bg-secondary)">
               <i class="fas fa-cube" style="color:#10b981;font-size:.85rem"></i>
               <span style="font-weight:600;font-size:.875rem;flex:1">{{ r.nom }}</span>
-              <span *ngIf="r.capacite" style="font-size:.75rem;color:var(--text-muted);background:var(--bg-tertiary);padding:2px 8px;border-radius:8px;border:1px solid var(--border)">
-                <i class="fas fa-users" style="font-size:.65rem"></i> {{ r.capacite }} pers.
-              </span>
+           
             </div>
           </div>
 

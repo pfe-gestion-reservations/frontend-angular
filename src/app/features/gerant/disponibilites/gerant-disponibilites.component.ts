@@ -77,7 +77,7 @@ export class GerantDisponibilitesComponent implements OnInit {
     document.addEventListener('click', () => { this.filterOpen = false; });
     // getServices() retourne automatiquement les services du gérant connecté (filtré côté backend)
     this.api.getServices().subscribe((s: ServiceResponse[]) => {
-      this.services              = s.filter(x => !x.archived);
+      
       this.filteredServicesList  = this.services;
       this.filteredModalServices = this.services;
       this.services.forEach(svc => {

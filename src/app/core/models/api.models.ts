@@ -64,7 +64,7 @@ export interface ServiceRequest {
 }
 export interface ServiceResponse {
   id: number; nom: string; description: string;
-  dureeMinutes: number; tarif: number | null; archived: boolean; entrepriseId: number;
+  dureeMinutes: number; tarif: number | null; entrepriseId: number;
 }
 
 export type TypeService = 'EMPLOYE_DEDIE' | 'RESSOURCE_PARTAGEE' | 'FILE_ATTENTE_PURE' | 'HYBRIDE';
@@ -100,11 +100,11 @@ export interface ConfigServiceResponse {
 }
 
 export interface RessourceRequest {
-  nom: string; description?: string; capacite?: number; serviceId: number;
+  nom: string; description?: string; serviceId: number;
 }
 export interface RessourceResponse {
   id: number; nom: string; description: string;
-  capacite: number; archived: boolean;
+  archived: boolean;
   serviceId: number; serviceNom: string; entrepriseId: number;
 }
 
@@ -132,15 +132,26 @@ export interface ReservationResponse {
 }
 
 export interface FileAttenteRequest {
-  clientId: number; employeId: number | null; serviceId: number; reservationId: number;
+  clientId: number;
+  employeId?: number | null;    // EMPLOYE_DEDIE / HYBRIDE
+  serviceId: number;
+  heureDebut?: string;          // RESSOURCE_PARTAGEE : créneau souhaité
+  reservationId?: number | null; // EMPLOYE_DEDIE / HYBRIDE
 }
 export interface FileAttenteResponse {
   id: number;
+  clientId: number;
   clientNom: string; clientPrenom: string;
-  employeNom: string; employePrenom: string;
+  employeId: number | null;
+  employeNom: string | null; employePrenom: string | null;
+  serviceId: number;
   serviceNom: string;
+  entrepriseId: number | null;
+  entrepriseNom: string | null;
+  reservationId: number | null;
+  heureDebut: string | null;
   heureArrivee: string;
-  dateHeureRdv: string;
+  dateHeureRdv: string | null;
   statut: StatutFileAttente;
 }
 
@@ -200,5 +211,5 @@ export interface JwtResponse {
 }
 
 export type StatutReservation = 'EN_ATTENTE' | 'CONFIRMEE' | 'EN_COURS' | 'ANNULEE' | 'TERMINEE';
-export type StatutFileAttente = 'EN_ATTENTE' | 'APPELE' | 'EN_COURS' | 'TERMINE' | 'ANNULE';
+export type StatutFileAttente = 'EN_ATTENTE' | 'APPELE' | 'EN_COURS' | 'TERMINE' | 'ANNULE' | 'EXPIRE';
 export type JourSemaine = 'LUNDI' | 'MARDI' | 'MERCREDI' | 'JEUDI' | 'VENDREDI' | 'SAMEDI' | 'DIMANCHE';

@@ -51,13 +51,10 @@ export class ApiService {
     const params = entrepriseId ? `?email=${encodeURIComponent(email)}&entrepriseId=${entrepriseId}` : `?email=${encodeURIComponent(email)}`;
     return this.http.get<any>(`${this.api}/employes/check-email${params}`, { headers: this.getHeaders() });
   }
-  // alias used by entreprises.component
   checkEmailEmploye(email: string, entrepriseId?: number): Observable<any> { return this.checkEmployeEmail(email, entrepriseId); }
   rattacherEmploye(req: any): Observable<any> { return this.http.post<any>(`${this.api}/employes/rattacher`, req, { headers: this.getHeaders() }); }
   getEntreprisesBySecteur(secteurId: number): Observable<any[]> { return this.http.get<any[]>(`${this.api}/entreprises/by-secteur/${secteurId}`, { headers: this.getHeaders() }); }
-  getClientByTelephone(numtel: string): Observable<any> {
-    return this.http.get<any>(`${this.api}/clients/by-telephone/${encodeURIComponent(numtel)}`, { headers: this.getHeaders() });
-  }
+  getClientByTelephone(numtel: string): Observable<any> { return this.http.get<any>(`${this.api}/clients/by-telephone/${encodeURIComponent(numtel)}`, { headers: this.getHeaders() }); }
   getEmployes(): Observable<EmployeResponse[]> { return this.http.get<EmployeResponse[]>(`${this.api}/employes`, { headers: this.getHeaders() }); }
   getEmployesByEntreprise(entrepriseId: number): Observable<EmployeResponse[]> { return this.http.get<EmployeResponse[]>(`${this.api}/employes/entreprise/${entrepriseId}`, { headers: this.getHeaders() }); }
   getEmploye(id: number): Observable<EmployeResponse> { return this.http.get<EmployeResponse>(`${this.api}/employes/${id}`, { headers: this.getHeaders() }); }
@@ -88,8 +85,7 @@ export class ApiService {
   getService(id: number): Observable<ServiceResponse> { return this.http.get<ServiceResponse>(`${this.api}/services/${id}`, { headers: this.getHeaders() }); }
   createService(d: ServiceRequest): Observable<ServiceResponse> { return this.http.post<ServiceResponse>(`${this.api}/services`, d, { headers: this.getHeaders() }); }
   updateService(id: number, d: ServiceRequest): Observable<ServiceResponse> { return this.http.put<ServiceResponse>(`${this.api}/services/${id}`, d, { headers: this.getHeaders() }); }
-  archiverService(id: number): Observable<any> { return this.http.patch(`${this.api}/services/${id}/archiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
-  desarchiverService(id: number): Observable<any> { return this.http.patch(`${this.api}/services/${id}/desarchiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
+  deleteService(id: number): Observable<any> { return this.http.delete(`${this.api}/services/${id}`, { headers: this.getHeaders(), responseType: 'text' }); }
 
   // ── CONFIG SERVICE ────────────────────────────────────────
   getConfigService(serviceId: number): Observable<ConfigServiceResponse> { return this.http.get<ConfigServiceResponse>(`${this.api}/config-services/service/${serviceId}`, { headers: this.getHeaders() }); }
@@ -109,6 +105,7 @@ export class ApiService {
   getReservation(id: number): Observable<ReservationResponse> { return this.http.get<ReservationResponse>(`${this.api}/reservations/${id}`, { headers: this.getHeaders() }); }
   createReservation(d: ReservationRequest): Observable<ReservationResponse> { return this.http.post<ReservationResponse>(`${this.api}/reservations`, d, { headers: this.getHeaders() }); }
   updateReservation(id: number, d: ReservationRequest): Observable<ReservationResponse> { return this.http.put<ReservationResponse>(`${this.api}/reservations/${id}`, d, { headers: this.getHeaders() }); }
+  deleteReservation(id: number): Observable<any> { return this.http.delete(`${this.api}/reservations/${id}`, { headers: this.getHeaders(), responseType: 'text' }); }
   changerStatutReservation(id: number, statut: StatutReservation): Observable<ReservationResponse> {
     const params = new HttpParams().set('statut', statut);
     return this.http.patch<ReservationResponse>(`${this.api}/reservations/${id}/statut`, {}, { headers: this.getHeaders(), params });
@@ -116,6 +113,12 @@ export class ApiService {
 
   // ── FILE D'ATTENTE ────────────────────────────────────────
   getFileAttente(): Observable<FileAttenteResponse[]> { return this.http.get<FileAttenteResponse[]>(`${this.api}/file-attente`, { headers: this.getHeaders() }); }
+  getFileAttenteByService(serviceId: number, heureDebut: string): Observable<FileAttenteResponse[]> {
+    const params = new HttpParams().set('heureDebut', heureDebut);
+    return this.http.get<FileAttenteResponse[]>(`${this.api}/file-attente/by-service/${serviceId}`, { headers: this.getHeaders(), params });
+  }
+  accepterFileAttente(id: number): Observable<FileAttenteResponse> { return this.http.put<FileAttenteResponse>(`${this.api}/file-attente/${id}/accepter`, {}, { headers: this.getHeaders() }); }
+  refuserFileAttente(id: number): Observable<FileAttenteResponse> { return this.http.put<FileAttenteResponse>(`${this.api}/file-attente/${id}/refuser`, {}, { headers: this.getHeaders() }); }
   ajouterFileAttente(d: FileAttenteRequest): Observable<FileAttenteResponse> { return this.http.post<FileAttenteResponse>(`${this.api}/file-attente`, d, { headers: this.getHeaders() }); }
   appeler(id: number): Observable<FileAttenteResponse> { return this.http.put<FileAttenteResponse>(`${this.api}/file-attente/${id}/appeler`, {}, { headers: this.getHeaders() }); }
   demarrer(id: number): Observable<FileAttenteResponse> { return this.http.put<FileAttenteResponse>(`${this.api}/file-attente/${id}/demarrer`, {}, { headers: this.getHeaders() }); }

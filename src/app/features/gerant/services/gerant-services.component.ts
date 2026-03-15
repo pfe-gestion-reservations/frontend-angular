@@ -22,18 +22,13 @@ type ModalStep = 'type' | 'form';
         <button class="btn btn-primary" (click)="openCreate()">
           <i class="fas fa-plus"></i> Nouveau service
         </button>
-        <button class="btn btn-secondary" (click)="showArchived = !showArchived"
-          [style.background]="showArchived ? 'var(--accent-glow)' : ''"
-          [style.border-color]="showArchived ? 'var(--accent)' : ''"
-          [style.color]="showArchived ? 'var(--accent)' : ''">
-          <i class="fas fa-archive"></i> {{ showArchived ? 'Masquer archivés' : 'Afficher archivés' }}
-        </button>
+
       </div>
     </div>
 
     <!-- GRID -->
     <div class="services-grid">
-      <div class="service-card" *ngFor="let s of displayedServices" [class.archived]="s.archived"
+      <div class="service-card" *ngFor="let s of displayedServices"
            (click)="openDetail(s)" style="cursor:pointer">
         <div class="service-header">
           <div class="type-badge" [ngClass]="'type-' + getConfig(s.id)?.typeService?.toLowerCase()">
@@ -46,11 +41,9 @@ type ModalStep = 'type' | 'form';
               *ngIf="getConfig(s.id)?.ressourceObligatoire" title="Gérer les ressources">
               <i class="fas fa-cubes"></i> Ressources
             </button>
-            <button *ngIf="!s.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(s)"><i class="fas fa-archive"></i></button>
-            <button *ngIf="s.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiver(s)"><i class="fas fa-undo"></i></button>
+            <button class="btn btn-danger btn-sm btn-icon" (click)="confirmerSuppression(s)" title="Supprimer"><i class="fas fa-trash"></i></button>
           </div>
         </div>
-        <div class="archived-badge" *ngIf="s.archived"><i class="fas fa-archive"></i> Archivé</div>
         <h3 class="service-name">{{ s.nom }}</h3>
         <p class="service-desc">{{ s.description || 'Aucune description' }}</p>
         <div class="service-meta">
@@ -136,14 +129,12 @@ type ModalStep = 'type' | 'form';
                 <span class="ressource-count">{{ detailRessources.length }}</span>
               </div>
               <div class="ressource-blocs">
-                <div class="ressource-bloc" *ngFor="let r of detailRessources" [class.archived]="r.archived">
+                <div class="ressource-bloc" *ngFor="let r of detailRessources">
                   <div class="ressource-bloc-icon"><i class="fas fa-cube"></i></div>
                   <div class="ressource-bloc-info">
                     <div class="ressource-bloc-nom">{{ r.nom }}</div>
                     <div class="ressource-bloc-meta">
-                      <span><i class="fas fa-users"></i> {{ r.capacite }} pers.</span>
                       <span *ngIf="r.description" class="ressource-bloc-desc">{{ r.description }}</span>
-                      <span *ngIf="r.archived" class="archived-chip"><i class="fas fa-archive"></i> Archivée</span>
                     </div>
                   </div>
                 </div>
@@ -285,7 +276,6 @@ type ModalStep = 'type' | 'form';
                   <div class="inline-ressource-item" *ngFor="let r of inlineRessources; let i = index">
                     <div class="inline-ressource-info">
                       <span class="inline-ressource-name"><i class="fas fa-cube"></i> {{ r.nom }}</span>
-                      <span class="inline-ressource-cap"><i class="fas fa-users"></i> {{ r.capacite }}</span>
                       <span *ngIf="r.description" class="inline-ressource-desc">{{ r.description }}</span>
                     </div>
                     <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeInlineRessource(i)">
@@ -312,10 +302,7 @@ type ModalStep = 'type' | 'form';
                           <input formControlName="nom" class="form-control" placeholder="Ex: Terrain 1, Salle A…"
                             [class.is-invalid]="inlineRessourceForm.get('nom')?.invalid && inlineRessourceForm.get('nom')?.touched">
                         </div>
-                        <div class="form-group" style="flex:1;margin-bottom:0">
-                          <label class="form-label">Capacité</label>
-                          <input formControlName="capacite" type="number" class="form-control" placeholder="Ex: 4">
-                        </div>
+
                         <div class="form-group" style="flex:2;margin-bottom:0">
                           <label class="form-label">Description</label>
                           <input formControlName="description" class="form-control" placeholder="Optionnel">
@@ -382,16 +369,15 @@ type ModalStep = 'type' | 'form';
           <form [formGroup]="ressourceForm" (ngSubmit)="saveRessource()" class="ressource-add-form">
             <div class="form-row">
               <div class="form-group" style="flex:2"><input formControlName="nom" class="form-control" placeholder="Nom (ex: Terrain 1)"></div>
-              <div class="form-group" style="flex:1"><input formControlName="capacite" type="number" class="form-control" placeholder="Capacité"></div>
+
               <div class="form-group" style="flex:1"><input formControlName="description" class="form-control" placeholder="Description"></div>
               <button type="submit" class="btn btn-primary" [disabled]="loadingRessource"><i class="fas fa-plus"></i></button>
             </div>
           </form>
           <div class="ressources-list">
-            <div class="ressource-item" *ngFor="let r of ressources" [class.archived]="r.archived">
+            <div class="ressource-item" *ngFor="let r of ressources">
               <div class="ressource-info">
                 <strong>{{ r.nom }}</strong>
-                <span class="ressource-cap"><i class="fas fa-users"></i> {{ r.capacite }}</span>
                 <span *ngIf="r.description" class="ressource-desc">{{ r.description }}</span>
               </div>
               <div class="ressource-actions">
@@ -411,14 +397,12 @@ type ModalStep = 'type' | 'form';
     .services-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px; }
     .service-card { background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;transition:all .25s; }
     .service-card:hover { border-color:var(--accent);box-shadow:var(--shadow-accent); }
-    .service-card.archived { opacity:.6;border-style:dashed; }
     .service-header { display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;gap:8px; }
     .service-actions { display:flex;gap:4px; }
     .service-name { font-weight:700;font-size:1rem;margin-bottom:4px; }
     .service-desc { font-size:.8rem;color:var(--text-secondary);margin-bottom:12px;min-height:32px; }
     .service-meta { display:flex;justify-content:space-between;font-size:.8rem;color:var(--text-secondary);margin-bottom:10px; }
     .service-price { font-weight:700;color:var(--accent); }
-    .archived-badge { font-size:.7rem;color:var(--text-muted);margin-bottom:4px; }
     .config-summary { display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border); }
     .badge-flag { font-size:.72rem;padding:3px 8px;background:var(--accent-glow);border:1px solid rgba(240,165,0,.25);border-radius:20px;color:var(--text-secondary); }
     .badge-flag i { color:var(--accent);margin-right:3px; }
@@ -444,14 +428,12 @@ type ModalStep = 'type' | 'form';
     .ressource-blocs { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:10px;margin-top:10px; }
     .ressource-bloc { display:flex;align-items:center;gap:10px;padding:12px;background:var(--bg-secondary);border:1px solid var(--border);border-radius:var(--radius-md);transition:border-color .2s; }
     .ressource-bloc:hover { border-color:var(--accent); }
-    .ressource-bloc.archived { opacity:.5;border-style:dashed; }
     .ressource-bloc-icon { width:34px;height:34px;border-radius:var(--radius-sm);background:rgba(16,185,129,.15);color:#34d399;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0; }
     .ressource-bloc-info { display:flex;flex-direction:column;gap:3px;min-width:0; }
     .ressource-bloc-nom { font-weight:700;font-size:.85rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis; }
     .ressource-bloc-meta { display:flex;flex-wrap:wrap;gap:6px;font-size:.75rem;color:var(--text-muted); }
     .ressource-bloc-meta i { margin-right:2px; }
     .ressource-bloc-desc { color:var(--text-muted); }
-    .archived-chip { font-size:.7rem;padding:1px 6px;background:rgba(156,163,175,.15);border-radius:10px;color:var(--text-muted); }
     /* MODAL common */
     .modal-type { max-width:640px; }
     .type-grid { display:grid;grid-template-columns:1fr 1fr;gap:14px; }
@@ -523,13 +505,12 @@ export class GerantServicesComponent implements OnInit {
   selectedType: TypeService | null = null;
   loading          = false;
   loadingRessource = false;
-  archivedServiceId: number | null = null;
 
-  inlineRessources: { nom: string; description: string; capacite: number }[] = [];
+  inlineRessources: { nom: string; description: string }[] = [];
   showInlineRessourceForm = false;
 
   get displayedServices(): ServiceResponse[] {
-    return this.showArchived ? this.services : this.services.filter(s => !s.archived);
+    return this.services;
   }
 
   form = this.fb.group({
@@ -545,11 +526,11 @@ export class GerantServicesComponent implements OnInit {
   });
 
   ressourceForm = this.fb.group({
-    nom: ['', Validators.required], description: [''], capacite: [1]
+    nom: ['', Validators.required], description: ['']
   });
 
   inlineRessourceForm = this.fb.group({
-    nom: ['', Validators.required], description: [''], capacite: [1]
+    nom: ['', Validators.required], description: ['']
   });
 
   // ✅ FIX: RESSOURCE_PARTAGEE n'a PAS de file d'attente numérotée
@@ -621,7 +602,7 @@ export class GerantServicesComponent implements OnInit {
   openCreate(): void {
     this.editingService = null; this.selectedType = null;
     this.form.reset(); this.inlineRessources = []; this.showInlineRessourceForm = false;
-    this.inlineRessourceForm.reset({ capacite: 1 }); this.step = 'type'; this.showModal = true;
+    this.inlineRessourceForm.reset(); this.step = 'type'; this.showModal = true;
   }
 
   selectType(t: TypeService): void {
@@ -654,17 +635,17 @@ export class GerantServicesComponent implements OnInit {
     this.inlineRessourceForm.markAllAsTouched();
     if (this.inlineRessourceForm.invalid) return;
     const v = this.inlineRessourceForm.getRawValue();
-    this.inlineRessources.push({ nom: v.nom!, description: v.description || '', capacite: v.capacite ?? 1 });
-    this.inlineRessourceForm.reset({ capacite: 1 }); this.showInlineRessourceForm = false;
+    this.inlineRessources.push({ nom: v.nom!, description: v.description || '' });
+    this.inlineRessourceForm.reset(); this.showInlineRessourceForm = false;
   }
 
   removeInlineRessource(index: number): void { this.inlineRessources.splice(index, 1); }
-  cancelInlineRessource(): void { this.inlineRessourceForm.reset({ capacite: 1 }); this.showInlineRessourceForm = false; }
+  cancelInlineRessource(): void { this.inlineRessourceForm.reset(); this.showInlineRessourceForm = false; }
 
   closeModal(): void {
     this.showModal = false; this.editingService = null; this.selectedType = null;
     this.form.reset(); this.inlineRessources = []; this.showInlineRessourceForm = false;
-    this.inlineRessourceForm.reset({ capacite: 1 });
+    this.inlineRessourceForm.reset();
   }
 
   save(): void {
@@ -691,7 +672,7 @@ export class GerantServicesComponent implements OnInit {
       );
       if (doublon) {
         this.loading = false; this.closeModal();
-        doublon.archived ? (() => { this.archivedServiceId = doublon.id; this.openBodyDialog('archived'); })() : this.openBodyDialog('duplicate');
+        this.openBodyDialog('duplicate');
         return;
       }
     }
@@ -717,17 +698,14 @@ export class GerantServicesComponent implements OnInit {
         error: (err) => {
           this.closeModal();
           if (err?.status === 409) { const m = err?.error?.message || null; this.openBodyDialog('duplicate', m || undefined); }
-          else if (err?.status === 410) {
-            const match = (JSON.stringify(err?.error || '') + (err?.message || '')).match(/ARCHIVED:(\d+)/);
-            this.archivedServiceId = match ? +match[1] : null; this.openBodyDialog('archived');
-          } else this.toast.error('Erreur lors de la création');
+          else this.toast.error('Erreur lors de la création');
           this.loading = false;
         }
       });
     }
   }
 
-  openBodyDialog(type: 'duplicate' | 'archived', customMsg?: string): void {
+  openBodyDialog(type: 'duplicate', customMsg?: string): void {
     const overlay = this.renderer.createElement('div');
     this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
     this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
@@ -738,30 +716,48 @@ export class GerantServicesComponent implements OnInit {
     this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '380px'); this.renderer.setStyle(box, 'width', '90%');
     this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
     const close = () => this.renderer.removeChild(document.body, overlay);
-    if (type === 'duplicate') {
-      box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:14px">⚠️</div><div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service déjà existant</div><div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">${customMsg || 'Un service identique existe déjà.'}</div><button id="dup-ok" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer">OK</button>`;
-    } else {
-      box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:14px">📦</div><div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service archivé</div><div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">Ce service existe déjà mais est archivé.<br>Voulez-vous le <strong style="color:#f59e0b">désarchiver</strong> ?</div><div style="display:flex;gap:10px;justify-content:center"><button id="arch-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:10px 20px;border-radius:8px;font-size:.9rem;cursor:pointer">Annuler</button><button id="arch-ok" style="background:#f59e0b;color:#000;border:none;padding:10px 24px;border-radius:8px;font-size:.9rem;font-weight:700;cursor:pointer">✦ Désarchiver</button></div>`;
-    }
+    box.innerHTML = `<div style="font-size:2.5rem;margin-bottom:14px">⚠️</div><div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:8px">Service déjà existant</div><div style="font-size:.875rem;color:#aaa;margin-bottom:24px;line-height:1.6">${customMsg || 'Un service identique existe déjà.'}</div><button id="dup-ok" style="background:#6366f1;color:#fff;border:none;padding:10px 28px;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer">OK</button>`;
     this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
-    if (type === 'duplicate') { box.querySelector('#dup-ok')!.addEventListener('click', close); }
-    else { box.querySelector('#arch-cancel')!.addEventListener('click', close); box.querySelector('#arch-ok')!.addEventListener('click', () => { close(); this.confirmDesarchiver(); }); }
+    box.querySelector('#dup-ok')!.addEventListener('click', close);
     overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 
-  confirmDesarchiver(): void {
-    if (!this.archivedServiceId) return;
-    this.api.desarchiverService(this.archivedServiceId).subscribe({
-      next: () => { this.toast.success('Service désarchivé !'); this.load(); },
-      error: () => this.toast.error('Erreur lors du désarchivage')
+
+
+  confirmerSuppression(s: ServiceResponse): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
+    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="font-size:2.2rem;margin-bottom:12px">🗑️</div>
+      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Supprimer ce service ?</div>
+      <div style="font-size:.85rem;color:#aaa;margin-bottom:6px;line-height:1.5"><strong style="color:#fff">${s.nom}</strong></div>
+      <div style="font-size:.8rem;color:#f87171;margin-bottom:22px">Cette action est irréversible.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="del-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
+        <button id="del-ok" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Supprimer</button>
+      </div>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#del-cancel')!.addEventListener('click', close);
+    box.querySelector('#del-ok')!.addEventListener('click', () => {
+      close();
+      this.api.deleteService(s.id).subscribe({
+        next: () => { this.toast.success('Service supprimé'); this.load(); },
+        error: () => this.toast.error('Erreur lors de la suppression')
+      });
     });
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 
-  archiver(s: ServiceResponse): void { this.api.archiverService(s.id).subscribe({ next: () => { this.toast.success('Archivé'); this.load(); }, error: () => this.toast.error('Erreur') }); }
-  desarchiver(s: ServiceResponse): void { this.api.desarchiverService(s.id).subscribe({ next: () => { this.toast.success('Désarchivé'); this.load(); }, error: () => this.toast.error('Erreur') }); }
-
   openRessourcePanel(s: ServiceResponse): void {
-    this.selectedService = s; this.ressourceForm.reset({ capacite: 1 });
+    this.selectedService = s; this.ressourceForm.reset();
     this.api.getRessourcesByService(s.id).subscribe(r => this.ressources = r); this.showRessourcePanel = true;
   }
   closeRessourcePanel(): void { this.showRessourcePanel = false; this.selectedService = null; this.ressources = []; }
@@ -770,8 +766,8 @@ export class GerantServicesComponent implements OnInit {
     if (this.ressourceForm.invalid || !this.selectedService) return;
     this.loadingRessource = true;
     const v = this.ressourceForm.getRawValue();
-    this.api.createRessource({ nom: v.nom!, description: v.description || '', capacite: v.capacite ?? 1, serviceId: this.selectedService.id }).subscribe({
-      next: () => { this.toast.success('Ressource ajoutée !'); this.api.getRessourcesByService(this.selectedService!.id).subscribe(r => this.ressources = r); this.ressourceForm.reset({ capacite: 1 }); this.loadingRessource = false; },
+    this.api.createRessource({ nom: v.nom!, description: v.description || '', serviceId: this.selectedService.id }).subscribe({
+      next: () => { this.toast.success('Ressource ajoutée !'); this.api.getRessourcesByService(this.selectedService!.id).subscribe(r => this.ressources = r); this.ressourceForm.reset(); this.loadingRessource = false; },
       error: () => { this.toast.error('Erreur'); this.loadingRessource = false; }
     });
   }
