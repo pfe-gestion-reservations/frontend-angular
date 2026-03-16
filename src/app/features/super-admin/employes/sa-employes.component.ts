@@ -90,6 +90,14 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     obs.subscribe(d => { this.employes = d; this.applyFilter(); });
   }
 
+  // Recharge la liste PUIS exécute le callback (évite le refresh manuel)
+  private reloadThen(cb: () => void): void {
+    const obs = this.selectedEntrepriseId
+      ? this.api.getEmployesByEntreprise(this.selectedEntrepriseId)
+      : this.api.getEmployes();
+    obs.subscribe(d => { this.employes = d; this.applyFilter(); cb(); });
+  }
+
   applyFilter(): void {
     const q = this.searchQuery.toLowerCase();
     this.filtered = this.employes.filter(e => {
@@ -170,15 +178,16 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
 
   // ── Désarchiver depuis modal ────────────────────────────────────────────
   desarchiverDepuisModal(): void {
-    const id = this.checkResult?.id;
-    if (!id) return;
+    const id = this.checkResult?.id ?? this.checkResult?.userId;
+    if (!id) { this.toast.error('ID employé introuvable'); return; }
     this.loading = true;
     this.api.desarchiverEtRattacherEmploye(id).subscribe({
       next: () => {
-        this.toast.success('Employé désarchivé !');
-        this.loading = false;
-        this.load();
         this.closeModal();
+        this.reloadThen(() => {
+          this.loading = false;
+          this.toast.success('Employé désarchivé et rattaché !');
+        });
       },
       error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.loading = false; }
     });
@@ -206,7 +215,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading = true;
     this.api.createEmploye(this.form.value as any).subscribe({
-      next: () => { this.toast.success('Employé créé !'); this.load(); this.closeModal(); this.loading = false; },
+      next: () => { this.closeModal(); this.reloadThen(() => { this.loading = false; this.toast.success('Employé créé !'); }); },
       error: (err: any) => { this.toast.error(err?.error?.message || 'Erreur'); this.loading = false; }
     });
   }
@@ -215,7 +224,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     if (this.editForm.invalid || !this.editing) { this.editForm.markAllAsTouched(); return; }
     this.loading = true;
     this.api.updateEmploye(this.editing.id, this.editForm.value as any).subscribe({
-      next: () => { this.toast.success('Modifié !'); this.load(); this.closeModal(); this.loading = false; },
+      next: () => { this.closeModal(); this.reloadThen(() => { this.loading = false; this.toast.success('Modifié !'); }); },
       error: () => { this.toast.error('Erreur'); this.loading = false; }
     });
   }
@@ -223,14 +232,14 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   archiver(e: EmployeResponse): void {
     if (!confirm(`Archiver ${e.nom} ${e.prenom} ?`)) return;
     this.api.archiverEmploye(e.id).subscribe({
-      next: () => { this.toast.success('Archivé'); this.load(); },
+      next: () => { this.reloadThen(() => this.toast.success('Archivé')); },
       error: () => this.toast.error('Erreur')
     });
   }
 
   desarchiver(e: EmployeResponse): void {
     this.api.desarchiverEmploye(e.id).subscribe({
-      next: () => { this.toast.success('Désarchivé'); this.load(); },
+      next: () => { this.reloadThen(() => this.toast.success('Désarchivé')); },
       error: () => this.toast.error('Erreur')
     });
   }

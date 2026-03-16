@@ -367,3 +367,9 @@
 }
 .insc-btn-submit:hover { opacity: .9; transform: translateY(-1px); }
 .insc-btn-submit:disabled { opacity: .45; cursor: not-allowed; transform: none; }
+/* ── Position badge avec couleur priorité ── */
+.pos-active { background:rgba(245,158,11,.15); color:#fbbf24; border-color:rgba(245,158,11,.3); }
+.pos-appele { background:rgba(99,102,241,.15);  color:#818cf8; border-color:rgba(99,102,241,.3); }
+.pos-cours  { background:rgba(16,185,129,.15);  color:#34d399; border-color:rgba(16,185,129,.3); }
+.pos-done   { background:rgba(156,163,175,.08); color:#9ca3af; border-color:rgba(156,163,175,.2); }
+.btn-active { border-color:var(--primary) !important; color:var(--primary) !important; background:var(--blue-50,#eff6ff) !important; }

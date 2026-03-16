@@ -22,7 +22,7 @@ export class EmployeLayoutComponent {
   toggleCollapsed(): void { this.collapsed.set(!this.collapsed()); }
   navItems: NavItem[] = [
     { label: 'Tableau de bord', icon: 'fa-tachometer-alt', route: '/employe/dashboard' },
-    { label: 'Ma File',         icon: 'fa-list-ol',        route: '/employe/ma-file' },
+    { label: "File D'Attente",         icon: 'fa-list-ol',        route: '/employe/file-attente' },
     { label: 'Reservations',    icon: 'fa-calendar-alt',   route: '/employe/reservations' },
     { label: 'Clients',         icon: 'fa-user-friends',   route: '/employe/clients' },
     { label: 'Mes Avis',        icon: 'fa-star',           route: '/employe/avis' }

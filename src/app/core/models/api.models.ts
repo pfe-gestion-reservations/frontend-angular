@@ -149,6 +149,7 @@ export interface FileAttenteResponse {
   entrepriseId: number | null;
   entrepriseNom: string | null;
   reservationId: number | null;
+  ressourceNom: string | null;
   heureDebut: string | null;
   heureArrivee: string;
   dateHeureRdv: string | null;

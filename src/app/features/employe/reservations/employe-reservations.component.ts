@@ -1,246 +1,282 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Renderer2 } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angular/forms';
+import { FormsModule, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
+import {
+  ReservationResponse, ServiceResponse,
+  ClientResponse, ConfigServiceResponse
+} from '../../../core/models/api.models';
 import { forkJoin } from 'rxjs';
+
+type ModalMode = 'create' | 'edit';
 
 @Component({
   selector: 'app-employe-reservations',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, FormsModule],
-  template: `
-  <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title"><div class="title-icon"><i class="fas fa-calendar-alt"></i></div>Réservations</div>
-      </div>
-      <button class="btn btn-primary" (click)="openModal()"><i class="fas fa-plus"></i> Nouvelle</button>
-    </div>
-
-    <div class="card">
-      <div class="table-container">
-        <table>
-          <thead><tr><th>#</th><th>Client</th><th>Service</th><th>Date/Heure</th><th>Statut</th></tr></thead>
-          <tbody>
-            <tr *ngFor="let r of reservations">
-              <td>{{ r.id }}</td>
-              <td><strong>{{ r.clientNom }}</strong></td>
-              <td>{{ r.serviceNom }}</td>
-              <td>{{ r.heureDebut | date:'dd/MM/yyyy HH:mm' }}</td>
-              <td><span class="badge" [ngClass]="sc(r.statut)">{{ r.statut }}</span></td>
-            </tr>
-            <tr *ngIf="reservations.length === 0">
-              <td colspan="5"><div class="empty-state"><i class="fas fa-calendar"></i><h3>Aucune réservation</h3></div></td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- MODAL -->
-    <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-calendar-plus"></i>Nouvelle réservation</div>
-          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <form [formGroup]="form" (ngSubmit)="save()">
-          <div class="modal-body">
-
-            <!-- CLIENT SEARCHABLE -->
-            <div class="form-group">
-              <label class="form-label" for="erClientSearch">Client</label>
-              <div class="searchable-select" [class.open]="dropdowns.client">
-                <div class="ss-input-wrap">
-                  <i class="fas fa-search ss-icon"></i>
-                  <input id="erClientSearch" name="erClientSearch" class="ss-input"
-                    [(ngModel)]="search.client" [ngModelOptions]="{standalone: true}"
-                    placeholder="Rechercher un client..."
-                    (focus)="dropdowns.client = true"
-                    (input)="filter('client')">
-                  <button type="button" class="ss-clear" *ngIf="selected.client" (click)="clearSelect('client')">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-                <div class="ss-dropdown" *ngIf="dropdowns.client">
-                  <div class="ss-option" *ngFor="let c of filteredClients"
-                    (mousedown)="selectItem('client', c.id, c.nom + ' ' + c.prenom)">
-                    <i class="fas fa-user"></i> {{ c.nom }} {{ c.prenom }}
-                  </div>
-                  <div class="ss-empty" *ngIf="filteredClients.length === 0">Aucun résultat</div>
-                </div>
-              </div>
-              <input type="hidden" formControlName="clientId">
-            </div>
-
-            <!-- SERVICE SEARCHABLE -->
-            <div class="form-group">
-              <label class="form-label" for="erServiceSearch">Service</label>
-              <div class="searchable-select" [class.open]="dropdowns.service">
-                <div class="ss-input-wrap">
-                  <i class="fas fa-search ss-icon"></i>
-                  <input id="erServiceSearch" name="erServiceSearch" class="ss-input"
-                    [(ngModel)]="search.service" [ngModelOptions]="{standalone: true}"
-                    placeholder="Rechercher un service..."
-                    (focus)="dropdowns.service = true"
-                    (input)="filter('service')">
-                  <button type="button" class="ss-clear" *ngIf="selected.service" (click)="clearSelect('service')">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-                <div class="ss-dropdown" *ngIf="dropdowns.service">
-                  <div class="ss-option" *ngFor="let s of filteredServices"
-                    (mousedown)="selectItem('service', s.id, s.nom + ' (' + s.dureeMinutes + ' min)')">
-                    <i class="fas fa-concierge-bell"></i> {{ s.nom }} ({{ s.dureeMinutes }} min)
-                  </div>
-                  <div class="ss-empty" *ngIf="filteredServices.length === 0">Aucun résultat</div>
-                </div>
-              </div>
-              <input type="hidden" formControlName="serviceId">
-            </div>
-
-            <div class="form-group">
-              <label class="form-label" for="erDate">Date et Heure</label>
-              <input id="erDate" name="erDate" formControlName="heureDebut" type="datetime-local" class="form-control">
-            </div>
-            <div class="form-group">
-              <label class="form-label" for="erNotes">Notes</label>
-              <textarea id="erNotes" name="erNotes" formControlName="notes" class="form-control" placeholder="Remarques..." rows="2"></textarea>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
-            <button type="submit" class="btn btn-primary" [disabled]="loading">
-              <span *ngIf="loading">Enregistrement...</span>
-              <span *ngIf="!loading"><i class="fas fa-save"></i> Enregistrer</span>
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  </div>`,
-  styles: [`
-    .searchable-select { position: relative; }
-    .ss-input-wrap { display: flex; align-items: center; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--bg-secondary); transition: border-color .15s; overflow: hidden; }
-    .searchable-select.open .ss-input-wrap { border-color: var(--accent); }
-    .ss-icon { padding: 0 10px; color: var(--text-muted); font-size: .8rem; flex-shrink: 0; }
-    .ss-input { flex: 1; border: none; background: none; padding: 9px 8px 9px 0; font-size: .875rem; color: var(--text-primary); outline: none; width: 100%; }
-    .ss-clear { background: none; border: none; color: var(--text-muted); cursor: pointer; padding: 0 10px; font-size: .75rem; }
-    .ss-clear:hover { color: var(--danger); }
-    .ss-dropdown { position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--bg-secondary); border: 1px solid var(--border); border-radius: var(--radius-md); box-shadow: var(--shadow-lg); z-index: 200; max-height: 200px; overflow-y: auto; }
-    .ss-option { display: flex; align-items: center; gap: 8px; padding: 9px 12px; font-size: .875rem; cursor: pointer; color: var(--text-primary); transition: background .1s; }
-    .ss-option:hover { background: var(--bg-hover); color: var(--accent); }
-    .ss-option i { color: var(--text-muted); font-size: .8rem; width: 14px; }
-    .ss-empty { padding: 10px 12px; font-size: .82rem; color: var(--text-muted); text-align: center; }
-    textarea.form-control { resize: vertical; min-height: 70px; }
-  `]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  templateUrl: './employe-reservations.component.html',
+  styleUrls: ['./employe-reservations.component.css']
 })
 export class EmployeReservationsComponent implements OnInit {
   private api   = inject(ApiService);
   private toast = inject(ToastService);
-  private fb    = inject(FormBuilder);
+  private fb       = inject(FormBuilder);
+  private renderer = inject(Renderer2);
 
-  reservations: any[] = [];
-  clients: any[]  = [];
-  services: any[] = [];
+  reservations: ReservationResponse[]              = [];
+  services:     ServiceResponse[]                  = [];
+  clients:      ClientResponse[]                   = [];
+  configs:      Map<number, ConfigServiceResponse> = new Map();
 
-  filteredClients: any[]  = [];
-  filteredServices: any[] = [];
+  loading      = false;
+  loadingModal = false;
 
-  showModal = false;
-  loading   = false;
+  searchQuery  = '';
+  filtreStatut = '';
+  filtreDate   = '';
 
-  search   = { client: '', service: '' };
-  selected = { client: false, service: false };
-  dropdowns = { client: false, service: false };
+  showModal  = false;
+  modalMode: ModalMode = 'create';
+  editing: ReservationResponse | null     = null;
+  selectedDetail: ReservationResponse | null = null;
+
+  selectedConfig: ConfigServiceResponse | null = null;
+
+  readonly STATUTS = ['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS', 'ANNULEE', 'TERMINEE'];
 
   form = this.fb.group({
-    clientId:  ['', Validators.required],
-    serviceId: ['', Validators.required],
-    heureDebut: ['', Validators.required],
-    notes:     ['']
+    clientId:        [null as number | null, Validators.required],
+    serviceId:       [null as number | null, Validators.required],
+    heureDebut:      ['', Validators.required],
+    nombrePersonnes: [1],
+    notes:           ['']
   });
 
-  ngOnInit(): void {
-    forkJoin({
-      r: this.api.getReservations(),
-      c: this.api.getClients(),
-      s: this.api.getServices()
-    }).subscribe(d => {
-      this.reservations    = d.r;
-      this.clients         = d.c; this.filteredClients  = d.c;
-      this.services        = d.s; this.filteredServices = d.s;
+  get filtered(): ReservationResponse[] {
+    const q = this.searchQuery.toLowerCase();
+    return this.reservations.filter(r => {
+      const matchSearch = !q || [r.clientNom, r.clientPrenom, r.serviceNom, r.employeNom, r.ressourceNom]
+        .some(v => v?.toLowerCase().includes(q));
+      const matchStatut = !this.filtreStatut || r.statut === this.filtreStatut;
+      const matchDate   = !this.filtreDate   || r.heureDebut?.toString().startsWith(this.filtreDate);
+      return matchSearch && matchStatut && matchDate;
     });
   }
 
-  filter(type: 'client' | 'service'): void {
-    const q = this.search[type].toLowerCase();
-    if (type === 'client')  this.filteredClients  = this.clients.filter(c => `${c.nom} ${c.prenom}`.toLowerCase().includes(q));
-    if (type === 'service') this.filteredServices = this.services.filter(s => s.nom.toLowerCase().includes(q));
+  countByStatut(s: string): number { return this.reservations.filter(r => r.statut === s).length; }
+
+  statutLabel(s: string): string {
+    const l: Record<string, string> = {
+      EN_ATTENTE: 'En attente', CONFIRMEE: 'Confirmée',
+      EN_COURS: 'En cours', ANNULEE: 'Annulée', TERMINEE: 'Terminée'
+    };
+    return l[s] ?? s;
   }
 
-  selectItem(type: 'client' | 'service', id: number, label: string): void {
-    this.search[type]    = label;
-    this.selected[type]  = true;
-    this.dropdowns[type] = false;
-    const ctrl = type === 'client' ? 'clientId' : 'serviceId';
-    this.form.get(ctrl)?.setValue(String(id));
+  typeLabel(t?: string | null): string {
+    const l: Record<string, string> = {
+      EMPLOYE_DEDIE: 'Employé dédié', RESSOURCE_PARTAGEE: 'Ressource partagée',
+      FILE_ATTENTE_PURE: "File d'attente", HYBRIDE: 'Hybride'
+    };
+    return t ? (l[t] ?? t) : '';
   }
 
-  clearSelect(type: 'client' | 'service'): void {
-    this.search[type]   = '';
-    this.selected[type] = false;
-    const ctrl = type === 'client' ? 'clientId' : 'serviceId';
-    this.form.get(ctrl)?.setValue('');
-    this.filter(type);
+  typeColor(t?: string | null): string {
+    const c: Record<string, string> = {
+      EMPLOYE_DEDIE: '#6366f1', RESSOURCE_PARTAGEE: '#10b981',
+      FILE_ATTENTE_PURE: '#f59e0b', HYBRIDE: '#ec4899'
+    };
+    return t ? (c[t] ?? 'var(--accent)') : 'var(--accent)';
   }
 
-  openModal(): void {
+  typeIcon(t?: string | null): string {
+    const i: Record<string, string> = {
+      EMPLOYE_DEDIE: 'fas fa-user-tie', RESSOURCE_PARTAGEE: 'fas fa-layer-group',
+      FILE_ATTENTE_PURE: 'fas fa-list-ol', HYBRIDE: 'fas fa-random'
+    };
+    return t ? (i[t] ?? 'fas fa-concierge-bell') : 'fas fa-concierge-bell';
+  }
+
+  getConfig(id: number): ConfigServiceResponse | undefined { return this.configs.get(id); }
+
+  ngOnInit(): void { this.loadAll(); }
+
+  loadAll(): void {
+    this.loading = true;
+    forkJoin({
+      reservations: this.api.getReservations(),
+      services:     this.api.getServices(),
+      clients:      this.api.getClients()
+    }).subscribe({
+      next: d => {
+        this.reservations = d.reservations;
+        this.services     = d.services;
+        this.clients      = d.clients;
+        d.services.forEach(s =>
+          this.api.getConfigService(s.id).subscribe({ next: c => this.configs.set(s.id, c), error: () => {} })
+        );
+        this.loading = false;
+      },
+      error: () => { this.toast.error('Erreur chargement'); this.loading = false; }
+    });
+  }
+
+  reload(): void { this.api.getReservations().subscribe(d => this.reservations = d); }
+
+  onServiceChange(): void {
+    const sid = this.form.get('serviceId')?.value;
+    this.selectedConfig = sid ? (this.configs.get(sid) ?? null) : null;
+  }
+
+  openCreate(): void {
+    this.modalMode     = 'create';
+    this.editing       = null;
+    this.selectedConfig = null;
+    this.form.reset({ nombrePersonnes: 1 });
     this.showModal = true;
-    this.search    = { client: '', service: '' };
-    this.selected  = { client: false, service: false };
-    this.dropdowns = { client: false, service: false };
-    this.form.reset();
   }
 
-  closeModal(): void {
-    this.showModal = false;
-    this.form.reset();
+  openEdit(r: ReservationResponse): void {
+    this.modalMode      = 'edit';
+    this.editing        = r;
+    this.selectedConfig = r.serviceId ? (this.configs.get(r.serviceId) ?? null) : null;
+    const hd = r.heureDebut ? new Date(r.heureDebut).toISOString().slice(0, 16) : '';
+    this.form.patchValue({
+      clientId: r.clientId, serviceId: r.serviceId,
+      heureDebut: hd, nombrePersonnes: r.nombrePersonnes ?? 1, notes: r.notes ?? ''
+    });
+    this.selectedDetail = null;
+    this.showModal = true;
   }
 
   save(): void {
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-      this.toast.error('Veuillez remplir tous les champs obligatoires');
-      return;
-    }
-    this.loading = true;
-    const v = this.form.value;
-    this.api.createReservation({
-      clientId:  +v.clientId!,
-      employeId: 0,
-      serviceId: +v.serviceId!,
-      heureDebut: v.heureDebut!,
-      notes:     v.notes || ''
-    }).subscribe({
+    if (this.form.invalid) { this.form.markAllAsTouched(); return; }
+    this.loadingModal = true;
+    const v = this.form.getRawValue();
+    const body = {
+      clientId: v.clientId, serviceId: v.serviceId,
+      employeId: null, ressourceId: null,
+      heureDebut: v.heureDebut,
+      nombrePersonnes: v.nombrePersonnes ?? 1,
+      notes: v.notes || null
+    };
+    const req$ = this.editing
+      ? this.api.updateReservation(this.editing.id, body as any)
+      : this.api.createReservation(body as any);
+    req$.subscribe({
       next: () => {
-        this.toast.success('Réservation créée !');
-        this.api.getReservations().subscribe(d => this.reservations = d);
-        this.closeModal();
-        this.loading = false;
+        this.toast.success(this.editing ? 'Réservation modifiée !' : 'Réservation créée !');
+        this.reload(); this.closeModal(); this.loadingModal = false;
       },
-      error: () => { this.toast.error('Erreur'); this.loading = false; }
+      error: (err: any) => {
+        this.loadingModal = false;
+        const msg = err?.error?.message || err?.error || 'Erreur lors de la réservation';
+        this._showErrorDialog(msg);
+      }
     });
   }
 
-  sc(s: string) {
-    return {
-      'badge-success': s === 'TERMINEE',
-      'badge-warning': s === 'EN_ATTENTE',
-      'badge-info':    s === 'CONFIRMEE',
-      'badge-purple':  s === 'EN_COURS',
-      'badge-danger':  s === 'ANNULEE'
-    };
+  openDetail(r: ReservationResponse): void { this.selectedDetail = r; }
+  closeDetail(): void { this.selectedDetail = null; }
+
+  changerStatut(r: ReservationResponse, statut: string): void {
+    this.api.changerStatutReservation(r.id, statut as any).subscribe({
+      next: updated => {
+        const idx = this.reservations.findIndex(x => x.id === r.id);
+        if (idx !== -1) this.reservations[idx] = updated;
+        if (this.selectedDetail?.id === r.id) this.selectedDetail = updated;
+        this.toast.success('Statut mis à jour');
+      },
+      error: (err: any) => this.toast.error(err?.error?.message || err?.error || 'Erreur')
+    });
   }
+
+  annuler(r: ReservationResponse): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(245,158,11,.3)');
+    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="font-size:2rem;margin-bottom:12px">🚫</div>
+      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Annuler la réservation ?</div>
+      <div style="font-size:.85rem;color:#aaa;margin-bottom:22px">Réservation <strong style="color:#fbbf24">#${r.id}</strong> — ${r.clientNom} ${r.clientPrenom}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="ann-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Retour</button>
+        <button id="ann-ok" style="background:#f59e0b;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Annuler la réservation</button>
+      </div>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#ann-cancel')!.addEventListener('click', close);
+    box.querySelector('#ann-ok')!.addEventListener('click', () => { close(); this.changerStatut(r, 'ANNULEE'); });
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
+  }
+
+  supprimer(r: ReservationResponse): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
+    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="font-size:2rem;margin-bottom:12px">🗑️</div>
+      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Supprimer cette réservation ?</div>
+      <div style="font-size:.85rem;color:#aaa;margin-bottom:6px">Réservation <strong style="color:#f1f5f9">#${r.id}</strong></div>
+      <div style="font-size:.82rem;color:#aaa;margin-bottom:22px">${r.clientNom} ${r.clientPrenom} — ${r.serviceNom}</div>
+      <div style="font-size:.78rem;color:#f87171;margin-bottom:22px">Cette action est irréversible.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="sup-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
+        <button id="sup-ok" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Supprimer</button>
+      </div>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#sup-cancel')!.addEventListener('click', close);
+    box.querySelector('#sup-ok')!.addEventListener('click', () => {
+      close();
+      this.api.deleteReservation(r.id).subscribe({
+        next: () => {
+          this.reservations = this.reservations.filter(x => x.id !== r.id);
+          if (this.selectedDetail?.id === r.id) this.closeDetail();
+          this.toast.success('Réservation supprimée');
+        },
+        error: (err: any) => this.toast.error(err?.error?.message || 'Erreur lors de la suppression')
+      });
+    });
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
+  }
+
+  private _showErrorDialog(msg: string): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.35)');
+    this.renderer.setStyle(box, 'border-radius', '18px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '420px'); this.renderer.setStyle(box, 'width', '92%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="width:52px;height:52px;background:rgba(239,68,68,.12);border:2px solid rgba(239,68,68,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin:0 auto 16px">⚠️</div>
+      <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:12px">Réservation impossible</div>
+      <div style="font-size:.875rem;color:#94a3b8;margin-bottom:24px;line-height:1.6;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:12px 16px">
+        Service Non Disponible Pour Ce Créneau
+      </div>
+      <button id="err-ok" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;padding:10px 36px;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;width:100%">Compris</button>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#err-ok')!.addEventListener('click', close);
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
+  }
+
+  closeModal(): void { this.showModal = false; this.editing = null; this.form.reset(); this.selectedConfig = null; }
+  resetFiltres(): void { this.searchQuery = ''; this.filtreStatut = ''; this.filtreDate = ''; }
 }

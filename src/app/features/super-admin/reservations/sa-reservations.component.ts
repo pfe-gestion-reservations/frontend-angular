@@ -1,4 +1,4 @@
-import { Component, OnInit, inject } from '@angular/core';
+import { Component, OnInit, inject, Renderer2 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule, FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
@@ -21,7 +21,8 @@ type ModalMode = 'create' | 'edit';
 export class SaReservationsComponent implements OnInit {
   private api   = inject(ApiService);
   private toast = inject(ToastService);
-  private fb    = inject(FormBuilder);
+  private fb       = inject(FormBuilder);
+  private renderer = inject(Renderer2);
 
   reservations: ReservationResponse[] = [];
   entreprises:  EntrepriseResponse[]  = [];
@@ -190,8 +191,9 @@ export class SaReservationsComponent implements OnInit {
         this.reload(); this.closeModal(); this.loadingModal = false;
       },
       error: (err: any) => {
-        this.toast.error(err?.error?.message || err?.error || 'Erreur');
         this.loadingModal = false;
+        const msg = err?.error?.message || err?.error || 'Erreur lors de la réservation';
+        this._showErrorDialog(msg);
       }
     });
   }
@@ -207,25 +209,93 @@ export class SaReservationsComponent implements OnInit {
         if (this.selectedDetail?.id === r.id) this.selectedDetail = updated;
         this.toast.success('Statut mis à jour');
       },
-      error: () => this.toast.error('Erreur')
+      error: (err: any) => this.toast.error(err?.error?.message || err?.error || 'Erreur')
     });
   }
 
   annuler(r: ReservationResponse): void {
-    if (!confirm(`Annuler la réservation #${r.id} ?`)) return;
-    this.changerStatut(r, 'ANNULEE');
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(245,158,11,.3)');
+    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="font-size:2rem;margin-bottom:12px">🚫</div>
+      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Annuler la réservation ?</div>
+      <div style="font-size:.85rem;color:#aaa;margin-bottom:22px">Réservation <strong style="color:#fbbf24">#${r.id}</strong> — ${r.clientNom} ${r.clientPrenom}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="ann-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Retour</button>
+        <button id="ann-ok" style="background:#f59e0b;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Annuler la réservation</button>
+      </div>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#ann-cancel')!.addEventListener('click', close);
+    box.querySelector('#ann-ok')!.addEventListener('click', () => { close(); this.changerStatut(r, 'ANNULEE'); });
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 
   supprimer(r: ReservationResponse): void {
-    if (!confirm(`Supprimer définitivement la réservation #${r.id} ?`)) return;
-    this.api.deleteReservation(r.id).subscribe({
-      next: () => {
-        this.reservations = this.reservations.filter(x => x.id !== r.id);
-        if (this.selectedDetail?.id === r.id) this.closeDetail();
-        this.toast.success('Réservation supprimée');
-      },
-      error: () => this.toast.error('Erreur')
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
+    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="font-size:2rem;margin-bottom:12px">🗑️</div>
+      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Supprimer cette réservation ?</div>
+      <div style="font-size:.85rem;color:#aaa;margin-bottom:6px">Réservation <strong style="color:#f1f5f9">#${r.id}</strong></div>
+      <div style="font-size:.82rem;color:#aaa;margin-bottom:22px">${r.clientNom} ${r.clientPrenom} — ${r.serviceNom}</div>
+      <div style="font-size:.78rem;color:#f87171;margin-bottom:22px">Cette action est irréversible.</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="sup-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
+        <button id="sup-ok" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Supprimer</button>
+      </div>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#sup-cancel')!.addEventListener('click', close);
+    box.querySelector('#sup-ok')!.addEventListener('click', () => {
+      close();
+      this.api.deleteReservation(r.id).subscribe({
+        next: () => {
+          this.reservations = this.reservations.filter(x => x.id !== r.id);
+          if (this.selectedDetail?.id === r.id) this.closeDetail();
+          this.toast.success('Réservation supprimée');
+        },
+        error: (err: any) => this.toast.error(err?.error?.message || 'Erreur lors de la suppression')
+      });
     });
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
+  }
+
+  private _showErrorDialog(msg: string): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.35)');
+    this.renderer.setStyle(box, 'border-radius', '18px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '420px'); this.renderer.setStyle(box, 'width', '92%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="width:52px;height:52px;background:rgba(239,68,68,.12);border:2px solid rgba(239,68,68,.35);border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.4rem;margin:0 auto 16px">⚠️</div>
+      <div style="font-size:1rem;font-weight:700;color:#fff;margin-bottom:12px">Réservation impossible</div>
+      <div style="font-size:.875rem;color:#94a3b8;margin-bottom:24px;line-height:1.6;background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.15);border-radius:10px;padding:12px 16px">
+        ${msg}
+      </div>
+      <button id="err-ok" style="background:linear-gradient(135deg,#ef4444,#dc2626);color:#fff;border:none;padding:10px 36px;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;width:100%">Compris</button>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#err-ok')!.addEventListener('click', close);
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 
   closeModal(): void { this.showModal = false; this.editing = null; this.form.reset(); }

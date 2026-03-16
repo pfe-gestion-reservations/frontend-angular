@@ -5,8 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import {
-  FileAttenteResponse, EntrepriseResponse,
-  ClientResponse, ReservationResponse
+  FileAttenteResponse, ClientResponse, ReservationResponse
 } from '../../../core/models/api.models';
 import { forkJoin } from 'rxjs';
 
@@ -19,13 +18,12 @@ interface RessourceGroup {
 interface ServiceGroup {
   serviceId: number;
   serviceNom: string;
-  entrepriseNom: string | null;
   ressourceGroups: RessourceGroup[];
   expanded: boolean;
 }
 
 @Component({
-  selector: 'app-sa-file-attente',
+  selector: 'app-employe-file',
   standalone: true,
   imports: [CommonModule, FormsModule, ReactiveFormsModule],
   animations: [
@@ -35,34 +33,26 @@ interface ServiceGroup {
       transition('open <=> closed', animate('280ms ease-in-out'))
     ])
   ],
-  templateUrl: './sa-file-attente.component.html',
-  styleUrls: ['./sa-file-attente.component.css']
+  templateUrl: './employe-file.component.html',
+  styleUrls: ['./employe-file.component.css']
 })
-export class SaFileAttenteComponent implements OnInit {
+export class EmployeFileComponent implements OnInit {
   private api   = inject(ApiService);
   private toast = inject(ToastService);
 
   fileAttente:  FileAttenteResponse[] = [];
-  entreprises:  EntrepriseResponse[]  = [];
   clients:      ClientResponse[]      = [];
   reservations: ReservationResponse[] = [];
 
   loading      = false;
   loadingModal = false;
 
-  private _filtreEntrepriseId: number | null = null;
   private _filtreStatut = '';
-
-  get filtreEntrepriseId(): number | null { return this._filtreEntrepriseId; }
-  set filtreEntrepriseId(v: number | null) { this._filtreEntrepriseId = v; this.buildGroups(); }
-
   get filtreStatut(): string { return this._filtreStatut; }
   set filtreStatut(v: string) { this._filtreStatut = v; this.buildGroups(); }
 
-  showModal        = false;
-  formEntrepriseId = 0;
+  showModal    = false;
   formClientId: number | null = null;
-  filteredClients:      ClientResponse[]      = [];
   filteredReservations: ReservationResponse[] = [];
   selectedReservation:  ReservationResponse | null = null;
 
@@ -73,59 +63,42 @@ export class SaFileAttenteComponent implements OnInit {
     TERMINE: 'Terminé', ANNULE: 'Annulé', EXPIRE: 'Expiré'
   };
 
-  get filteredEntries(): FileAttenteResponse[] {
-    return this.fileAttente.filter(fa => {
-      const matchEnt    = !this._filtreEntrepriseId || fa.entrepriseId === this._filtreEntrepriseId;
-      const matchStatut = !this._filtreStatut || fa.statut === this._filtreStatut;
-      return matchEnt && matchStatut;
-    });
-  }
-
   serviceGroups: ServiceGroup[] = [];
 
   buildGroups(): void {
     const svcMap = new Map<number, ServiceGroup>();
-    // Garder l'état expanded existant
     const oldExpanded = new Map<string, boolean>();
     for (const sg of this.serviceGroups) {
       oldExpanded.set('svc_' + sg.serviceId, sg.expanded);
-      for (const rg of sg.ressourceGroups) {
+      for (const rg of sg.ressourceGroups)
         oldExpanded.set('rg_' + sg.serviceId + '_' + (rg.ressourceNom ?? '__none__'), rg.expanded);
-      }
     }
-
     for (const fa of this.filteredEntries) {
       if (!fa.serviceId) continue;
       if (!svcMap.has(fa.serviceId)) {
-        const wasExpanded = oldExpanded.get('svc_' + fa.serviceId);
         svcMap.set(fa.serviceId, {
-          serviceId: fa.serviceId,
-          serviceNom: fa.serviceNom,
-          entrepriseNom: fa.entrepriseNom ?? null,
+          serviceId: fa.serviceId, serviceNom: fa.serviceNom,
           ressourceGroups: [],
-          expanded: wasExpanded !== undefined ? wasExpanded : true
+          expanded: oldExpanded.get('svc_' + fa.serviceId) ?? true
         });
       }
       const svcGroup = svcMap.get(fa.serviceId)!;
       const rKey = fa.ressourceNom ?? '__none__';
       let rGroup = svcGroup.ressourceGroups.find(r => (r.ressourceNom ?? '__none__') === rKey);
       if (!rGroup) {
-        const rgKey = 'rg_' + fa.serviceId + '_' + rKey;
-        const wasRgExpanded = oldExpanded.get(rgKey);
-        rGroup = { ressourceNom: fa.ressourceNom ?? null, entries: [], expanded: wasRgExpanded !== undefined ? wasRgExpanded : true };
+        rGroup = { ressourceNom: fa.ressourceNom ?? null, entries: [],
+          expanded: oldExpanded.get('rg_' + fa.serviceId + '_' + rKey) ?? true };
         svcGroup.ressourceGroups.push(rGroup);
       }
-      rGroup.entries.push(fa);
+      rGroup.entries.push(fa); // sorted after
     }
     svcMap.forEach(sg => sg.ressourceGroups.sort((a, b) =>
-      (a.ressourceNom ?? '').localeCompare(b.ressourceNom ?? '')
-    ));
+      (a.ressourceNom ?? '').localeCompare(b.ressourceNom ?? '')));
+    // Trier les entrées dans chaque groupe par priorité puis heure
+    svcMap.forEach(sg => sg.ressourceGroups.forEach(rg => {
+      rg.entries = this.sortEntries(rg.entries);
+    }));
     this.serviceGroups = Array.from(svcMap.values()).sort((a, b) => a.serviceNom.localeCompare(b.serviceNom));
-  }
-
-  get entreprisesActives(): EntrepriseResponse[] {
-    const ids = new Set(this.fileAttente.map(fa => fa.entrepriseId).filter(Boolean));
-    return this.entreprises.filter(e => ids.has(e.id));
   }
 
   countByStatut(s: string): number { return this.fileAttente.filter(fa => fa.statut === s).length; }
@@ -133,15 +106,39 @@ export class SaFileAttenteComponent implements OnInit {
 
   countActiveInServiceGroup(sg: ServiceGroup): number {
     return sg.ressourceGroups.flatMap(rg => rg.entries)
-      .filter(fa => fa.statut === 'EN_ATTENTE' || fa.statut === 'APPELE' || fa.statut === 'EN_COURS').length;
+      .filter(fa => ['EN_ATTENTE','APPELE','EN_COURS'].includes(fa.statut)).length;
   }
-
   totalEntriesInService(sg: ServiceGroup): number {
     return sg.ressourceGroups.reduce((sum, rg) => sum + rg.entries.length, 0);
   }
-
   countActiveInGroup(entries: FileAttenteResponse[]): number {
-    return entries.filter(fa => fa.statut === 'EN_ATTENTE' || fa.statut === 'APPELE' || fa.statut === 'EN_COURS').length;
+    return entries.filter(fa => ['EN_ATTENTE','APPELE','EN_COURS'].includes(fa.statut)).length;
+  }
+
+  // Ordre priorité : actifs d'abord, terminés/annulés en bas
+  readonly PRIORITE: Record<string, number> = {
+    EN_ATTENTE: 1, APPELE: 2, EN_COURS: 3, EXPIRE: 4, TERMINE: 5, ANNULE: 6
+  };
+
+  // Par défaut : masquer les terminés
+  showTermine = false;
+
+  get filteredEntries(): FileAttenteResponse[] {
+    return this.fileAttente.filter(fa => {
+      const matchStatut = !this._filtreStatut || fa.statut === this._filtreStatut;
+      const matchTermine = this.showTermine ? true : fa.statut !== 'TERMINE' && fa.statut !== 'ANNULE';
+      return matchStatut && matchTermine;
+    });
+  }
+
+  sortEntries(entries: FileAttenteResponse[]): FileAttenteResponse[] {
+    return [...entries].sort((a, b) => {
+      const pa = this.PRIORITE[a.statut] ?? 99;
+      const pb = this.PRIORITE[b.statut] ?? 99;
+      if (pa !== pb) return pa - pb;
+      // Même priorité → trier par heure d'arrivée
+      return new Date(a.heureArrivee).getTime() - new Date(b.heureArrivee).getTime();
+    });
   }
 
   toggleService(sg: ServiceGroup): void { sg.expanded = !sg.expanded; }
@@ -153,13 +150,11 @@ export class SaFileAttenteComponent implements OnInit {
     this.loading = true;
     forkJoin({
       fa:  this.api.getFileAttente(),
-      ent: this.api.getEntreprises(),
       cli: this.api.getClients(),
       res: this.api.getReservations()
     }).subscribe({
       next: d => {
         this.fileAttente  = d.fa;
-        this.entreprises  = d.ent;
         this.clients      = d.cli;
         this.reservations = d.res;
         this.loading = false;
@@ -171,17 +166,18 @@ export class SaFileAttenteComponent implements OnInit {
 
   reload(): void { this.api.getFileAttente().subscribe(d => { this.fileAttente = d; this.buildGroups(); }); }
 
-  onEntrepriseChange(): void {
-    this.filteredClients = this.clients.filter(c =>
-      c.entreprises?.some((e: any) => e.id === this.formEntrepriseId)
-    );
-    this.formClientId = null; this.filteredReservations = []; this.selectedReservation = null;
-  }
-
   onClientChange(): void {
     if (!this.formClientId) { this.filteredReservations = []; this.selectedReservation = null; return; }
+    // Réservations confirmées ET pas déjà inscrites en file active
+    const inscritIds = new Set(
+      this.fileAttente
+        .filter(fa => fa.statut !== 'ANNULE' && fa.reservationId != null)
+        .map(fa => fa.reservationId!)
+    );
     this.filteredReservations = this.reservations.filter(r =>
-      r.clientId === this.formClientId && r.statut === 'CONFIRMEE'
+      r.clientId === this.formClientId &&
+      r.statut === 'CONFIRMEE' &&
+      !inscritIds.has(r.id)
     );
     this.selectedReservation = null;
   }
@@ -189,14 +185,14 @@ export class SaFileAttenteComponent implements OnInit {
   selectReservation(r: ReservationResponse): void { this.selectedReservation = r; }
 
   openCreate(): void {
-    this.formEntrepriseId = 0; this.formClientId = null;
-    this.filteredClients = []; this.filteredReservations = []; this.selectedReservation = null;
+    this.formClientId = null;
+    this.filteredReservations = []; this.selectedReservation = null;
     this.showModal = true;
   }
 
   closeModal(): void {
-    this.showModal = false; this.formEntrepriseId = 0; this.formClientId = null;
-    this.filteredClients = []; this.filteredReservations = []; this.selectedReservation = null;
+    this.showModal = false; this.formClientId = null;
+    this.filteredReservations = []; this.selectedReservation = null;
   }
 
   save(): void {
@@ -208,7 +204,14 @@ export class SaFileAttenteComponent implements OnInit {
       reservationId: this.selectedReservation.id
     };
     this.api.ajouterFileAttente(body).subscribe({
-      next: () => { this.toast.success('Client inscrit en file !'); this.reload(); this.closeModal(); this.loadingModal = false; },
+      next: () => {
+        this.toast.success('Client inscrit en file !');
+        this.reload();
+        this.closeModal();
+        this.loadingModal = false;
+        // Recharger les réservations pour mettre à jour le formulaire
+        this.api.getReservations().subscribe(r => { this.reservations = r; });
+      },
       error: (err: any) => { this.toast.error(err?.error?.message || 'Erreur'); this.loadingModal = false; }
     });
   }
@@ -255,5 +258,5 @@ export class SaFileAttenteComponent implements OnInit {
     this.buildGroups();
   }
 
-  resetFiltres(): void { this._filtreEntrepriseId = null; this._filtreStatut = ''; this.buildGroups(); }
+  resetFiltres(): void { this._filtreStatut = ''; this.buildGroups(); }
 }

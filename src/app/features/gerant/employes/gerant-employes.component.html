@@ -6,16 +6,13 @@
         <div class="title-icon"><i class="fas fa-users-cog"></i></div>
         Employés
       </div>
-      <div class="page-subtitle">{{ employes.length }} employé(s) dans votre entreprise</div>
+      <div class="page-subtitle">{{ totalActifs }} employé(s) actif(s) dans votre entreprise</div>
     </div>
     <div class="hdr-right">
       <div class="search-box">
         <i class="fas fa-search"></i>
         <input [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Rechercher..." class="search-inp">
       </div>
-      <button class="btn btn-secondary" (click)="showArchived=!showArchived; applyFilter()" [class.btn-active]="showArchived">
-        <i class="fas fa-archive"></i> {{ showArchived ? 'Masquer archivés' : 'Archivés' }}
-      </button>
       <button class="btn btn-primary" (click)="openCreate()">
         <i class="fas fa-plus"></i> Nouvel employé
       </button>
@@ -27,14 +24,6 @@
     <div class="stat-card">
       <div class="stat-icon blue"><i class="fas fa-users"></i></div>
       <div><div class="stat-value">{{ employes.length }}</div><div class="stat-label">Total</div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
-      <div><div class="stat-value">{{ totalActifs }}</div><div class="stat-label">Actifs</div></div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon amber"><i class="fas fa-user-clock"></i></div>
-      <div><div class="stat-value">{{ totalArchives }}</div><div class="stat-label">Archivés</div></div>
     </div>
   </div>
 
@@ -49,35 +38,39 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let e of filtered" [class.row-archived]="e.archived">
-            <td>
-              <div class="person-cell">
-                <div class="avatar" [style.background]="avColor(e)">{{ initials(e) }}</div>
-                <div>
-                  <div class="person-name">{{ e.nom }} {{ e.prenom }}</div>
-                  <div class="person-sub">#{{ e.id }}</div>
+          <tr *ngFor="let e of filtered"
+              [class.row-archived]="e.archived"
+              [class.row-selected]="selectedEmploye?.id === e.id"
+              class="row-clickable" (click)="openDrawer(e)">
+              <td>
+                <div class="person-cell">
+                  <div class="avatar" [style.background]="e.archived ? '#94a3b8' : avColor(e)">{{ initials(e) }}</div>
+                  <div>
+                    <div class="person-name">{{ e.nom }} {{ e.prenom }}</div>
+                    <div class="person-sub">#{{ e.id }}</div>
+                  </div>
                 </div>
-              </div>
-            </td>
-            <td><div class="email-cell"><i class="fas fa-envelope"></i>{{ e.email }}</div></td>
-            <td>
-              <span class="specialite-pill" *ngIf="e.specialite"><i class="fas fa-star"></i> {{ e.specialite }}</span>
-              <span class="no-data" *ngIf="!e.specialite">—</span>
-            </td>
-            <td>
-              <span class="badge" [class.badge-success]="!e.archived" [class.badge-warning]="e.archived">
-                <i class="fas" [class.fa-circle]="!e.archived" [class.fa-archive]="e.archived" style="font-size:.55rem"></i>
-                {{ e.archived ? 'Archivé' : 'Actif' }}
-              </span>
-            </td>
-            <td>
-              <div class="row-actions">
-                <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(e)" title="Modifier"><i class="fas fa-pen"></i></button>
-                <button *ngIf="!e.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(e)"><i class="fas fa-archive"></i></button>
-                <button *ngIf="e.archived"  class="btn btn-success btn-sm btn-icon" (click)="desarchiver(e)"><i class="fas fa-undo"></i></button>
-              </div>
-            </td>
+              </td>
+              <td><div class="email-cell"><i class="fas fa-envelope"></i>{{ e.email }}</div></td>
+              <td>
+                <span class="specialite-pill" *ngIf="e.specialite"><i class="fas fa-star"></i> {{ e.specialite }}</span>
+                <span class="no-data" *ngIf="!e.specialite">—</span>
+              </td>
+              <td>
+                <span class="badge" [class.badge-success]="!e.archived" [class.badge-warning]="e.archived">
+                  <i class="fas" [class.fa-circle]="!e.archived" [class.fa-archive]="e.archived" style="font-size:.55rem"></i>
+                  {{ e.archived ? 'Archivé' : 'Actif' }}
+                </span>
+              </td>
+              <td>
+                <div class="row-actions" (click)="$event.stopPropagation()">
+                  <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(e)" title="Modifier"><i class="fas fa-pen"></i></button>
+                  <button *ngIf="!e.archived" class="btn btn-danger btn-sm btn-icon" (click)="confirmerArchivage(e)" title="Archiver"><i class="fas fa-archive"></i></button>
+                  <button *ngIf="e.archived"  class="btn btn-success btn-sm btn-icon" (click)="desarchiver(e)" title="Désarchiver"><i class="fas fa-undo"></i></button>
+                </div>
+              </td>
           </tr>
+
           <tr *ngIf="filtered.length === 0">
             <td colspan="5">
               <div class="empty-state">
@@ -90,6 +83,65 @@
         </tbody>
       </table>
     </div>
+  </div>
+
+  <!-- ══ DRAWER — Détails employé ══ -->
+  <div class="drawer-overlay" *ngIf="selectedEmploye" (click)="closeDrawer()"></div>
+  <div class="drawer" [class.drawer-open]="selectedEmploye">
+    <ng-container *ngIf="selectedEmploye as e">
+      <div class="drawer-header">
+        <div class="drawer-avatar" [style.background]="e.archived ? '#94a3b8' : avColor(e)">{{ initials(e) }}</div>
+        <div class="drawer-info">
+          <div class="drawer-name">{{ e.nom }} {{ e.prenom }}</div>
+          <div class="drawer-email">{{ e.email }}</div>
+        </div>
+        <button class="drawer-close" (click)="closeDrawer()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="drawer-section-title"><i class="fas fa-id-card"></i> Informations</div>
+
+      <div class="drawer-body">
+        <div class="drawer-info-row" *ngIf="e.specialite">
+          <div class="dir-icon purple"><i class="fas fa-star"></i></div>
+          <div>
+            <div class="dir-label">Spécialité</div>
+            <div class="dir-value">{{ e.specialite }}</div>
+          </div>
+        </div>
+        <div class="drawer-info-row" *ngIf="!e.specialite">
+          <div class="dir-icon gray"><i class="fas fa-star"></i></div>
+          <div>
+            <div class="dir-label">Spécialité</div>
+            <div class="dir-value muted">Non renseignée</div>
+          </div>
+        </div>
+        <div class="drawer-info-row">
+          <div class="dir-icon" [class.green]="!e.archived" [class.amber]="e.archived">
+            <i class="fas" [class.fa-check-circle]="!e.archived" [class.fa-archive]="e.archived"></i>
+          </div>
+          <div>
+            <div class="dir-label">Statut</div>
+            <div class="dir-value">
+              <span class="badge" [class.badge-success]="!e.archived" [class.badge-warning]="e.archived">
+                {{ e.archived ? 'Archivé' : 'Actif' }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="drawer-footer">
+        <button class="btn btn-info btn-sm" (click)="closeDrawer(); openEdit(e)">
+          <i class="fas fa-pen"></i> Modifier
+        </button>
+        <button *ngIf="!e.archived" class="btn btn-danger btn-sm" (click)="closeDrawer(); confirmerArchivage(e)">
+          <i class="fas fa-archive"></i> Archiver
+        </button>
+        <button *ngIf="e.archived" class="btn btn-success btn-sm" (click)="closeDrawer(); desarchiver(e)">
+          <i class="fas fa-undo"></i> Désarchiver
+        </button>
+      </div>
+    </ng-container>
   </div>
 
   <!-- ══ MODAL CRÉATION ══ -->
@@ -170,11 +222,11 @@
               <div class="rc-email">{{ checkResult?.email }}</div>
               <div class="rc-meta" *ngIf="checkResult?.specialite"><i class="fas fa-star"></i> {{ checkResult?.specialite }}</div>
             </div>
-            <span class="rc-badge green"><i class="fas fa-check-circle"></i> Libre</span>
+            <span class="rc-badge green"><i class="fas fa-check"></i> Disponible</span>
           </div>
           <div class="info-box green">
-            <i class="fas fa-info-circle"></i>
-            Cet employé n'est rattaché à aucune entreprise. Voulez-vous l'ajouter à votre entreprise ?
+            <i class="fas fa-check-circle"></i>
+            Cet employé est disponible. Voulez-vous le rattacher à votre entreprise ?
           </div>
         </div>
         <div class="modal-footer">
@@ -182,15 +234,15 @@
           <button class="btn btn-primary" (click)="rattacher()" [disabled]="loading">
             <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
             <i class="fas fa-link" *ngIf="!loading"></i>
-            {{ loading ? 'Rattachement...' : 'Ajouter à mon entreprise' }}
+            {{ loading ? 'Rattachement...' : 'Rattacher' }}
           </button>
         </div>
       </ng-container>
 
-      <!-- STEP : ALREADY_IN_THIS_COMPANY → déjà dans cette entreprise -->
+      <!-- STEP : ALREADY → déjà dans cette entreprise -->
       <ng-container *ngIf="step === 'result-already'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-exclamation-triangle"></i> Déjà dans votre entreprise</div>
+          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-user-check"></i> Déjà dans votre entreprise</div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -200,7 +252,7 @@
               <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
               <div class="rc-email">{{ checkResult?.email }}</div>
             </div>
-            <span class="rc-badge amber"><i class="fas fa-building"></i> Associé</span>
+            <span class="rc-badge amber"><i class="fas fa-check-double"></i> Déjà ajouté</span>
           </div>
           <div class="info-box amber">
             <i class="fas fa-exclamation-triangle"></i>
@@ -213,7 +265,7 @@
         </div>
       </ng-container>
 
-      <!-- STEP : EMAIL_OTHER_ROLE → autre rôle -->
+      <!-- STEP : OTHER_ROLE → autre rôle -->
       <ng-container *ngIf="step === 'result-other-role'">
         <div class="modal-header">
           <div class="modal-title" style="color:var(--danger)"><i class="fas fa-ban"></i> Email non disponible</div>
@@ -224,13 +276,13 @@
             <div class="rc-avatar red"><i class="fas fa-ban"></i></div>
             <div class="rc-info">
               <div class="rc-name">{{ emailToCheck }}</div>
-              <div class="rc-email">Email déjà enregistré dans le système</div>
+              <div class="rc-email">Email déjà utilisé dans le système</div>
             </div>
             <span class="rc-badge red"><i class="fas fa-times-circle"></i> Refusé</span>
           </div>
           <div class="info-box red">
             <i class="fas fa-exclamation-circle"></i>
-            Cet email est déjà utilisé par un compte d'un autre rôle (client ou gérant). Veuillez entrer un autre email.
+            Cet email est déjà utilisé par un compte d'un autre rôle (client ou gérant).
           </div>
         </div>
         <div class="modal-footer">
@@ -239,7 +291,7 @@
         </div>
       </ng-container>
 
-      <!-- STEP : ARCHIVED → employé archivé, proposer désarchivage -->
+      <!-- STEP : ARCHIVED → désarchiver + rattacher en une fois -->
       <ng-container *ngIf="step === 'result-archived'">
         <div class="modal-header">
           <div class="modal-title" style="color:var(--warning)"><i class="fas fa-archive"></i> Employé archivé</div>
@@ -256,7 +308,8 @@
           </div>
           <div class="info-box amber">
             <i class="fas fa-exclamation-triangle"></i>
-            Cet employé est archivé. Voulez-vous le désarchiver et le réactiver dans votre entreprise ?
+            Cet employé est archivé. En cliquant sur <strong>Réactiver</strong>, il sera
+            désarchivé et ajouté directement à votre entreprise.
           </div>
         </div>
         <div class="modal-footer">
@@ -264,7 +317,7 @@
           <button class="btn btn-primary" (click)="desarchiverDepuisModal()" [disabled]="loading">
             <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
             <i class="fas fa-undo" *ngIf="!loading"></i>
-            {{ loading ? 'Traitement...' : 'Désarchiver et réactiver' }}
+            {{ loading ? 'Traitement...' : 'Réactiver et ajouter' }}
           </button>
         </div>
       </ng-container>
@@ -318,8 +371,7 @@
             <button type="submit" class="btn btn-primary" [disabled]="loading">
               <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
               <i class="fas fa-save" *ngIf="!loading"></i>
-              <span *ngIf="loading">Création...</span>
-              <span *ngIf="!loading">Créer</span>
+              {{ loading ? 'Création...' : 'Créer' }}
             </button>
           </div>
         </form>
@@ -338,10 +390,10 @@
       <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
         <div class="modal-body">
           <div class="edit-profile">
-            <div class="avatar lg" [style.background]="avColor(editing)">{{ initials(editing) }}</div>
+            <div class="avatar lg" [style.background]="avColor(editing!)">{{ initials(editing!) }}</div>
             <div>
-              <div class="ep-name">{{ editing.nom }} {{ editing.prenom }}</div>
-              <div class="ep-email">{{ editing.email }}</div>
+              <div class="ep-name">{{ editing!.nom }} {{ editing!.prenom }}</div>
+              <div class="ep-email">{{ editing!.email }}</div>
             </div>
           </div>
           <div class="form-row">

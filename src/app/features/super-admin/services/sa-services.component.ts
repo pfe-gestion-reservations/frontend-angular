@@ -805,34 +805,96 @@ export class SaServicesComponent implements OnInit {
   }
 
   confirmerSuppression(s: ServiceResponse): void {
+    // Vérification des liaisons avant d'afficher la confirmation
+    forkJoin({
+      reservations: this.api.getReservations(),
+      fileAttente: this.api.getFileAttente(),
+      ressources: this.api.getRessourcesByService(s.id),
+    }).subscribe({
+      next: ({ reservations, fileAttente, ressources }) => {
+        const resLiees = reservations.filter(r => r.serviceId === s.id);
+        const fileLiee = fileAttente.filter(f => f.serviceId === s.id);
+        const hasLinks = resLiees.length > 0 || fileLiee.length > 0 || ressources.length > 0;
+
+        if (hasLinks) {
+          this.openLinkedDialog(s, resLiees.length, fileLiee.length, ressources.length);
+        } else {
+          this._showDeleteConfirm(s);
+        }
+      },
+      error: () => {
+        // En cas d'erreur de vérification, on tente la suppression directement
+        this._showDeleteConfirm(s);
+      }
+    });
+  }
+
+  private _showDeleteConfirm(s: ServiceResponse): void {
     const overlay = this.renderer.createElement('div');
-    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
-    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
-    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    this.renderer.setStyle(overlay, 'position', 'fixed');
+    this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)');
+    this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex');
+    this.renderer.setStyle(overlay, 'align-items', 'center');
+    this.renderer.setStyle(overlay, 'justify-content', 'center');
+
     const box = this.renderer.createElement('div');
-    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
-    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
-    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
-    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    this.renderer.setStyle(box, 'background', '#1e1e2e');
+    this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
+    this.renderer.setStyle(box, 'border-radius', '16px');
+    this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center');
+    this.renderer.setStyle(box, 'max-width', '360px');
+    this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)');
+    this.renderer.setStyle(box, 'font-family', 'inherit');
+
     const close = () => this.renderer.removeChild(document.body, overlay);
+
     box.innerHTML = `
       <div style="font-size:2.2rem;margin-bottom:12px">🗑️</div>
-      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Supprimer ce service ?</div>
-      <div style="font-size:.85rem;color:#aaa;margin-bottom:6px;line-height:1.5"><strong style="color:#fff">${s.nom}</strong></div>
-      <div style="font-size:.8rem;color:#f87171;margin-bottom:22px">Cette action est irréversible.</div>
+      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">
+        Supprimer ce service ?
+      </div>
+      <div style="font-size:.85rem;color:#aaa;margin-bottom:6px;line-height:1.5">
+        <strong style="color:#fff">${s.nom}</strong>
+      </div>
+      <div style="font-size:.8rem;color:#f87171;margin-bottom:22px">
+        Cette action est irréversible.
+      </div>
       <div style="display:flex;gap:10px;justify-content:center">
-        <button id="del-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
-        <button id="del-ok" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Supprimer</button>
-      </div>`;
-    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+        <button id="del-cancel"
+          style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);
+          padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">
+          Annuler
+        </button>
+        <button id="del-ok"
+          style="background:#ef4444;color:#fff;border:none;
+          padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">
+          Supprimer
+        </button>
+      </div>
+    `;
+
+    this.renderer.appendChild(overlay, box);
+    this.renderer.appendChild(document.body, overlay);
+
     box.querySelector('#del-cancel')!.addEventListener('click', close);
     box.querySelector('#del-ok')!.addEventListener('click', () => {
       close();
       this.api.deleteService(s.id).subscribe({
         next: () => { this.toast.success('Service supprimé'); this.reloadAll(); },
-        error: () => this.toast.error('Erreur lors de la suppression')
+        error: (err) => {
+          if (err.status === 409 || err.status === 400) {
+            this.openLinkedDialog(s, 0, 0, 0);
+            return;
+          }
+          this.toast.error('Erreur lors de la suppression');
+        }
       });
     });
+
     overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 
@@ -858,5 +920,102 @@ export class SaServicesComponent implements OnInit {
   }
   desarchiverRessource(r: RessourceResponse): void {
     this.api.desarchiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') });
+  }
+
+  openLinkedDialog(s: ServiceResponse, nbReservations: number, nbFileAttente: number, nbRessources: number): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed');
+    this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.7)');
+    this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex');
+    this.renderer.setStyle(overlay, 'align-items', 'center');
+    this.renderer.setStyle(overlay, 'justify-content', 'center');
+
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e');
+    this.renderer.setStyle(box, 'border', '1px solid rgba(245,158,11,.4)');
+    this.renderer.setStyle(box, 'border-radius', '18px');
+    this.renderer.setStyle(box, 'padding', '32px 28px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center');
+    this.renderer.setStyle(box, 'max-width', '440px');
+    this.renderer.setStyle(box, 'width', '92%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.7)');
+    this.renderer.setStyle(box, 'font-family', 'inherit');
+
+    const close = () => this.renderer.removeChild(document.body, overlay);
+
+    // Build dynamic list of linked items
+    const items: string[] = [];
+    if (nbReservations > 0) items.push(`
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+           border-radius:10px;padding:10px 14px;text-align:left">
+        <span style="font-size:1.3rem">📅</span>
+        <div>
+          <div style="color:#fff;font-weight:600;font-size:.88rem">Réservations</div>
+          <div style="color:#f87171;font-size:.8rem">${nbReservations} réservation${nbReservations > 1 ? 's' : ''} liée${nbReservations > 1 ? 's' : ''}</div>
+        </div>
+      </div>`);
+    if (nbFileAttente > 0) items.push(`
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);
+           border-radius:10px;padding:10px 14px;text-align:left">
+        <span style="font-size:1.3rem">🕐</span>
+        <div>
+          <div style="color:#fff;font-weight:600;font-size:.88rem">File d'attente</div>
+          <div style="color:#fbbf24;font-size:.8rem">${nbFileAttente} entrée${nbFileAttente > 1 ? 's' : ''} en file d'attente</div>
+        </div>
+      </div>`);
+    if (nbRessources > 0) items.push(`
+      <div style="display:flex;align-items:center;gap:10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);
+           border-radius:10px;padding:10px 14px;text-align:left">
+        <span style="font-size:1.3rem">🧩</span>
+        <div>
+          <div style="color:#fff;font-weight:600;font-size:.88rem">Ressources</div>
+          <div style="color:#818cf8;font-size:.8rem">${nbRessources} ressource${nbRessources > 1 ? 's' : ''} associée${nbRessources > 1 ? 's' : ''}</div>
+        </div>
+      </div>`);
+
+    // Fallback if called from error handler (no counts)
+    const itemsHtml = items.length > 0
+      ? `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:22px">${items.join('')}</div>`
+      : `<div style="font-size:.88rem;color:#aaa;margin-bottom:22px;line-height:1.6">
+           Ce service est lié à des <strong style="color:#fff">réservations, ressources ou configurations</strong> existantes.
+         </div>`;
+
+    box.innerHTML = `
+      <div style="width:52px;height:52px;background:rgba(245,158,11,.12);border:2px solid rgba(245,158,11,.35);
+           border-radius:50%;display:flex;align-items:center;justify-content:center;
+           font-size:1.6rem;margin:0 auto 16px">⚠️</div>
+
+      <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:6px">
+        Suppression impossible
+      </div>
+
+      <div style="font-size:.82rem;color:#94a3b8;margin-bottom:18px;line-height:1.5">
+        Le service <strong style="color:#f1f5f9">${s.nom}</strong> ne peut pas être supprimé
+        car il est encore lié aux éléments suivants :
+      </div>
+
+      ${itemsHtml}
+
+      <div style="font-size:.78rem;color:#64748b;margin-bottom:20px;line-height:1.5;background:rgba(255,255,255,.03);
+           border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,.06)">
+        💡 Supprimez ou dissociez d'abord ces éléments, puis réessayez.
+      </div>
+
+      <button id="linked-ok"
+        style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;
+        padding:11px 36px;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;
+        width:100%;transition:opacity .2s"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
+        Compris
+      </button>
+    `;
+
+    this.renderer.appendChild(overlay, box);
+    this.renderer.appendChild(document.body, overlay);
+
+    box.querySelector('#linked-ok')!.addEventListener('click', close);
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 }
