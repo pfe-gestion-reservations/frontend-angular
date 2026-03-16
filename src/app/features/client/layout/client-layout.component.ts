@@ -23,8 +23,6 @@ export class ClientLayoutComponent {
   navItems: NavItem[] = [
     { label: 'Accueil',          icon: 'fa-home',           route: '/client/dashboard' },
     { label: 'Mes reservations', icon: 'fa-calendar-check', route: '/client/reservations' },
-    { label: 'Services',         icon: 'fa-concierge-bell', route: '/client/services' },
-    { label: 'Creneaux',         icon: 'fa-clock',          route: '/client/creneaux' },
     { label: 'Mes avis',         icon: 'fa-star',           route: '/client/avis' }
   ];
 }

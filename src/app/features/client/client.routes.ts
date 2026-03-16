@@ -11,7 +11,6 @@ export const clientRoutes: Routes = [
       { path: 'reservations', loadComponent: () => import('./reservations/client-reservations.component').then(m => m.ClientReservationsComponent) },
       { path: 'services',     loadComponent: () => import('./services/client-services.component').then(m => m.ClientServicesComponent) },
       { path: 'avis',         loadComponent: () => import('./avis/client-avis.component').then(m => m.ClientAvisComponent) },
-      { path: 'creneaux',     loadComponent: () => import('./creneaux/client-creneaux.component').then(m => m.ClientCreneauxComponent) }
     ]
   }
 ];

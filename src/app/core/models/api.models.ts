@@ -178,9 +178,11 @@ export interface AvisRequest {
   reservationId: number; note: number; commentaire?: string;
 }
 export interface AvisResponse {
-  id: number; clientNom: string; clientPrenom: string;
-  employeNom: string; employePrenom: string; serviceNom: string;
+  id: number;
+  clientNom: string; clientPrenom: string;
+  serviceNom: string;
   note: number; commentaire: string; dateAvis: string;
+  reservationId?: number | null;
 }
 
 export interface GerantResponse {

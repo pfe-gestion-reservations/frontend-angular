@@ -65,6 +65,7 @@ export class ApiService {
   desarchiverEmploye(id: number): Observable<any> { return this.http.patch(`${this.api}/employes/${id}/desarchiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
 
   // ── CLIENTS ───────────────────────────────────────────────
+  getClientMe(): Observable<ClientResponse> { return this.http.get<ClientResponse>(`${this.api}/clients/me`, { headers: this.getHeaders() }); }
   getClients(): Observable<ClientResponse[]> { return this.http.get<ClientResponse[]>(`${this.api}/clients`, { headers: this.getHeaders() }); }
   getClient(id: number): Observable<ClientResponse> { return this.http.get<ClientResponse>(`${this.api}/clients/${id}`, { headers: this.getHeaders() }); }
   createClient(d: ClientRequest): Observable<ClientResponse> { return this.http.post<ClientResponse>(`${this.api}/clients`, d, { headers: this.getHeaders() }); }
@@ -105,6 +106,7 @@ export class ApiService {
   getReservation(id: number): Observable<ReservationResponse> { return this.http.get<ReservationResponse>(`${this.api}/reservations/${id}`, { headers: this.getHeaders() }); }
   createReservation(d: ReservationRequest): Observable<ReservationResponse> { return this.http.post<ReservationResponse>(`${this.api}/reservations`, d, { headers: this.getHeaders() }); }
   updateReservation(id: number, d: ReservationRequest): Observable<ReservationResponse> { return this.http.put<ReservationResponse>(`${this.api}/reservations/${id}`, d, { headers: this.getHeaders() }); }
+  annulerReservationClient(id: number): Observable<ReservationResponse> { return this.http.patch<ReservationResponse>(`${this.api}/reservations/${id}/annuler`, {}, { headers: this.getHeaders() }); }
   deleteReservation(id: number): Observable<any> { return this.http.delete(`${this.api}/reservations/${id}`, { headers: this.getHeaders(), responseType: 'text' }); }
   changerStatutReservation(id: number, statut: StatutReservation): Observable<ReservationResponse> {
     const params = new HttpParams().set('statut', statut);

@@ -75,12 +75,11 @@ export class GerantDisponibilitesComponent implements OnInit {
 
   ngOnInit(): void {
     document.addEventListener('click', () => { this.filterOpen = false; });
-    // getServices() retourne automatiquement les services du gérant connecté (filtré côté backend)
     this.api.getServices().subscribe((s: ServiceResponse[]) => {
-      
-      this.filteredServicesList  = this.services;
-      this.filteredModalServices = this.services;
-      this.services.forEach(svc => {
+      this.services              = s;
+      this.filteredServicesList  = s;
+      this.filteredModalServices = s;
+      s.forEach(svc => {
         this.api.getConfigService(svc.id).subscribe({ next: (c: ConfigServiceResponse) => this.configs.set(svc.id, c), error: () => {} });
       });
       this.loadAllDispos();

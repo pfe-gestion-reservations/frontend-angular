@@ -1,0 +1,227 @@
+<div class="cr-page">
+
+  <!-- ══ HEADER ══ -->
+  <div class="cr-header">
+    <div class="cr-header-left">
+      <div class="cr-title-icon"><i class="fas fa-calendar-check"></i></div>
+      <div>
+        <div class="cr-title">Mes Réservations</div>
+        <div class="cr-subtitle">{{ reservations.length }} réservation(s) au total</div>
+      </div>
+    </div>
+    <button class="cr-refresh" (click)="load()" title="Actualiser">
+      <i class="fas fa-sync" [class.fa-spin]="loading"></i>
+    </button>
+  </div>
+
+  <!-- ══ STATS ══ -->
+  <div class="cr-stats">
+    <div class="cr-stat">
+      <div class="cr-stat-value">{{ totalActives }}</div>
+      <div class="cr-stat-label">Actives</div>
+      <div class="cr-stat-bar bar-blue"></div>
+    </div>
+    <div class="cr-stat">
+      <div class="cr-stat-value">{{ totalTerminees }}</div>
+      <div class="cr-stat-label">Terminées</div>
+      <div class="cr-stat-bar bar-green"></div>
+    </div>
+    <div class="cr-stat">
+      <div class="cr-stat-value">{{ totalAnnulees }}</div>
+      <div class="cr-stat-label">Annulées</div>
+      <div class="cr-stat-bar bar-red"></div>
+    </div>
+    <div class="cr-stat">
+      <div class="cr-stat-value">{{ prixTotal | number:'1.0-0' }}<span class="cr-stat-unit">DT</span></div>
+      <div class="cr-stat-label">Total dépensé</div>
+      <div class="cr-stat-bar bar-amber"></div>
+    </div>
+  </div>
+
+  <!-- ══ FILTRES ══ -->
+  <div class="cr-filters">
+    <button class="cr-chip" [class.active]="filtreStatut === ''" (click)="filtreStatut=''; applyFilter()">
+      Toutes <span class="cr-chip-count">{{ reservations.length }}</span>
+    </button>
+    <button class="cr-chip" *ngFor="let s of STATUTS"
+      [class.active]="filtreStatut === s"
+      [ngClass]="'chip-' + cfg(s).cls"
+      (click)="filtreStatut = s; applyFilter()">
+      <i [class]="cfg(s).icon"></i>
+      {{ cfg(s).label }}
+    </button>
+  </div>
+
+  <!-- ══ LOADING ══ -->
+  <div class="cr-loading" *ngIf="loading">
+    <i class="fas fa-spinner fa-spin"></i> Chargement...
+  </div>
+
+  <!-- ══ LISTE CARDS ══ -->
+  <div class="cr-list" *ngIf="!loading">
+
+    <div *ngIf="filtered.length === 0" class="cr-empty">
+      <i class="fas fa-calendar-times"></i>
+      <p>Aucune réservation{{ filtreStatut ? ' dans cette catégorie' : '' }}</p>
+    </div>
+
+    <div class="cr-card"
+      *ngFor="let r of filtered"
+      [ngClass]="'card-' + cfg(r.statut).cls"
+      (click)="openDetail(r)">
+
+      <!-- Barre gauche statut -->
+      <div class="cr-card-bar"></div>
+
+      <div class="cr-card-body">
+        <div class="cr-card-top">
+          <!-- Service -->
+          <div class="cr-card-service">
+            <div class="cr-svc-icon">
+              <i class="fas fa-concierge-bell"></i>
+            </div>
+            <div>
+              <div class="cr-svc-name">{{ r.serviceNom }}</div>
+              <div class="cr-svc-entreprise" *ngIf="r.ressourceNom">
+                <i class="fas fa-layer-group"></i> {{ r.ressourceNom }}
+              </div>
+            </div>
+          </div>
+          <!-- Statut badge -->
+          <span class="cr-statut-badge" [ngClass]="'badge-' + cfg(r.statut).cls">
+            <i [class]="cfg(r.statut).icon"></i>
+            {{ cfg(r.statut).label }}
+          </span>
+        </div>
+
+        <div class="cr-card-mid">
+          <!-- Date/heure -->
+          <div class="cr-info-item">
+            <i class="fas fa-calendar-alt"></i>
+            <div>
+              <div class="cr-info-main">{{ r.heureDebut | date:'EEEE d MMMM yyyy':'':'fr' }}</div>
+              <div class="cr-info-sub">{{ r.heureDebut | date:'HH:mm' }} — {{ r.heureFin | date:'HH:mm' }}</div>
+            </div>
+          </div>
+          <!-- Employé -->
+          <div class="cr-info-item" *ngIf="r.employeNom">
+            <i class="fas fa-user-tie"></i>
+            <div>
+              <div class="cr-info-main">{{ r.employeNom }}</div>
+              <div class="cr-info-sub">Votre intervenant</div>
+            </div>
+          </div>
+          <!-- Prix -->
+          <div class="cr-info-item cr-prix" *ngIf="r.prixTotal != null">
+            <i class="fas fa-receipt"></i>
+            <div>
+              <div class="cr-info-main prix">{{ r.prixTotal | number:'1.2-2' }} DT</div>
+              <div class="cr-info-sub">Prix total</div>
+            </div>
+          </div>
+          <div class="cr-info-item" *ngIf="r.prixTotal == null">
+            <i class="fas fa-gift"></i>
+            <div>
+              <div class="cr-info-main">Gratuit</div>
+              <div class="cr-info-sub">Aucun frais</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="cr-card-notes" *ngIf="r.notes">
+          <i class="fas fa-sticky-note"></i> {{ r.notes }}
+        </div>
+
+        <!-- Actions -->
+        <div class="cr-card-footer" (click)="$event.stopPropagation()">
+          <div class="cr-card-id">#{{ r.id }}</div>
+          <button class="cr-btn-cancel" *ngIf="canCancel(r)" (click)="annuler(r)">
+            <i class="fas fa-times"></i> Annuler
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ MODALE DÉTAIL ══ -->
+  @if (selectedDetail) {
+    <div class="cr-overlay" (click)="closeDetail()">
+      <div class="cr-detail-modal" (click)="$event.stopPropagation()">
+
+        <div class="cr-detail-header" [ngClass]="'dh-' + cfg(selectedDetail.statut).cls">
+          <div class="cr-detail-header-left">
+            <div class="cr-detail-icon"><i class="fas fa-calendar-check"></i></div>
+            <div>
+              <div class="cr-detail-title">{{ selectedDetail.serviceNom }}</div>
+              <div class="cr-detail-sub">Réservation #{{ selectedDetail.id }}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <span class="cr-statut-badge" [ngClass]="'badge-' + cfg(selectedDetail.statut).cls">
+              <i [class]="cfg(selectedDetail.statut).icon"></i>
+              {{ cfg(selectedDetail.statut).label }}
+            </span>
+            <button class="cr-detail-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+          </div>
+        </div>
+
+        <div class="cr-detail-body">
+
+          <div class="cr-detail-section">
+            <div class="cr-detail-section-title"><i class="fas fa-clock"></i> Créneau</div>
+            <div class="cr-detail-row">
+              <div class="cr-detail-item">
+                <div class="cr-detail-label">Date</div>
+                <div class="cr-detail-value">{{ selectedDetail.heureDebut | date:'dd/MM/yyyy' }}</div>
+              </div>
+              <div class="cr-detail-item">
+                <div class="cr-detail-label">Horaire</div>
+                <div class="cr-detail-value">{{ selectedDetail.heureDebut | date:'HH:mm' }} → {{ selectedDetail.heureFin | date:'HH:mm' }}</div>
+              </div>
+              <div class="cr-detail-item" *ngIf="selectedDetail.nombrePersonnes > 1">
+                <div class="cr-detail-label">Personnes</div>
+                <div class="cr-detail-value">{{ selectedDetail.nombrePersonnes }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cr-detail-section" *ngIf="selectedDetail.employeNom || selectedDetail.ressourceNom">
+            <div class="cr-detail-section-title"><i class="fas fa-concierge-bell"></i> Prestation</div>
+            <div class="cr-detail-row">
+              <div class="cr-detail-item" *ngIf="selectedDetail.employeNom">
+                <div class="cr-detail-label">Intervenant</div>
+                <div class="cr-detail-value">{{ selectedDetail.employeNom }}</div>
+              </div>
+              <div class="cr-detail-item" *ngIf="selectedDetail.ressourceNom">
+                <div class="cr-detail-label">Ressource</div>
+                <div class="cr-detail-value">{{ selectedDetail.ressourceNom }}</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="cr-detail-section">
+            <div class="cr-detail-section-title"><i class="fas fa-receipt"></i> Facturation</div>
+            <div class="cr-prix-big">
+              {{ selectedDetail.prixTotal != null ? (selectedDetail.prixTotal | number:'1.2-2') + ' DT' : 'Gratuit' }}
+            </div>
+          </div>
+
+          <div class="cr-detail-section" *ngIf="selectedDetail.notes">
+            <div class="cr-detail-section-title"><i class="fas fa-sticky-note"></i> Notes</div>
+            <div class="cr-notes-text">{{ selectedDetail.notes }}</div>
+          </div>
+
+        </div>
+
+        <div class="cr-detail-footer">
+          <button class="cr-btn-close" (click)="closeDetail()">Fermer</button>
+          <button class="cr-btn-cancel-big" *ngIf="canCancel(selectedDetail)" (click)="annuler(selectedDetail)">
+            <i class="fas fa-times-circle"></i> Annuler la réservation
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+</div>
