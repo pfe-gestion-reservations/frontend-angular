@@ -122,11 +122,14 @@
                 <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(e)" title="Modifier">
                   <i class="fas fa-pen"></i>
                 </button>
-                <button *ngIf="!e.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(e)">
+                <button *ngIf="!e.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(e)" title="Archiver">
                   <i class="fas fa-archive"></i>
                 </button>
-                <button *ngIf="e.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiver(e)">
+                <button *ngIf="e.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiver(e)" title="Désarchiver">
                   <i class="fas fa-undo"></i>
+                </button>
+                <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(e)" title="Supprimer définitivement">
+                  <i class="fas fa-trash-alt"></i>
                 </button>
               </div>
             </td>
@@ -393,5 +396,7 @@
       </form>
     </div>
   </div>
+
+
 
 </div>

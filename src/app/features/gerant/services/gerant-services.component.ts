@@ -4,7 +4,7 @@ import { FormBuilder, ReactiveFormsModule, Validators, FormsModule } from '@angu
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import { ServiceResponse, ConfigServiceResponse, RessourceResponse, TypeService } from '../../../core/models/api.models';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
 
 type ModalStep = 'type' | 'form';
 
@@ -259,26 +259,29 @@ export class GerantServicesComponent implements OnInit {
 
 
   confirmerSuppression(s: ServiceResponse): void {
+    const config = this.configs.get(s.id);
+    const isRessourcePartagee = config?.typeService === 'RESSOURCE_PARTAGEE';
     forkJoin({
       reservations: this.api.getReservations(),
       fileAttente:  this.api.getFileAttente(),
-      ressources:   this.api.getRessourcesByService(s.id),
+      // Pour RESSOURCE_PARTAGEE : ressources supprimées auto → ne bloquent pas
+      ressources:   isRessourcePartagee ? of([]) : this.api.getRessourcesByService(s.id),
     }).subscribe({
       next: ({ reservations, fileAttente, ressources }) => {
-        const resLiees  = reservations.filter(r => r.serviceId === s.id);
-        const fileLiee  = fileAttente.filter(f => f.serviceId === s.id);
-        const hasLinks  = resLiees.length > 0 || fileLiee.length > 0 || ressources.length > 0;
+        const resLiees = reservations.filter(r => r.serviceId === s.id);
+        const fileLiee = fileAttente.filter(f => f.serviceId === s.id);
+        const hasLinks = resLiees.length > 0 || fileLiee.length > 0 || ressources.length > 0;
         if (hasLinks) {
           this._showLinkedServiceDialog(s, resLiees.length, fileLiee.length, ressources.length);
         } else {
-          this._showDeleteServiceConfirm(s);
+          this._showDeleteServiceConfirm(s, isRessourcePartagee);
         }
       },
-      error: () => this._showDeleteServiceConfirm(s)
+      error: () => this._showDeleteServiceConfirm(s, false)
     });
   }
 
-  private _showDeleteServiceConfirm(s: ServiceResponse): void {
+  private _showDeleteServiceConfirm(s: ServiceResponse, isRessourcePartagee: boolean): void {
     const overlay = this.renderer.createElement('div');
     this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
     this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
@@ -286,14 +289,22 @@ export class GerantServicesComponent implements OnInit {
     const box = this.renderer.createElement('div');
     this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
     this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
-    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '380px'); this.renderer.setStyle(box, 'width', '90%');
     this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
     const close = () => this.renderer.removeChild(document.body, overlay);
+    const ressourceWarning = isRessourcePartagee
+      ? `<div style="display:flex;align-items:center;gap:8px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);
+             border-radius:10px;padding:10px 14px;margin-bottom:18px;text-align:left;font-size:.8rem;color:#6ee7b7">
+           <span style="font-size:1.1rem;flex-shrink:0">🧩</span>
+           <span>Les ressources associées (terrains, salles…) seront <strong>supprimées automatiquement</strong> avec ce service.</span>
+         </div>`
+      : '';
     box.innerHTML = `
       <div style="font-size:2.2rem;margin-bottom:12px">🗑️</div>
       <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Supprimer ce service ?</div>
-      <div style="font-size:.85rem;color:#aaa;margin-bottom:6px;line-height:1.5"><strong style="color:#fff">${s.nom}</strong></div>
-      <div style="font-size:.8rem;color:#f87171;margin-bottom:22px">Cette action est irréversible.</div>
+      <div style="font-size:.875rem;color:#94a3b8;margin-bottom:14px"><strong style="color:#fff">${s.nom}</strong></div>
+      ${ressourceWarning}
+      <div style="font-size:.78rem;color:#f87171;margin-bottom:22px">⚠️ Cette action est irréversible.</div>
       <div style="display:flex;gap:10px;justify-content:center">
         <button id="del-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
         <button id="del-ok" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Supprimer</button>
@@ -358,6 +369,52 @@ export class GerantServicesComponent implements OnInit {
       error: () => { this.toast.error('Erreur'); this.loadingRessource = false; }
     });
   }
-  archiverRessource(r: RessourceResponse): void { this.api.archiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') }); }
-  desarchiverRessource(r: RessourceResponse): void { this.api.desarchiverRessource(r.id).subscribe({ next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res), error: () => this.toast.error('Erreur') }); }
+  archiverRessource(r: RessourceResponse): void {
+    this._confirmAction({
+      icon: '📦', title: 'Archiver cette ressource ?',
+      message: `<strong style="color:#fff">${r.nom}</strong><br><span style="font-size:.8rem;color:#94a3b8">La ressource ne sera plus disponible à la réservation.</span>`,
+      confirmLabel: 'Archiver', confirmColor: '#d97706',
+      onConfirm: () => this.api.archiverRessource(r.id).subscribe({
+        next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res),
+        error: () => this.toast.error('Erreur')
+      })
+    });
+  }
+
+  desarchiverRessource(r: RessourceResponse): void {
+    this._confirmAction({
+      icon: '✅', title: 'Réactiver cette ressource ?',
+      message: `<strong style="color:#fff">${r.nom}</strong><br><span style="font-size:.8rem;color:#94a3b8">La ressource sera de nouveau disponible à la réservation.</span>`,
+      confirmLabel: 'Réactiver', confirmColor: '#16a34a',
+      onConfirm: () => this.api.desarchiverRessource(r.id).subscribe({
+        next: () => this.api.getRessourcesByService(this.selectedService!.id).subscribe(res => this.ressources = res),
+        error: () => this.toast.error('Erreur')
+      })
+    });
+  }
+
+  private _confirmAction(opts: { icon: string; title: string; message: string; confirmLabel: string; confirmColor: string; onConfirm: () => void }): void {
+    const overlay = this.renderer.createElement('div');
+    this.renderer.setStyle(overlay, 'position', 'fixed'); this.renderer.setStyle(overlay, 'inset', '0');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)'); this.renderer.setStyle(overlay, 'z-index', '99999');
+    this.renderer.setStyle(overlay, 'display', 'flex'); this.renderer.setStyle(overlay, 'align-items', 'center'); this.renderer.setStyle(overlay, 'justify-content', 'center');
+    const box = this.renderer.createElement('div');
+    this.renderer.setStyle(box, 'background', '#1e1e2e'); this.renderer.setStyle(box, 'border', '1px solid rgba(255,255,255,0.1)');
+    this.renderer.setStyle(box, 'border-radius', '16px'); this.renderer.setStyle(box, 'padding', '32px 28px');
+    this.renderer.setStyle(box, 'text-align', 'center'); this.renderer.setStyle(box, 'max-width', '360px'); this.renderer.setStyle(box, 'width', '90%');
+    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)'); this.renderer.setStyle(box, 'font-family', 'inherit');
+    const close = () => this.renderer.removeChild(document.body, overlay);
+    box.innerHTML = `
+      <div style="font-size:2.2rem;margin-bottom:12px">${opts.icon}</div>
+      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:10px">${opts.title}</div>
+      <div style="font-size:.875rem;color:#94a3b8;margin-bottom:22px;line-height:1.6">${opts.message}</div>
+      <div style="display:flex;gap:10px;justify-content:center">
+        <button id="ca-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
+        <button id="ca-ok" style="background:${opts.confirmColor};color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">${opts.confirmLabel}</button>
+      </div>`;
+    this.renderer.appendChild(overlay, box); this.renderer.appendChild(document.body, overlay);
+    box.querySelector('#ca-cancel')!.addEventListener('click', close);
+    box.querySelector('#ca-ok')!.addEventListener('click', () => { close(); opts.onConfirm(); });
+    overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
+  }
 }

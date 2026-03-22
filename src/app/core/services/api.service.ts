@@ -61,6 +61,7 @@ export class ApiService {
   createEmploye(d: EmployeRequest): Observable<EmployeResponse> { return this.http.post<EmployeResponse>(`${this.api}/employes`, d, { headers: this.getHeaders() }); }
   updateEmploye(id: number, d: EmployeRequest): Observable<EmployeResponse> { return this.http.put<EmployeResponse>(`${this.api}/employes/${id}`, d, { headers: this.getHeaders() }); }
   archiverEmploye(id: number): Observable<any> { return this.http.patch(`${this.api}/employes/${id}/archiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
+  supprimerEmploye(id: number): Observable<any> { return this.http.delete(`${this.api}/employes/${id}/supprimer`, { headers: this.getHeaders(), responseType: 'text' }); }
   desarchiverEtRattacherEmploye(id: number): Observable<any> { return this.http.patch(`${this.api}/employes/${id}/desarchiver-rattacher`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
   desarchiverEmploye(id: number): Observable<any> { return this.http.patch(`${this.api}/employes/${id}/desarchiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
 
@@ -72,6 +73,7 @@ export class ApiService {
   updateClient(id: number, d: ClientRequest): Observable<ClientResponse> { return this.http.put<ClientResponse>(`${this.api}/clients/${id}`, d, { headers: this.getHeaders() }); }
   archiverClient(id: number): Observable<any> { return this.http.patch(`${this.api}/clients/${id}/archiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
   desarchiverClient(id: number): Observable<any> { return this.http.patch(`${this.api}/clients/${id}/desarchiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
+  supprimerClient(id: number): Observable<any> { return this.http.delete(`${this.api}/clients/${id}/supprimer`, { headers: this.getHeaders(), responseType: 'text' }); }
   checkClientEmail(email: string): Observable<any> { return this.http.get<any>(`${this.api}/clients/check-email?email=${encodeURIComponent(email)}`, { headers: this.getHeaders() }); }
   associerClientAEntreprise(clientId: number, entrepriseId: number): Observable<any> { return this.http.post<any>(`${this.api}/clients/${clientId}/entreprise/${entrepriseId}/associer`, {}, { headers: this.getHeaders() }); }
   dissocierClientDeEntreprise(clientId: number, entrepriseId: number): Observable<any> { return this.http.delete<any>(`${this.api}/clients/${clientId}/entreprise/${entrepriseId}/dissocier`, { headers: this.getHeaders() }); }
@@ -151,5 +153,6 @@ export class ApiService {
   updateGerant(id: number, d: any): Observable<any> { return this.http.put(`${this.api}/gerants/${id}`, d, { headers: this.getHeaders() }); }
   archiverGerant(id: number, remplacantId?: number): Observable<any> { const body = remplacantId ? { remplacantId } : {}; return this.http.patch(`${this.api}/gerants/${id}/archiver`, body, { headers: this.getHeaders(), responseType: 'text' }); }
   desarchiverGerant(id: number): Observable<any> { return this.http.patch(`${this.api}/gerants/${id}/desarchiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
+  supprimerGerant(id: number): Observable<any> { return this.http.delete(`${this.api}/gerants/${id}/supprimer`, { headers: this.getHeaders(), responseType: 'text' }); }
   checkGerantEmail(email: string): Observable<any> { return this.http.get<any>(`${this.api}/gerants/check-email?email=${encodeURIComponent(email)}`, { headers: this.getHeaders() }); }
 }

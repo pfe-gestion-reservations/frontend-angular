@@ -81,8 +81,9 @@
             <td>
               <div class="row-actions" (click)="$event.stopPropagation()">
                 <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(c)"><i class="fas fa-pen"></i></button>
-                <button *ngIf="!c.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(c)"><i class="fas fa-user-slash"></i></button>
-                <button *ngIf="c.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiver(c)"><i class="fas fa-undo"></i></button>
+                <button *ngIf="!c.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(c)" title="Archiver"><i class="fas fa-user-slash"></i></button>
+                <button *ngIf="c.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiver(c)" title="Désarchiver"><i class="fas fa-undo"></i></button>
+                <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(c)" title="Supprimer définitivement"><i class="fas fa-trash-alt"></i></button>
               </div>
             </td>
           </tr>

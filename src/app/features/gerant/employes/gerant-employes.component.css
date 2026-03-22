@@ -145,3 +145,5 @@
   margin-left:4px;
 }
 .btn-active .arch-count { background:rgba(99,102,241,.15); color:var(--primary); }
+.btn-delete { background:#fff0f0;color:#b91c1c;border:1px solid #fecaca;transition:background .15s,color .15s,border-color .15s; }
+.btn-delete:hover { background:#b91c1c;color:#fff;border-color:#b91c1c; }

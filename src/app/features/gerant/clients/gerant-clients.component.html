@@ -33,7 +33,7 @@
         <table>
           <thead>
             <tr>
-              <th>Client</th><th>Email</th><th>Téléphone</th><th>Statut</th><th style="width:110px">Actions</th>
+              <th>Client</th><th>Email</th><th>Téléphone</th><th style="width:110px">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -53,16 +53,11 @@
                 <span class="no-data" *ngIf="!c.numtel">—</span>
               </td>
               <td>
-                <span class="badge" [class.badge-success]="!c.archived" [class.badge-warning]="c.archived">
-                  <i class="fas" [class.fa-circle]="!c.archived" [class.fa-archive]="c.archived" style="font-size:.55rem"></i>
-                  {{ c.archived ? 'Archivé' : 'Actif' }}
-                </span>
-              </td>
-              <td>
                 <div class="row-actions">
                   <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(c)" title="Modifier"><i class="fas fa-pen"></i></button>
                   <button *ngIf="!c.archived" class="btn btn-danger btn-sm btn-icon" (click)="dissocierClient(c)" title="Retirer de mon entreprise"><i class="fas fa-user-slash"></i></button>
                   <button *ngIf="c.archived"  class="btn btn-success btn-sm btn-icon" (click)="desarchiver(c)" title="Désarchiver"><i class="fas fa-undo"></i></button>
+                  <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(c)" title="Supprimer définitivement"><i class="fas fa-trash-alt"></i></button>
                 </div>
               </td>
             </tr>

@@ -124,3 +124,16 @@
 .stat-label { font-size:.72rem; color:var(--text-secondary); text-transform:uppercase; letter-spacing:.04em; margin-top:1px; }
 .field-error { color:var(--danger); font-size:.75rem; margin-top:4px; display:flex; align-items:center; gap:4px; }
 .field-error::before { content:'\f071'; font-family:'Font Awesome 6 Free'; font-weight:900; font-size:.7rem; }
+
+/* ── Bouton supprimer définitivement ──────────────────────────────────── */
+.btn-delete {
+  background: #fff0f0;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.btn-delete:hover {
+  background: #b91c1c;
+  color: #fff;
+  border-color: #b91c1c;
+}
