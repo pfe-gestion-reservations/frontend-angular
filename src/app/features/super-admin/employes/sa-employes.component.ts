@@ -41,6 +41,9 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   entDropOpen = false;
   entSearch   = '';
 
+  // ── Détail employé ──────────────────────────────────────────────────────
+  selectedEmploye: EmployeResponse | null = null;
+
   step: ModalStep  = 'email-check';
   emailToCheck     = '';
   checking         = false;
@@ -89,7 +92,11 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     const obs = this.selectedEntrepriseId
       ? this.api.getEmployesByEntreprise(this.selectedEntrepriseId)
       : this.api.getEmployes();
-    obs.subscribe(d => { this.employes = d; this.applyFilter(); });
+    obs.subscribe(d => {
+      this.employes = d; this.applyFilter();
+      if (this.selectedEmploye)
+        this.selectedEmploye = d.find(e => e.id === this.selectedEmploye!.id) ?? null;
+    });
   }
 
   // Recharge la liste PUIS exécute le callback (évite le refresh manuel)
@@ -119,6 +126,15 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
 
   initials(e: EmployeResponse) { return `${e.nom?.charAt(0)??''}${e.prenom?.charAt(0)??''}`.toUpperCase(); }
   avColor(e: EmployeResponse)  { return AV_COLORS[(e.id || 0) % AV_COLORS.length]; }
+
+  // ── Détail ──────────────────────────────────────────────────────────────
+  openDetail(e: EmployeResponse): void {
+    this.selectedEmploye = e;
+  }
+
+  closeDetail(): void {
+    this.selectedEmploye = null;
+  }
 
   openCreate(): void {
     this.editing = null;
@@ -258,37 +274,68 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   }
 
   private _showDeleteConfirm(e: EmployeResponse): void {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const overlay = this.renderer.createElement('div');
     this.renderer.setStyle(overlay, 'position', 'fixed');
     this.renderer.setStyle(overlay, 'inset', '0');
-    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.6)');
     this.renderer.setStyle(overlay, 'z-index', '99999');
     this.renderer.setStyle(overlay, 'display', 'flex');
     this.renderer.setStyle(overlay, 'align-items', 'center');
     this.renderer.setStyle(overlay, 'justify-content', 'center');
+    this.renderer.setStyle(overlay, 'backdrop-filter', 'blur(4px)');
+
     const box = this.renderer.createElement('div');
-    this.renderer.setStyle(box, 'background', '#1e1e2e');
-    this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
-    this.renderer.setStyle(box, 'border-radius', '16px');
+    const bg     = isDark ? '#16161f' : '#ffffff';
+    const border = isDark ? 'rgba(239,68,68,.25)' : '#fecaca';
+    const text   = isDark ? '#f2f2f8' : '#0f0f1a';
+    const muted  = isDark ? '#a2a2b8' : '#7070a0';
+    const btnCancelBg     = isDark ? 'rgba(255,255,255,.06)' : '#f4f4f8';
+    const btnCancelBorder = isDark ? 'rgba(255,255,255,.12)' : '#e2e2f0';
+    const btnCancelColor  = isDark ? '#a2a2b8' : '#4a4a6a';
+
+    this.renderer.setStyle(box, 'background', bg);
+    this.renderer.setStyle(box, 'border', `1px solid ${border}`);
+    this.renderer.setStyle(box, 'border-radius', '20px');
     this.renderer.setStyle(box, 'padding', '32px 28px');
     this.renderer.setStyle(box, 'text-align', 'center');
     this.renderer.setStyle(box, 'max-width', '380px');
     this.renderer.setStyle(box, 'width', '90%');
-    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)');
-    this.renderer.setStyle(box, 'font-family', 'inherit');
+    this.renderer.setStyle(box, 'box-shadow', isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)');
+    this.renderer.setStyle(box, 'font-family', 'Plus Jakarta Sans, sans-serif');
+    this.renderer.setStyle(box, 'animation', 'slideUp .2s cubic-bezier(.34,1.56,.64,1)');
+
     const close = () => this.renderer.removeChild(document.body, overlay);
+
     box.innerHTML = `
-      <div style="font-size:2.2rem;margin-bottom:12px">🗑️</div>
-      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Supprimer cet employé ?</div>
-      <div style="font-size:.875rem;color:#94a3b8;margin-bottom:14px;line-height:1.5">
-        <strong style="color:#fff">${e.nom} ${e.prenom}</strong>
+      <div style="width:52px;height:52px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);
+           border-radius:14px;display:flex;align-items:center;justify-content:center;
+           font-size:1.3rem;margin:0 auto 16px;color:#ef4444">
+        <i class="fas fa-trash-alt"></i>
       </div>
-      <div style="font-size:.78rem;color:#f87171;margin-bottom:22px">⚠️ Cette action est irréversible.</div>
-      <div style="display:flex;gap:10px;justify-content:center">
-        <button id="del-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
-        <button id="del-ok" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Supprimer</button>
+      <div style="font-size:1rem;font-weight:700;color:${text};margin-bottom:8px;letter-spacing:-0.01em">
+        Supprimer cet employé ?
+      </div>
+      <div style="font-size:.82rem;color:${muted};margin-bottom:8px;line-height:1.5">
+        <strong style="color:${text}">${e.nom} ${e.prenom}</strong>
+      </div>
+      <div style="font-size:.75rem;color:#ef4444;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+           border-radius:8px;padding:8px 12px;margin-bottom:22px">
+        <i class="fas fa-exclamation-triangle" style="margin-right:5px"></i>
+        Cette action est irréversible.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button id="del-cancel" style="background:${btnCancelBg};color:${btnCancelColor};
+          border:1px solid ${btnCancelBorder};padding:9px 20px;border-radius:8px;
+          font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">Annuler</button>
+        <button id="del-ok" style="background:#ef4444;color:#fff;border:none;
+          padding:9px 22px;border-radius:8px;font-size:.82rem;font-weight:700;
+          cursor:pointer;font-family:inherit">
+          <i class="fas fa-trash-alt" style="margin-right:5px"></i>Supprimer
+        </button>
       </div>
     `;
+
     this.renderer.appendChild(overlay, box);
     this.renderer.appendChild(document.body, overlay);
     box.querySelector('#del-cancel')!.addEventListener('click', close);
@@ -303,24 +350,33 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   }
 
   private _openLinkedDialog(e: EmployeResponse, reservations: ReservationResponse[], fileAttente: FileAttenteResponse[]): void {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const overlay = this.renderer.createElement('div');
     this.renderer.setStyle(overlay, 'position', 'fixed');
     this.renderer.setStyle(overlay, 'inset', '0');
-    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.7)');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.6)');
     this.renderer.setStyle(overlay, 'z-index', '99999');
     this.renderer.setStyle(overlay, 'display', 'flex');
     this.renderer.setStyle(overlay, 'align-items', 'center');
     this.renderer.setStyle(overlay, 'justify-content', 'center');
+    this.renderer.setStyle(overlay, 'backdrop-filter', 'blur(4px)');
     const box = this.renderer.createElement('div');
-    this.renderer.setStyle(box, 'background', '#1e1e2e');
-    this.renderer.setStyle(box, 'border', '1px solid rgba(245,158,11,.4)');
-    this.renderer.setStyle(box, 'border-radius', '18px');
-    this.renderer.setStyle(box, 'padding', '32px 28px 28px');
+    const bg    = isDark ? '#16161f' : '#ffffff';
+    const text  = isDark ? '#f2f2f8' : '#0f0f1a';
+    const muted = isDark ? '#a2a2b8' : '#7070a0';
+    const sub   = isDark ? '#78788c' : '#9090b0';
+    const hintBg     = isDark ? 'rgba(255,255,255,.04)' : '#f4f4f8';
+    const hintBorder = isDark ? 'rgba(255,255,255,.08)' : '#e2e2f0';
+    const btnBg = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+    this.renderer.setStyle(box, 'background', bg);
+    this.renderer.setStyle(box, 'border', `1px solid ${isDark ? 'rgba(255,255,255,.1)' : '#e2e2f0'}`);
+    this.renderer.setStyle(box, 'border-radius', '20px');
+    this.renderer.setStyle(box, 'padding', '28px 24px');
     this.renderer.setStyle(box, 'text-align', 'center');
     this.renderer.setStyle(box, 'max-width', '440px');
     this.renderer.setStyle(box, 'width', '92%');
-    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.7)');
-    this.renderer.setStyle(box, 'font-family', 'inherit');
+    this.renderer.setStyle(box, 'box-shadow', isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)');
+    this.renderer.setStyle(box, 'font-family', 'Plus Jakarta Sans, sans-serif');
     const close = () => this.renderer.removeChild(document.body, overlay);
 
     const items: string[] = [];
@@ -329,11 +385,13 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     if (e.entrepriseId != null) {
       const entNom = e.entrepriseNom || this.entreprises.find(ent => ent.id === e.entrepriseId)?.nom || '';
       items.push(`
-        <div style="display:flex;align-items:center;gap:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);border-radius:10px;padding:12px 16px;text-align:left">
-          <span style="font-size:1.5rem;flex-shrink:0">🏢</span>
+        <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);border-radius:12px;padding:12px 14px;text-align:left">
+          <div style="width:34px;height:34px;background:rgba(34,197,94,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#22c55e;font-size:.9rem">
+            <i class="fas fa-building"></i>
+          </div>
           <div>
-            <div style="color:#6ee7b7;font-weight:700;font-size:.88rem;margin-bottom:3px">Entreprise rattachée</div>
-            <div style="color:#94a3b8;font-size:.78rem">${entNom}</div>
+            <div style="color:#22c55e;font-weight:700;font-size:.82rem;margin-bottom:2px">Entreprise rattachée</div>
+            <div style="color:${muted};font-size:.74rem">${entNom}</div>
           </div>
         </div>`);
     }
@@ -349,13 +407,15 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
         nbAnnulees  > 0 ? `<span style="color:#f87171">${nbAnnulees} annulée${nbAnnulees > 1 ? 's' : ''}</span>` : ''
       ].filter(Boolean).join(' · ');
       items.push(`
-        <div style="display:flex;align-items:center;gap:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);border-radius:10px;padding:12px 16px;text-align:left">
-          <span style="font-size:1.5rem;flex-shrink:0">📅</span>
+        <div style="display:flex;align-items:center;gap:12px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.18);border-radius:12px;padding:12px 14px;text-align:left">
+          <div style="width:34px;height:34px;background:rgba(239,68,68,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ef4444;font-size:.9rem">
+            <i class="fas fa-calendar-alt"></i>
+          </div>
           <div>
-            <div style="color:#f87171;font-weight:700;font-size:.88rem;margin-bottom:3px">
+            <div style="color:#ef4444;font-weight:700;font-size:.82rem;margin-bottom:2px">
               ${reservations.length} réservation${reservations.length > 1 ? 's' : ''}
             </div>
-            <div style="font-size:.78rem">${details}</div>
+            <div style="font-size:.74rem">${details}</div>
           </div>
         </div>`);
     }
@@ -369,36 +429,46 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
         nbTermines > 0 ? `<span style="color:#94a3b8">${nbTermines} terminée${nbTermines > 1 ? 's' : ''}</span>` : ''
       ].filter(Boolean).join(' · ');
       items.push(`
-        <div style="display:flex;align-items:center;gap:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 16px;text-align:left">
-          <span style="font-size:1.5rem;flex-shrink:0">🕐</span>
+        <div style="display:flex;align-items:center;gap:12px;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.18);border-radius:12px;padding:12px 14px;text-align:left">
+          <div style="width:34px;height:34px;background:rgba(245,158,11,.1);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#f59e0b;font-size:.9rem">
+            <i class="fas fa-list-ol"></i>
+          </div>
           <div>
-            <div style="color:#fbbf24;font-weight:700;font-size:.88rem;margin-bottom:3px">
+            <div style="color:#f59e0b;font-weight:700;font-size:.82rem;margin-bottom:2px">
               ${fileAttente.length} entrée${fileAttente.length > 1 ? 's' : ''} en file d'attente
             </div>
-            <div style="font-size:.78rem">${details}</div>
+            <div style="font-size:.74rem">${details}</div>
           </div>
         </div>`);
     }
 
     box.innerHTML = `
-      <div style="width:52px;height:52px;background:rgba(245,158,11,.12);border:2px solid rgba(245,158,11,.35);
-           border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 16px">⚠️</div>
-      <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:6px">Suppression impossible</div>
-      <div style="font-size:.82rem;color:#94a3b8;margin-bottom:18px;line-height:1.5">
-        <strong style="color:#f1f5f9">${e.nom} ${e.prenom}</strong> est encore lié aux éléments suivants :
+      <div style="width:48px;height:48px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);
+           border-radius:14px;display:flex;align-items:center;justify-content:center;
+           font-size:1.2rem;margin:0 auto 14px;color:#f59e0b">
+        <i class="fas fa-exclamation-triangle"></i>
       </div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:18px">${items.join('')}</div>
-      <div style="font-size:.76rem;color:#64748b;margin-bottom:20px;line-height:1.5;background:rgba(255,255,255,.03);
-           border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,.06)">
-        💡 Supprimez ou dissociez ces éléments, puis réessayez.<br>
-        <span style="color:#475569">Ou <strong style="color:#94a3b8">archivez</strong> l'employé pour le désactiver sans perdre les données.</span>
+      <div style="font-size:.98rem;font-weight:700;color:${text};margin-bottom:6px;letter-spacing:-0.01em">
+        Suppression impossible
+      </div>
+      <div style="font-size:.8rem;color:${muted};margin-bottom:16px;line-height:1.5">
+        <strong style="color:${text}">${e.nom} ${e.prenom}</strong> est encore lié aux éléments suivants :
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;text-align:left">
+        ${items.join('')}
+      </div>
+      <div style="font-size:.74rem;color:${sub};background:${hintBg};
+           border-radius:10px;padding:10px 12px;border:1px solid ${hintBorder};
+           margin-bottom:18px;text-align:left;line-height:1.6">
+        <i class="fas fa-lightbulb" style="color:#6366f1;margin-right:5px"></i>
+        Supprimez ou dissociez ces éléments, puis réessayez.<br>
+        <span>Ou <strong style="color:${muted}">archivez</strong> l'employé pour le désactiver sans perdre les données.</span>
       </div>
       <button id="linked-ok"
-        style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;
-        padding:11px 36px;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;
-        width:100%;transition:opacity .2s"
-        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-        Compris
+        style="background:${btnBg};color:#fff;border:none;
+        padding:10px 0;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;
+        width:100%;font-family:inherit;box-shadow:0 2px 8px rgba(99,102,241,.35)">
+        <i class="fas fa-check" style="margin-right:6px"></i>Compris
       </button>
     `;
     this.renderer.appendChild(overlay, box);
@@ -409,7 +479,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
 
   archiver(e: EmployeResponse): void {
     this.api.archiverEmploye(e.id).subscribe({
-      next: () => { this.reloadThen(() => this.toast.success('Archivé')); },
+      next: () => { this.reloadThen(() => this.toast.success('Employé archivé')); },
       error: () => this.toast.error('Erreur')
     });
   }

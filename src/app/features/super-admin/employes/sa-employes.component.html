@@ -1,5 +1,6 @@
 <div>
-  <!-- ══ HEADER ══════════════════════════════════════════════════════════ -->
+
+  <!-- ══ HEADER ══ -->
   <div class="page-header">
     <div>
       <div class="page-title">
@@ -55,7 +56,7 @@
     </div>
   </div>
 
-  <!-- ══ STATS ════════════════════════════════════════════════════════════ -->
+  <!-- ══ STATS ══ -->
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-icon blue"><i class="fas fa-users"></i></div>
@@ -71,7 +72,7 @@
     </div>
   </div>
 
-  <!-- ══ TABLE ════════════════════════════════════════════════════════════ -->
+  <!-- ══ TABLE ══ -->
   <div class="card">
     <div class="table-container">
       <table>
@@ -82,11 +83,14 @@
             <th>Entreprise</th>
             <th>Spécialité</th>
             <th>Statut</th>
-            <th style="width:110px">Actions</th>
+            <th style="width:120px">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let e of filtered" [class.row-archived]="e.archived">
+          <tr *ngFor="let e of filtered"
+              [class.row-archived]="e.archived"
+              [class.row-selected]="selectedEmploye?.id === e.id"
+              class="row-clickable" (click)="openDetail(e)">
             <td>
               <div class="person-cell">
                 <div class="avatar" [style.background]="avColor(e)">{{ initials(e) }}</div>
@@ -113,24 +117,16 @@
             </td>
             <td>
               <span class="badge" [class.badge-success]="!e.archived" [class.badge-warning]="e.archived">
-                <i class="fas" [class.fa-circle]="!e.archived" [class.fa-archive]="e.archived" style="font-size:.55rem"></i>
+                <i class="fas" [class.fa-circle]="!e.archived" [class.fa-archive]="e.archived" style="font-size:.5rem"></i>
                 {{ e.archived ? 'Archivé' : 'Actif' }}
               </span>
             </td>
             <td>
-              <div class="row-actions">
-                <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(e)" title="Modifier">
-                  <i class="fas fa-pen"></i>
-                </button>
-                <button *ngIf="!e.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(e)" title="Archiver">
-                  <i class="fas fa-archive"></i>
-                </button>
-                <button *ngIf="e.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiver(e)" title="Désarchiver">
-                  <i class="fas fa-undo"></i>
-                </button>
-                <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(e)" title="Supprimer définitivement">
-                  <i class="fas fa-trash-alt"></i>
-                </button>
+              <div class="row-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(e)" title="Modifier"><i class="fas fa-pen"></i></button>
+                <button *ngIf="!e.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiver(e)" title="Archiver"><i class="fas fa-archive"></i></button>
+                <button *ngIf="e.archived"  class="btn btn-success btn-sm btn-icon" (click)="desarchiver(e)" title="Désarchiver"><i class="fas fa-undo"></i></button>
+                <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(e)" title="Supprimer définitivement"><i class="fas fa-trash-alt"></i></button>
               </div>
             </td>
           </tr>
@@ -148,7 +144,91 @@
     </div>
   </div>
 
-  <!-- ══ MODAL CRÉATION ══════════════════════════════════════════════════ -->
+  <!-- ══ DETAIL EMPLOYÉ ══ -->
+  <div class="modal-overlay" *ngIf="selectedEmploye" (click)="closeDetail()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <ng-container *ngIf="selectedEmploye as e">
+        <div class="modal-header">
+          <div class="detail-header-left">
+            <div class="detail-avatar" [style.background]="e.archived ? 'var(--text-faint)' : avColor(e)">{{ initials(e) }}</div>
+            <div>
+              <div class="detail-name">{{ e.nom }} {{ e.prenom }}</div>
+              <div class="detail-email">{{ e.email }}</div>
+              <div class="detail-phone" *ngIf="e.specialite">
+                <i class="fas fa-star"></i> {{ e.specialite }}
+              </div>
+            </div>
+          </div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="drawer-section-title"><i class="fas fa-id-card"></i> Informations</div>
+          <div class="drawer-body">
+
+            <div class="drawer-info-row">
+              <div class="dir-icon blue"><i class="fas fa-building"></i></div>
+              <div>
+                <div class="dir-label">Entreprise</div>
+                <div class="dir-value" [class.muted]="!e.entrepriseNom">
+                  {{ e.entrepriseNom || 'Aucune — employé libre' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="drawer-info-row">
+              <div class="dir-icon" [class.purple]="e.specialite" [class.gray]="!e.specialite">
+                <i class="fas fa-star"></i>
+              </div>
+              <div>
+                <div class="dir-label">Spécialité</div>
+                <div class="dir-value" [class.muted]="!e.specialite">
+                  {{ e.specialite || 'Non renseignée' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="drawer-info-row">
+              <div class="dir-icon" [class.green]="!e.archived" [class.amber]="e.archived">
+                <i class="fas" [class.fa-check-circle]="!e.archived" [class.fa-archive]="e.archived"></i>
+              </div>
+              <div>
+                <div class="dir-label">Statut</div>
+                <div class="dir-value">
+                  <span class="badge" [class.badge-success]="!e.archived" [class.badge-warning]="e.archived">
+                    {{ e.archived ? 'Archivé' : 'Actif' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="drawer-info-row">
+              <div class="dir-icon gray"><i class="fas fa-hashtag"></i></div>
+              <div>
+                <div class="dir-label">ID</div>
+                <div class="dir-value" style="font-family:var(--font-mono);font-size:.78rem">#{{ e.id }}</div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="drawer-footer">
+          <button class="btn btn-info btn-sm" (click)="closeDetail(); openEdit(e)">
+            <i class="fas fa-pen"></i> Modifier
+          </button>
+          <button *ngIf="!e.archived" class="btn btn-danger btn-sm" (click)="closeDetail(); archiver(e)">
+            <i class="fas fa-archive"></i> Archiver
+          </button>
+          <button *ngIf="e.archived" class="btn btn-success btn-sm" (click)="closeDetail(); desarchiver(e)">
+            <i class="fas fa-undo"></i> Désarchiver
+          </button>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ══ MODAL CRÉATION ══ -->
   <div class="modal-overlay" *ngIf="showModal && !editing" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
 
@@ -158,20 +238,25 @@
           <div class="modal-title"><i class="fas fa-user-plus"></i> Ajouter un employé</div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
+        <div class="modal-steps">
+          <div class="ms-step active"><div class="ms-dot">1</div> Email</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step"><div class="ms-dot">2</div> Profil</div>
+        </div>
         <div class="modal-body">
           <div class="step-intro">
             <div class="step-num">1</div>
             <div>
               <div class="step-title">Vérification du compte</div>
-              <div class="step-desc">Entrez l'email pour savoir si un compte existe déjà dans le système.</div>
+              <div class="step-desc">Entrez l'adresse email pour vérifier si un compte existe déjà dans le système.</div>
             </div>
           </div>
-          <div class="form-group" style="margin-top:20px">
+          <div class="form-group">
             <label class="form-label">Adresse email *</label>
             <div class="input-icon-wrap">
               <i class="fas fa-envelope iw-icon"></i>
               <input [(ngModel)]="emailToCheck" type="email" class="form-control iw-input"
-                placeholder="employe@exemple.com"
+                placeholder="employe&#64;exemple.com"
                 (keyup.enter)="checkEmail()" [disabled]="checking">
             </div>
           </div>
@@ -180,16 +265,16 @@
           <button class="btn btn-secondary" (click)="closeModal()">Annuler</button>
           <button class="btn btn-primary" (click)="checkEmail()" [disabled]="!emailToCheck.trim() || checking">
             <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
-            <i class="fas fa-search" *ngIf="!checking"></i>
-            {{ checking ? 'Vérification...' : 'Vérifier' }}
+            <i class="fas fa-arrow-right" *ngIf="!checking"></i>
+            {{ checking ? 'Vérification...' : 'Suivant' }}
           </button>
         </div>
       </ng-container>
 
-      <!-- STEP 2a : email appartient déjà à un employé -->
+      <!-- STEP : email employé existant -->
       <ng-container *ngIf="step === 'result-employe-exists'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-user-lock"></i> Email déjà utilisé</div>
+          <div class="modal-title"><i class="fas fa-user-lock"></i> Email déjà utilisé</div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -206,7 +291,7 @@
           </div>
           <div class="info-box amber">
             <i class="fas fa-exclamation-triangle"></i>
-            Cet email appartient déjà à un employé. Veuillez utiliser un autre email.
+            Cet email appartient déjà à un employé actif. Veuillez utiliser un autre email.
           </div>
         </div>
         <div class="modal-footer">
@@ -215,10 +300,10 @@
         </div>
       </ng-container>
 
-      <!-- STEP 2b : EMAIL_OTHER_ROLE -->
+      <!-- STEP : autre rôle -->
       <ng-container *ngIf="step === 'result-other-role'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--danger)"><i class="fas fa-ban"></i> Email non disponible</div>
+          <div class="modal-title"><i class="fas fa-ban"></i> Email non disponible</div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -226,13 +311,13 @@
             <div class="rc-avatar red"><i class="fas fa-ban"></i></div>
             <div class="rc-info">
               <div class="rc-name">{{ emailToCheck }}</div>
-              <div class="rc-email">Email déjà enregistré dans le système</div>
+              <div class="rc-email">Email utilisé par un autre type de compte</div>
             </div>
             <span class="rc-badge red"><i class="fas fa-times-circle"></i> Refusé</span>
           </div>
           <div class="info-box red">
             <i class="fas fa-exclamation-circle"></i>
-            Cet email est déjà utilisé par un compte d'un autre rôle (client ou gérant). Veuillez entrer un autre email.
+            Cet email appartient à un compte client, gérant ou administrateur. Veuillez entrer un autre email.
           </div>
         </div>
         <div class="modal-footer">
@@ -241,10 +326,10 @@
         </div>
       </ng-container>
 
-      <!-- STEP 2c : ARCHIVED -->
+      <!-- STEP : archivé -->
       <ng-container *ngIf="step === 'result-archived'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-archive"></i> Employé archivé</div>
+          <div class="modal-title"><i class="fas fa-user-clock"></i> Employé archivé trouvé</div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -263,7 +348,7 @@
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="step='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-          <button class="btn btn-primary" (click)="desarchiverDepuisModal()" [disabled]="loading">
+          <button class="btn btn-success" (click)="desarchiverDepuisModal()" [disabled]="loading">
             <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
             <i class="fas fa-undo" *ngIf="!loading"></i>
             {{ loading ? 'Traitement...' : 'Désarchiver' }}
@@ -271,17 +356,22 @@
         </div>
       </ng-container>
 
-      <!-- STEP 3 : new-form -->
+      <!-- STEP : new-form -->
       <ng-container *ngIf="step === 'new-form'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-plus"></i> Créer un nouvel employé</div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
+        <div class="modal-steps">
+          <div class="ms-step done"><div class="ms-dot"><i class="fas fa-check"></i></div> Email</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step active"><div class="ms-dot">2</div> Profil</div>
+        </div>
         <form [formGroup]="form" (ngSubmit)="save()">
           <div class="modal-body">
             <div class="new-account-hint">
               <div class="nah-icon"><i class="fas fa-user-plus"></i></div>
-              <div>Aucun compte pour <strong>{{ emailToCheck }}</strong>. Créez un nouveau profil.</div>
+              <div>Aucun compte pour <strong>{{ emailToCheck }}</strong>. Complétez le profil.</div>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -295,18 +385,24 @@
                   [class.is-invalid]="form.get('prenom')?.invalid && form.get('prenom')?.touched" placeholder="Jean">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input formControlName="email" type="email" class="form-control" [readonly]="true">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input formControlName="email" type="email" class="form-control" [readonly]="true">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
+                <input formControlName="specialite" class="form-control" placeholder="Ex : Coiffure...">
+              </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Mot de passe *</label>
-              <input formControlName="password" type="password" class="form-control" placeholder="Min. 6 caractères"
-                [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
-              <input formControlName="specialite" class="form-control" placeholder="Ex : Coiffure...">
+              <label class="form-label">Mot de passe * <span class="opt-label">(min 6 caractères)</span></label>
+              <div class="input-icon-wrap">
+                <i class="fas fa-lock iw-icon"></i>
+                <input formControlName="password" type="password" class="form-control iw-input"
+                  placeholder="Min. 6 caractères"
+                  [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched">
+              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Entreprise *</label>
@@ -326,14 +422,14 @@
                   </div>
                   <div class="fs-list">
                     <div class="fs-opt" *ngFor="let e of filteredModalEnts" (mousedown)="selectModalEnt(e)">
-                      <i class="fas fa-building" style="color:var(--accent)"></i> {{ e.nom }}
+                      <i class="fas fa-building" style="color:var(--primary)"></i> {{ e.nom }}
                     </div>
                     <div class="fs-empty" *ngIf="filteredModalEnts.length === 0">Aucun résultat</div>
                   </div>
                 </div>
               </div>
               <div class="field-error" *ngIf="form.get('entrepriseId')?.invalid && form.get('entrepriseId')?.touched">
-                Veuillez sélectionner une entreprise.
+                <i class="fas fa-exclamation-circle"></i> Veuillez sélectionner une entreprise.
               </div>
             </div>
           </div>
@@ -344,8 +440,7 @@
             <button type="submit" class="btn btn-primary" [disabled]="loading">
               <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
               <i class="fas fa-save" *ngIf="!loading"></i>
-              <span *ngIf="loading">Création...</span>
-              <span *ngIf="!loading">Créer</span>
+              {{ loading ? 'Création...' : "Créer l'employé" }}
             </button>
           </div>
         </form>
@@ -354,7 +449,7 @@
     </div>
   </div>
 
-  <!-- ══ MODAL ÉDITION ════════════════════════════════════════════════════ -->
+  <!-- ══ MODAL ÉDITION ══ -->
   <div class="modal-overlay" *ngIf="showModal && editing" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -374,10 +469,12 @@
             <div class="form-group"><label class="form-label">Nom *</label><input formControlName="nom" class="form-control"></div>
             <div class="form-group"><label class="form-label">Prénom *</label><input formControlName="prenom" class="form-control"></div>
           </div>
-          <div class="form-group"><label class="form-label">Email *</label><input formControlName="email" type="email" class="form-control"></div>
-          <div class="form-group">
-            <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
-            <input formControlName="specialite" class="form-control" placeholder="Ex : Coiffure...">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Email *</label><input formControlName="email" type="email" class="form-control"></div>
+            <div class="form-group">
+              <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
+              <input formControlName="specialite" class="form-control" placeholder="Ex : Coiffure...">
+            </div>
           </div>
           <div class="form-group">
             <label class="form-label">Nouveau mot de passe <span class="opt-label">(laisser vide pour garder)</span></label>
@@ -389,14 +486,11 @@
           <button type="submit" class="btn btn-primary" [disabled]="loading">
             <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
             <i class="fas fa-save" *ngIf="!loading"></i>
-            <span *ngIf="loading">Enregistrement...</span>
-            <span *ngIf="!loading">Enregistrer</span>
+            {{ loading ? 'Enregistrement...' : 'Enregistrer' }}
           </button>
         </div>
       </form>
     </div>
   </div>
-
-
 
 </div>
