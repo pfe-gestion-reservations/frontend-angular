@@ -20,7 +20,7 @@ export class AuthService {
         const user: AuthUser = {
           id: res.id,
           email: res.email,
-          roles: res.roles,
+          roles: res.roles.map((r: string) => r.startsWith('ROLE_') ? r : `ROLE_${r}`),
           token: res.token,
           nom: res.nom,
           prenom: res.prenom,
@@ -69,11 +69,11 @@ export class AuthService {
 
   redirectToDashboard(): void {
     const user = this.currentUser();
-    if (!user) { this.router.navigate(['/auth/login']); return; }
+    if (!user)             { this.router.navigate(['/auth/login']); return; }
     if (this.isSuperAdmin()) { this.router.navigate(['/super-admin']); return; }
     if (this.isGerant())     { this.router.navigate(['/gerant']); return; }
     if (this.isEmploye())    { this.router.navigate(['/employe']); return; }
-    if (this.isClient())     { this.router.navigate(['/client']); return; }
+    if (this.isClient())     { this.router.navigate(['/client/dashboard']); return; }
   }
 
   private loadUser(): AuthUser | null {

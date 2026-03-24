@@ -11,6 +11,9 @@ export const authGuard: CanActivateFn = () => {
 
 export const roleGuard = (roles: string[]): CanActivateFn => () => {
   const auth = inject(AuthService);
+  console.log('Guard called, user:', auth.currentUser());
+  console.log('Checking roles:', roles);
+  console.log('hasRole result:', roles.some(r => auth.hasRole(r)));
   if (!auth.currentUser()) { inject(Router).navigate(['/auth/login']); return false; }
   if (roles.some(r => auth.hasRole(r))) return true;
   auth.redirectToDashboard();

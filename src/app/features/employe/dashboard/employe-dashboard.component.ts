@@ -4,7 +4,8 @@ import { RouterModule } from '@angular/router';
 import { ApiService } from '../../../core/services/api.service';
 import { AuthService } from '../../../core/services/auth.service';
 import { ReservationResponse, AvisResponse } from '../../../core/models/api.models';
-import { forkJoin } from 'rxjs';
+import { forkJoin, of } from 'rxjs';
+import { catchError } from 'rxjs/operators';
 
 @Component({
   selector: 'app-employe-dashboard',
@@ -217,32 +218,32 @@ export class EmployeDashboardComponent implements OnInit {
   ngOnInit(): void { this.load(); }
 
   load(): void {
-    forkJoin({
-      e: this.api.getEmployes(),
-      c: this.api.getClients(),
-      s: this.api.getServices(),
-      r: this.api.getReservations(),
-      f: this.api.getFileAttente(),
-      a: this.api.getAvis()
-    }).subscribe(d => {
-      this.stats = {
-        employes:     d.e.filter(e => !e.archived).length,
-        clients:      d.c.filter(c => !c.archived).length,
-        services:     d.s.length,
-        reservations: d.r.length,
-        file:         d.f.filter(f => ['EN_ATTENTE','APPELE','EN_COURS'].includes(f.statut)).length
-      };
-      this.recentReservations = [...d.r].sort((a, b) =>
-        new Date(b.heureDebut).getTime() - new Date(a.heureDebut).getTime()
-      ).slice(0, 5);
-      this.recentAvis = [...d.a].sort((a, b) =>
-        new Date(b.dateAvis).getTime() - new Date(a.dateAvis).getTime()
-      ).slice(0, 5);
-      this.avgNote = d.a.length
-        ? +( d.a.reduce((s, a) => s + a.note, 0) / d.a.length ).toFixed(1)
-        : 0;
-    });
-  }
+  forkJoin({
+    e: this.api.getEmployes().pipe(catchError(() => of([]))),
+    c: this.api.getClients().pipe(catchError(() => of([]))),
+    s: this.api.getServices().pipe(catchError(() => of([]))),
+    r: this.api.getReservations().pipe(catchError(() => of([]))),
+    f: this.api.getFileAttente().pipe(catchError(() => of([]))),
+    a: this.api.getAvis().pipe(catchError(() => of([])))
+  }).subscribe(d => {
+    this.stats = {
+      employes:     d.e.filter((e: any) => !e.archived).length,
+      clients:      d.c.filter((c: any) => !c.archived).length,
+      services:     d.s.length,
+      reservations: d.r.length,
+      file:         d.f.filter((f: any) => ['EN_ATTENTE','APPELE','EN_COURS'].includes(f.statut)).length
+    };
+    this.recentReservations = [...d.r].sort((a: any, b: any) =>
+      new Date(b.heureDebut).getTime() - new Date(a.heureDebut).getTime()
+    ).slice(0, 5);
+    this.recentAvis = [...d.a].sort((a: any, b: any) =>
+      new Date(b.dateAvis).getTime() - new Date(a.dateAvis).getTime()
+    ).slice(0, 5);
+    this.avgNote = d.a.length
+      ? +( d.a.reduce((s: number, a: any) => s + a.note, 0) / d.a.length ).toFixed(1)
+      : 0;
+  });
+}
 
   statutLabel(s: string): string {
     const l: Record<string,string> = {
