@@ -1,20 +1,23 @@
 <div>
 
-  <!-- PAGE HEADER -->
+  <!-- ══ HEADER ══ -->
   <div class="page-header">
     <div>
       <div class="page-title">
         <div class="title-icon"><i class="fas fa-user-tie"></i></div>
         Gérants
       </div>
-      <div class="page-subtitle">Gestion des comptes gérants</div>
+      <div class="page-subtitle">
+        {{ gerants.length }} gérant(s)
+      </div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn btn-secondary" (click)="showArchived = !showArchived; applyFilter()"
-        [style.background]="showArchived ? 'var(--accent-glow)' : ''"
-        [style.border-color]="showArchived ? 'var(--accent)' : ''"
-        [style.color]="showArchived ? 'var(--accent)' : ''">
-        <i class="fas fa-archive"></i> {{ showArchived ? 'Masquer archivés' : 'Afficher archivés' }}
+    <div class="hdr-right">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Rechercher..." class="search-inp">
+      </div>
+      <button class="btn btn-secondary" (click)="showArchived=!showArchived; applyFilter()" [class.btn-active]="showArchived">
+        <i class="fas fa-archive"></i> {{ showArchived ? 'Masquer archivés' : 'Archivés' }}
       </button>
       <button class="btn btn-primary" (click)="openCreateModal()">
         <i class="fas fa-plus"></i> Nouveau gérant
@@ -22,62 +25,79 @@
     </div>
   </div>
 
-  <!-- TABLE -->
+  <!-- ══ STATS ══ -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+      <div><div class="stat-value">{{ gerants.length }}</div><div class="stat-label">Total</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-user-check"></i></div>
+      <div><div class="stat-value">{{ totalActifs }}</div><div class="stat-label">Actifs</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fas fa-user-clock"></i></div>
+      <div><div class="stat-value">{{ totalArchives }}</div><div class="stat-label">Archivés</div></div>
+    </div>
+  </div>
+
+  <!-- ══ TABLE ══ -->
   <div class="card">
     <div class="table-container">
       <table>
         <thead>
-          <tr><th>#</th><th>Gérant</th><th>Email</th><th>Entreprise</th><th>Statut</th><th>Actions</th></tr>
+          <tr>
+            <th>Gérant</th>
+            <th>Email</th>
+            <th>Entreprise</th>
+            <th>Statut</th>
+            <th style="width:120px">Actions</th>
+          </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let g of filtered" [class.row-archived]="g.archived" [class.row-selected]="selectedGerant?.id === g.id" class="row-clickable" (click)="openDrawer(g)">
-            <td class="id-cell">{{ g.id }}</td>
+          <tr *ngFor="let g of filtered"
+              [class.row-archived]="g.archived"
+              [class.row-selected]="selectedGerant?.id === g.id"
+              class="row-clickable" (click)="openDrawer(g)">
             <td>
-              <div class="gerant-info">
-                <div class="gerant-avatar">{{ g.nom[0] }}{{ g.prenom[0] }}</div>
-                <div class="gerant-name">{{ g.nom }} {{ g.prenom }}</div>
+              <div class="person-cell">
+                <div class="avatar" [style.background]="avColor(g)">{{ initials(g) }}</div>
+                <div>
+                  <div class="person-name">{{ g.nom }} {{ g.prenom }}</div>
+                  <div class="person-sub">#{{ g.id }}</div>
+                </div>
               </div>
             </td>
-            <td class="email-cell">{{ g.email }}</td>
+            <td><div class="email-cell"><i class="fas fa-envelope"></i>{{ g.email }}</div></td>
             <td>
-              <span class="ent-badge" *ngIf="g.entrepriseNom">
+              <span class="ent-pill" *ngIf="g.entrepriseNom">
                 <i class="fas fa-building"></i> {{ g.entrepriseNom }}
               </span>
-              <span class="libre-badge" *ngIf="!g.entrepriseNom">
+              <span class="libre-pill" *ngIf="!g.entrepriseNom">
                 <i class="fas fa-circle"></i> Libre
               </span>
             </td>
             <td>
               <span class="badge" [class.badge-success]="!g.archived" [class.badge-warning]="g.archived">
-                <i class="fas" [class.fa-check-circle]="!g.archived" [class.fa-archive]="g.archived"></i>
+                <i class="fas" [class.fa-circle]="!g.archived" [class.fa-archive]="g.archived" style="font-size:.5rem"></i>
                 {{ g.archived ? 'Archivé' : 'Actif' }}
               </span>
             </td>
             <td>
               <div class="row-actions" (click)="$event.stopPropagation()">
-                <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(g)" title="Modifier">
-                  <i class="fas fa-pen"></i>
-                </button>
-                <button *ngIf="!g.archived" class="btn btn-danger btn-sm btn-icon"
-                  (click)="openArchiver(g)" title="Archiver">
-                  <i class="fas fa-archive"></i>
-                </button>
-                <button *ngIf="g.archived" class="btn btn-success btn-sm btn-icon"
-                  (click)="desarchiver(g)" title="Désarchiver">
-                  <i class="fas fa-undo"></i>
-                </button>
-                <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(g)" title="Supprimer définitivement">
-                  <i class="fas fa-trash-alt"></i>
-                </button>
+                <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(g)" title="Modifier"><i class="fas fa-pen"></i></button>
+                <button *ngIf="!g.archived" class="btn btn-danger btn-sm btn-icon" (click)="openArchiver(g)" title="Archiver"><i class="fas fa-archive"></i></button>
+                <button *ngIf="g.archived"  class="btn btn-success btn-sm btn-icon" (click)="desarchiver(g)" title="Désarchiver"><i class="fas fa-undo"></i></button>
+                <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(g)" title="Supprimer définitivement"><i class="fas fa-trash-alt"></i></button>
               </div>
             </td>
           </tr>
           <tr *ngIf="filtered.length === 0">
-            <td colspan="6">
+            <td colspan="5">
               <div class="empty-state">
                 <i class="fas fa-user-tie"></i>
-                <h3>Aucun gérant</h3>
-                <p>Cliquez sur "Nouveau gérant" pour en créer un</p>
+                <h3>{{ searchQuery ? 'Aucun résultat' : 'Aucun gérant' }}</h3>
+                <p>{{ searchQuery ? 'Essayez une autre recherche' : 'Cliquez sur « Nouveau gérant » pour créer le premier' }}</p>
               </div>
             </td>
           </tr>
@@ -86,244 +106,298 @@
     </div>
   </div>
 
-
-    <!-- ══ DRAWER — Détails gérant ══════════════════════════════════════ -->
-    <div class="drawer-overlay" *ngIf="selectedGerant" (click)="closeDrawer()"></div>
-    <div class="drawer" [class.drawer-open]="selectedGerant">
-      <ng-container *ngIf="selectedGerant">
-        <div class="drawer-header">
-          <div class="drawer-avatar">{{ selectedGerant.nom[0] }}{{ selectedGerant.prenom[0] }}</div>
-          <div class="drawer-info">
-            <div class="drawer-name">{{ selectedGerant.nom }} {{ selectedGerant.prenom }}</div>
-            <div class="drawer-email">{{ selectedGerant.email }}</div>
-          </div>
-          <button class="drawer-close" (click)="closeDrawer()"><i class="fas fa-times"></i></button>
-        </div>
-
-        <div class="drawer-section-title">
-          <i class="fas fa-building"></i> Entreprise assignée
-        </div>
-
-        <div class="drawer-body">
-          <div class="drawer-libre" *ngIf="!selectedGerant.entrepriseNom">
-            <i class="fas fa-check-circle"></i>
+  <!-- ══ DETAIL GÉRANT (modal style employés) ══ -->
+  <div class="modal-overlay" *ngIf="selectedGerant" (click)="closeDrawer()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <ng-container *ngIf="selectedGerant as g">
+        <div class="modal-header">
+          <div class="detail-header-left">
+            <div class="detail-avatar" [style.background]="g.archived ? 'var(--text-faint)' : avColor(g)">{{ initials(g) }}</div>
             <div>
-              <div class="dl-title">Gérant libre</div>
-              <div class="dl-sub">Aucune entreprise assignée</div>
+              <div class="detail-name">{{ g.nom }} {{ g.prenom }}</div>
+              <div class="detail-email">{{ g.email }}</div>
+              <div class="detail-phone" *ngIf="g.entrepriseNom">
+                <i class="fas fa-building"></i> {{ g.entrepriseNom }}
+              </div>
             </div>
           </div>
+          <button class="modal-close" (click)="closeDrawer()"><i class="fas fa-times"></i></button>
+        </div>
 
-          <div class="drawer-ent-card" *ngIf="selectedGerant.entrepriseNom">
-            <div class="dec-header">
-              <div class="dec-icon"><i class="fas fa-building"></i></div>
+        <div class="modal-body">
+          <div class="drawer-section-title"><i class="fas fa-id-card"></i> Informations</div>
+          <div class="drawer-body">
+
+            <div class="drawer-info-row">
+              <div class="dir-icon blue"><i class="fas fa-building"></i></div>
               <div>
-                <div class="dec-nom">{{ selectedGerant.entrepriseNom }}</div>
-                <div class="dec-secteur" *ngIf="selectedGerant.entrepriseSecteur">
-                  <i class="fas fa-tag"></i> {{ selectedGerant.entrepriseSecteur }}
+                <div class="dir-label">Entreprise</div>
+                <div class="dir-value" [class.muted]="!g.entrepriseNom">
+                  {{ g.entrepriseNom || 'Aucune — gérant libre' }}
                 </div>
               </div>
             </div>
-            <div class="dec-row" *ngIf="selectedGerant.entrepriseTelephone">
-              <i class="fas fa-phone"></i> {{ selectedGerant.entrepriseTelephone }}
+
+            <div class="drawer-info-row" *ngIf="g.entrepriseSecteur">
+              <div class="dir-icon purple"><i class="fas fa-tag"></i></div>
+              <div>
+                <div class="dir-label">Secteur</div>
+                <div class="dir-value">{{ g.entrepriseSecteur }}</div>
+              </div>
             </div>
-            <div class="dec-row" *ngIf="selectedGerant.entrepriseAdresse">
-              <i class="fas fa-map-marker-alt"></i> {{ selectedGerant.entrepriseAdresse }}
+
+            <div class="drawer-info-row" *ngIf="g.entrepriseTelephone">
+              <div class="dir-icon green"><i class="fas fa-phone"></i></div>
+              <div>
+                <div class="dir-label">Téléphone entreprise</div>
+                <div class="dir-value">{{ g.entrepriseTelephone }}</div>
+              </div>
             </div>
+
+            <div class="drawer-info-row" *ngIf="g.entrepriseAdresse">
+              <div class="dir-icon amber"><i class="fas fa-map-marker-alt"></i></div>
+              <div>
+                <div class="dir-label">Adresse entreprise</div>
+                <div class="dir-value">{{ g.entrepriseAdresse }}</div>
+              </div>
+            </div>
+
+            <div class="drawer-info-row">
+              <div class="dir-icon" [class.green]="!g.archived" [class.amber]="g.archived">
+                <i class="fas" [class.fa-check-circle]="!g.archived" [class.fa-archive]="g.archived"></i>
+              </div>
+              <div>
+                <div class="dir-label">Statut</div>
+                <div class="dir-value">
+                  <span class="badge" [class.badge-success]="!g.archived" [class.badge-warning]="g.archived">
+                    {{ g.archived ? 'Archivé' : 'Actif' }}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div class="drawer-info-row">
+              <div class="dir-icon gray"><i class="fas fa-hashtag"></i></div>
+              <div>
+                <div class="dir-label">ID</div>
+                <div class="dir-value" style="font-family:var(--font-mono);font-size:.78rem">#{{ g.id }}</div>
+              </div>
+            </div>
+
           </div>
         </div>
 
         <div class="drawer-footer">
-          <span class="badge" [class.badge-success]="!selectedGerant.archived" [class.badge-warning]="selectedGerant.archived">
-            {{ selectedGerant.archived ? 'Archivé' : 'Actif' }}
-          </span>
-          <span class="drawer-id">#{{ selectedGerant.id }}</span>
-        </div>
-      </ng-container>
-    </div>
-
-  <!-- MODAL CRÉATION GÉRANT -->
-  <div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
-
-      <!-- ── STEP 1 : Vérification email ── -->
-      <ng-container *ngIf="createStep === 'email-check'">
-        <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-user-plus"></i> Nouveau gérant</div>
-          <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="step-intro" style="margin-bottom:20px">
-            <div class="step-num">1</div>
-            <div>
-              <div class="step-title">Vérification du compte</div>
-              <div class="step-desc">Entrez l'email pour vérifier si un compte existe déjà dans le système.</div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Adresse email *</label>
-            <div class="input-icon-wrap">
-              <i class="fas fa-envelope iw-icon"></i>
-              <input [(ngModel)]="emailToCheck" type="email" class="form-control iw-input"
-                placeholder="gerant@salon.com"
-                (keyup.enter)="doCheckGerantEmail()" [disabled]="checking">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeCreateModal()">Annuler</button>
-          <button class="btn btn-primary" (click)="doCheckGerantEmail()" [disabled]="!emailToCheck.trim() || checking">
-            <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
-            <i class="fas fa-search" *ngIf="!checking"></i>
-            {{ checking ? 'Vérification...' : 'Vérifier' }}
+          <button class="btn btn-info btn-sm" (click)="closeDrawer(); openEdit(g)">
+            <i class="fas fa-pen"></i> Modifier
           </button>
-        </div>
-      </ng-container>
-
-      <!-- ── STEP 2a : Compte gérant existant (LIBRE ou OCCUPE) ── -->
-      <ng-container *ngIf="createStep === 'email-occupe'">
-        <div class="modal-header">
-          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-user-lock"></i> Compte gérant existant</div>
-          <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="result-card amber">
-            <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
-            <div class="rc-info">
-              <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
-              <div class="rc-email">{{ checkResult?.email }}</div>
-            </div>
-            <span class="rc-badge amber"><i class="fas fa-user-lock"></i> Existant</span>
-          </div>
-          <div class="info-box amber">
-            <i class="fas fa-exclamation-triangle"></i>
-            Ce mail a déjà un compte gérant dans le système.
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="createStep='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-          <button class="btn btn-secondary" (click)="closeCreateModal()">Fermer</button>
-        </div>
-      </ng-container>
-
-
-      <!-- ── STEP 2b : Gérant archivé (LIBRE) ── -->
-      <ng-container *ngIf="createStep === 'email-libre'">
-        <div class="modal-header">
-          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-archive"></i> Gérant archivé</div>
-          <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="result-card amber">
-            <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
-            <div class="rc-info">
-              <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
-              <div class="rc-email">{{ checkResult?.email }}</div>
-            </div>
-            <span class="rc-badge amber"><i class="fas fa-archive"></i> Archivé</span>
-          </div>
-          <div class="info-box amber">
-            <i class="fas fa-exclamation-triangle"></i>
-            Ce gérant est archivé. Voulez-vous le désarchiver ?
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="createStep='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-          <button class="btn btn-primary" (click)="desarchiverDepuisModal()">
+          <button *ngIf="!g.archived" class="btn btn-danger btn-sm" (click)="closeDrawer(); openArchiver(g)">
+            <i class="fas fa-archive"></i> Archiver
+          </button>
+          <button *ngIf="g.archived" class="btn btn-success btn-sm" (click)="closeDrawer(); desarchiver(g)">
             <i class="fas fa-undo"></i> Désarchiver
           </button>
         </div>
       </ng-container>
-
-      <!-- ── STEP 2c : Email utilisé par un autre rôle ── -->
-      <ng-container *ngIf="createStep === 'email-other-role'">
-        <div class="modal-header">
-          <div class="modal-title" style="color:var(--danger)"><i class="fas fa-ban"></i> Email non disponible</div>
-          <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="result-card red">
-            <div class="rc-avatar red"><i class="fas fa-ban"></i></div>
-            <div class="rc-info">
-              <div class="rc-name">{{ emailToCheck }}</div>
-              <div class="rc-email">Email déjà utilisé dans le système</div>
-            </div>
-            <span class="rc-badge red"><i class="fas fa-times-circle"></i> Refusé</span>
-          </div>
-          <div class="info-box red">
-            <i class="fas fa-exclamation-circle"></i>
-            Ce mail a déjà un compte dans le système (client, employé ou autre rôle).
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="createStep='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-          <button class="btn btn-secondary" (click)="closeCreateModal()">Fermer</button>
-        </div>
-      </ng-container>
-
-      <!-- ── STEP 3 : Nouveau compte → formulaire ── -->
-      <ng-container *ngIf="createStep === 'new-form'">
-        <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-user-plus"></i> Créer un nouveau gérant</div>
-          <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
-        </div>
-
-        <div class="success-banner" *ngIf="justCreated">
-          <i class="fas fa-check-circle"></i>
-          <div><strong>Gérant créé avec succès !</strong></div>
-        </div>
-
-        <form [formGroup]="createForm" (ngSubmit)="onCreate()">
-          <div class="modal-body">
-            <div class="new-account-hint">
-              <div class="nah-icon"><i class="fas fa-user-plus"></i></div>
-              <div>Aucun compte pour <strong>{{ emailToCheck }}</strong>. Créez un nouveau profil.</div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label class="form-label">Nom *</label>
-                <input formControlName="nom" class="form-control" placeholder="Dupont"
-                  [class.is-invalid]="createForm.get('nom')?.invalid && createForm.get('nom')?.touched">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Prénom *</label>
-                <input formControlName="prenom" class="form-control" placeholder="Jean"
-                  [class.is-invalid]="createForm.get('prenom')?.invalid && createForm.get('prenom')?.touched">
-              </div>
-            </div>
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input formControlName="email" type="email" class="form-control" [readonly]="true">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Mot de passe *</label>
-              <div class="input-icon-wrap">
-                <i class="fas fa-lock iw-icon"></i>
-                <input formControlName="password" type="password" class="form-control iw-input"
-                  placeholder="Min. 6 caractères"
-                  [class.is-invalid]="createForm.get('password')?.invalid && createForm.get('password')?.touched">
-              </div>
-            </div>
-            <div class="create-error-box" *ngIf="createError">
-              <i class="fas fa-exclamation-circle"></i> {{ createError }}
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="createStep='email-check'">
-              <i class="fas fa-arrow-left"></i> Retour
-            </button>
-            <button type="submit" class="btn btn-primary" [disabled]="createLoading">
-              <i class="fas fa-spinner fa-spin" *ngIf="createLoading"></i>
-              <i class="fas fa-user-plus" *ngIf="!createLoading"></i>
-              {{ createLoading ? 'Création...' : 'Créer' }}
-            </button>
-          </div>
-        </form>
-      </ng-container>
-
     </div>
   </div>
 
-  <!-- MODAL ÉDITION -->
+  <!-- ══ MODAL CRÉATION GÉRANT ══ -->
+  <!-- ══ MODAL CRÉATION GÉRANT ══ -->
+<div class="modal-overlay" *ngIf="showCreateModal" (click)="closeCreateModal()">
+  <div class="modal" (click)="$event.stopPropagation()">
+
+    <!-- STEP 1 : saisie email -->
+    <ng-container *ngIf="createStep === 'email-check'">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-user-plus"></i> Ajouter un gérant</div>
+        <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-steps">
+        <div class="ms-step active"><div class="ms-dot">1</div> Email</div>
+        <div class="ms-sep"></div>
+        <div class="ms-step"><div class="ms-dot">2</div> Profil</div>
+      </div>
+      <div class="modal-body">
+        <div class="step-intro">
+          <div class="step-num">1</div>
+          <div>
+            <div class="step-title">Vérification du compte</div>
+            <div class="step-desc">Entrez l'adresse email pour vérifier si un compte existe déjà dans le système.</div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Adresse email *</label>
+          <div class="input-icon-wrap">
+            <i class="fas fa-envelope iw-icon"></i>
+            <input [(ngModel)]="emailToCheck" type="email" class="form-control iw-input"
+              [class.is-invalid]="emailError"
+              placeholder="gerant&#64;salon.com"
+              (keyup.enter)="doCheckGerantEmail()" [disabled]="checking">
+          </div>
+          <div class="field-error" *ngIf="emailError">
+            <i class="fas fa-exclamation-circle"></i> {{ emailError }}
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="closeCreateModal()">Annuler</button>
+        <button class="btn btn-primary" (click)="doCheckGerantEmail()" [disabled]="!emailToCheck.trim() || checking">
+          <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
+          <i class="fas fa-arrow-right" *ngIf="!checking"></i>
+          {{ checking ? 'Vérification...' : 'Suivant' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- STEP : gérant existant actif (OCCUPE) -->
+    <ng-container *ngIf="createStep === 'email-occupe'">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-user-lock"></i> Email déjà utilisé</div>
+        <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="result-card amber">
+          <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
+          <div class="rc-info">
+            <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
+            <div class="rc-email">{{ checkResult?.email }}</div>
+            <div class="rc-meta" *ngIf="checkResult?.entrepriseNom">
+              <i class="fas fa-building"></i> {{ checkResult?.entrepriseNom }}
+            </div>
+          </div>
+          <span class="rc-badge amber"><i class="fas fa-user-lock"></i> Gérant</span>
+        </div>
+        <div class="info-box amber">
+          <i class="fas fa-exclamation-triangle"></i>
+          Cet email appartient déjà à un gérant actif. Veuillez utiliser un autre email.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="createStep='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+        <button class="btn btn-secondary" (click)="closeCreateModal()">Fermer</button>
+      </div>
+    </ng-container>
+
+    <!-- STEP : gérant archivé (LIBRE) -->
+    <ng-container *ngIf="createStep === 'email-libre'">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-user-clock"></i> Gérant archivé trouvé</div>
+        <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="result-card amber">
+          <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
+          <div class="rc-info">
+            <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
+            <div class="rc-email">{{ checkResult?.email }}</div>
+          </div>
+          <span class="rc-badge amber"><i class="fas fa-archive"></i> Archivé</span>
+        </div>
+        <div class="info-box amber">
+          <i class="fas fa-exclamation-triangle"></i>
+          Ce gérant est archivé. Voulez-vous le désarchiver et le réactiver dans le système ?
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="createStep='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+        <button class="btn btn-success" (click)="desarchiverDepuisModal()" [disabled]="createLoading">
+          <i class="fas fa-spinner fa-spin" *ngIf="createLoading"></i>
+          <i class="fas fa-undo" *ngIf="!createLoading"></i>
+          {{ createLoading ? 'Traitement...' : 'Désarchiver' }}
+        </button>
+      </div>
+    </ng-container>
+
+    <!-- STEP : autre rôle -->
+    <ng-container *ngIf="createStep === 'email-other-role'">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-ban"></i> Email non disponible</div>
+        <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="result-card red">
+          <div class="rc-avatar red"><i class="fas fa-ban"></i></div>
+          <div class="rc-info">
+            <div class="rc-name">{{ emailToCheck }}</div>
+            <div class="rc-email">Email utilisé par un autre type de compte</div>
+          </div>
+          <span class="rc-badge red"><i class="fas fa-times-circle"></i> Refusé</span>
+        </div>
+        <div class="info-box red">
+          <i class="fas fa-exclamation-circle"></i>
+          Cet email appartient à un compte client, employé ou administrateur. Veuillez entrer un autre email.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="createStep='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+        <button class="btn btn-secondary" (click)="closeCreateModal()">Fermer</button>
+      </div>
+    </ng-container>
+
+    <!-- STEP : new-form -->
+    <ng-container *ngIf="createStep === 'new-form'">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-user-plus"></i> Créer un nouveau gérant</div>
+        <button class="modal-close" (click)="closeCreateModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-steps">
+        <div class="ms-step done"><div class="ms-dot"><i class="fas fa-check"></i></div> Email</div>
+        <div class="ms-sep"></div>
+        <div class="ms-step active"><div class="ms-dot">2</div> Profil</div>
+      </div>
+      <form [formGroup]="createForm" (ngSubmit)="onCreate()">
+        <div class="modal-body">
+          <div class="new-account-hint">
+            <div class="nah-icon"><i class="fas fa-user-plus"></i></div>
+            <div>Aucun compte pour <strong>{{ emailToCheck }}</strong>. Complétez le profil.</div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Nom *</label>
+              <input formControlName="nom" class="form-control"
+                [class.is-invalid]="createForm.get('nom')?.invalid && createForm.get('nom')?.touched" placeholder="Dupont">
+            </div>
+            <div class="form-group">
+              <label class="form-label">Prénom *</label>
+              <input formControlName="prenom" class="form-control"
+                [class.is-invalid]="createForm.get('prenom')?.invalid && createForm.get('prenom')?.touched" placeholder="Jean">
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email</label>
+            <input formControlName="email" type="email" class="form-control" [readonly]="true">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mot de passe * <span class="opt-label">(min 6 caractères)</span></label>
+            <div class="input-icon-wrap">
+              <i class="fas fa-lock iw-icon"></i>
+              <input formControlName="password" type="password" class="form-control iw-input"
+                placeholder="Min. 6 caractères"
+                [class.is-invalid]="createForm.get('password')?.invalid && createForm.get('password')?.touched">
+            </div>
+          </div>
+          <div class="create-error-box" *ngIf="createError">
+            <i class="fas fa-exclamation-circle"></i> {{ createError }}
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="createStep='email-check'">
+            <i class="fas fa-arrow-left"></i> Retour
+          </button>
+          <button type="submit" class="btn btn-primary" [disabled]="createLoading">
+            <i class="fas fa-spinner fa-spin" *ngIf="createLoading"></i>
+            <i class="fas fa-save" *ngIf="!createLoading"></i>
+            {{ createLoading ? 'Création...' : "Créer le gérant" }}
+          </button>
+        </div>
+      </form>
+    </ng-container>
+
+  </div>
+</div>
+
+  <!-- ══ MODAL ÉDITION ══ -->
   <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
@@ -332,73 +406,66 @@
       </div>
       <form [formGroup]="editForm" (ngSubmit)="onEdit()">
         <div class="modal-body">
-          <div class="form-row">
-            <div class="form-group">
-              <label class="form-label">Nom</label>
-              <input formControlName="nom" class="form-control">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Prénom</label>
-              <input formControlName="prenom" class="form-control">
+          <div class="edit-profile">
+            <div class="avatar lg" [style.background]="avColor(editing!)">{{ initials(editing!) }}</div>
+            <div>
+              <div class="ep-name">{{ editing?.nom }} {{ editing?.prenom }}</div>
+              <div class="ep-email">{{ editing?.email }}</div>
             </div>
           </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Nom *</label><input formControlName="nom" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Prénom *</label><input formControlName="prenom" class="form-control"></div>
+          </div>
           <div class="form-group">
-            <label class="form-label">Email</label>
+            <label class="form-label">Email *</label>
             <input formControlName="email" type="email" class="form-control">
           </div>
           <div class="form-group">
-            <label class="form-label">
-              Nouveau mot de passe
-              <span class="optional-label">(laisser vide pour ne pas changer)</span>
-            </label>
-            <input formControlName="password" type="password" class="form-control"
-              placeholder="Laisser vide pour garder l'actuel">
+            <label class="form-label">Nouveau mot de passe <span class="opt-label">(laisser vide pour garder)</span></label>
+            <input formControlName="password" type="password" class="form-control" placeholder="Nouveau mot de passe...">
           </div>
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
           <button type="submit" class="btn btn-primary" [disabled]="loading">
-            <span *ngIf="loading">Enregistrement...</span>
-            <span *ngIf="!loading"><i class="fas fa-save"></i> Enregistrer</span>
+            <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+            <i class="fas fa-save" *ngIf="!loading"></i>
+            {{ loading ? 'Enregistrement...' : 'Enregistrer' }}
           </button>
         </div>
       </form>
     </div>
   </div>
 
-  <!-- MODAL ARCHIVAGE AVEC REMPLAÇANT -->
+  <!-- ══ MODAL ARCHIVAGE AVEC REMPLAÇANT ══ -->
   <div class="modal-overlay" *ngIf="showArchiverModal" (click)="closeArchiverModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">
-        <div class="modal-title">
-          <i class="fas fa-archive"></i> Archiver le gérant
-        </div>
+        <div class="modal-title"><i class="fas fa-archive"></i> Archiver le gérant</div>
         <button class="modal-close" (click)="closeArchiverModal()"><i class="fas fa-times"></i></button>
       </div>
       <div class="modal-body">
 
-        <!-- Gérant à archiver -->
-        <div class="archiver-gerant-info">
-          <div class="gerant-avatar lg">
-            {{ gerantAArchiver?.nom?.[0] }}{{ gerantAArchiver?.prenom?.[0] }}
-          </div>
+        <div class="edit-profile">
+          <div class="avatar lg" [style.background]="avColor(gerantAArchiver!)">{{ initials(gerantAArchiver!) }}</div>
           <div>
-            <div class="gerant-name">{{ gerantAArchiver?.nom }} {{ gerantAArchiver?.prenom }}</div>
-            <div class="gerant-email">{{ gerantAArchiver?.email }}</div>
+            <div class="ep-name">{{ gerantAArchiver?.nom }} {{ gerantAArchiver?.prenom }}</div>
+            <div class="ep-email">{{ gerantAArchiver?.email }}</div>
           </div>
         </div>
 
-        <div class="archiver-notice">
+        <div class="info-box amber" style="margin-bottom:16px">
           <i class="fas fa-info-circle"></i>
-          Si ce gérant a une entreprise assignée, vous devez choisir un gérant remplaçant.
-          Sinon, laissez vide.
+          Si ce gérant a une entreprise assignée, vous devez choisir un gérant remplaçant. Sinon, laissez vide.
         </div>
 
-        <!-- Recherche remplaçant -->
         <div class="form-group">
-          <label class="form-label">Gérant remplaçant (obligatoire si a une entreprise)</label>
-          <input class="form-control" [(ngModel)]="gerantSearch"
-            placeholder="Rechercher par nom, prénom ou email...">
+          <label class="form-label">Gérant remplaçant <span class="opt-label">(obligatoire si a une entreprise)</span></label>
+          <div class="search-box" style="margin-bottom:8px">
+            <i class="fas fa-search"></i>
+            <input class="search-inp" [(ngModel)]="gerantSearch" placeholder="Rechercher par nom, prénom ou email...">
+          </div>
         </div>
 
         <div class="remplacant-list">
@@ -411,7 +478,7 @@
           <div class="remplacant-item" *ngFor="let g of filteredRemplacants"
             [class.selected]="selectedRemplacantId === g.id"
             (click)="selectedRemplacantId = g.id">
-            <div class="gerant-avatar sm">{{ g.nom[0] }}{{ g.prenom[0] }}</div>
+            <div class="avatar sm" [style.background]="avColor(g)">{{ initials(g) }}</div>
             <div class="remplacant-info">
               <span class="remplacant-name">{{ g.nom }} {{ g.prenom }}</span>
               <span class="remplacant-email">{{ g.email }}</span>
@@ -427,8 +494,9 @@
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" (click)="closeArchiverModal()">Annuler</button>
         <button class="btn btn-danger" (click)="confirmerArchivage()" [disabled]="archiverLoading">
-          <span *ngIf="archiverLoading">Archivage...</span>
-          <span *ngIf="!archiverLoading"><i class="fas fa-archive"></i> Confirmer l'archivage</span>
+          <i class="fas fa-spinner fa-spin" *ngIf="archiverLoading"></i>
+          <i class="fas fa-archive" *ngIf="!archiverLoading"></i>
+          {{ archiverLoading ? 'Archivage...' : "Confirmer l'archivage" }}
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 export interface SecteurRequest  { nom: string; }
-export interface SecteurResponse { id: number; nom: string; }
+export interface SecteurResponse { id: number; nom: string; nombreEntreprises?: number; }
 
 export interface EntrepriseRequest {
   nom: string; adresse: string; telephone: string;
@@ -9,6 +9,8 @@ export interface EntrepriseResponse {
   id: number; nom: string; adresse: string; telephone: string;
   secteurId: number; secteurNom: string;
   gerantId: number; gerantNom: string; gerantPrenom: string;
+  nombreEmployes?: number;
+  
 }
 
 export interface EmployeRequest {

@@ -1,133 +1,211 @@
- 
-  <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title"><div class="title-icon"><i class="fas fa-building"></i></div>Entreprises</div>
-        <div class="page-subtitle">Gestion des entreprises clientes</div>
+<div>
+
+  <!-- ══ HEADER ══ -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        <div class="title-icon"><i class="fas fa-building"></i></div>
+        Entreprises
       </div>
-      <button class="btn btn-primary" (click)="openModal()"><i class="fas fa-plus"></i> Nouvelle entreprise</button>
+      <div class="page-subtitle">{{ entreprises.length }} entreprise(s)</div>
     </div>
-
-    <div class="card">
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr><th>#</th><th>Nom</th><th>Secteur</th><th>Gérant</th><th>Téléphone</th><th>Adresse</th><th>Actions</th></tr>
-          </thead>
-          <tbody>
-            @for (e of entreprises; track e.id) {
-              <tr (click)="openDetail(e)" style="cursor:pointer">
-                <td>{{ e.id }}</td>
-                <td><strong>{{ e.nom }}</strong></td>
-                <td><span class="badge badge-amber">{{ e.secteurNom }}</span></td>
-                <td>{{ e.gerantNom }} {{ e.gerantPrenom }}</td>
-                <td>{{ e.telephone }}</td>
-                <td>{{ e.adresse }}</td>
-                <td>
-                  <div style="display:flex;gap:6px">
-                    <button class="btn btn-info btn-sm btn-icon" (click)="openModal(e);$event.stopPropagation()"><i class="fas fa-pen"></i></button>
-                    <button class="btn btn-danger btn-sm btn-icon" (click)="delete(e);$event.stopPropagation()"><i class="fas fa-trash"></i></button>
-                  </div>
-                </td>
-              </tr>
-            }
-            @empty {
-              <tr><td colspan="7"><div class="empty-state"><i class="fas fa-building"></i><h3>Aucune entreprise</h3></div></td></tr>
-            }
-          </tbody>
-        </table>
+    <div class="hdr-right">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Rechercher..." class="search-inp">
       </div>
+      <button class="btn btn-primary" (click)="openModal()">
+        <i class="fas fa-plus"></i> Nouvelle entreprise
+      </button>
     </div>
+  </div>
 
-    <!-- ═══ DÉTAIL ENTREPRISE ═══ -->
-    @if (showDetail && detailEntreprise) {
-      <div class="modal-overlay" (click)="closeDetail()">
-        <div class="modal modal-lg" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <div class="modal-title">
-              <div class="detail-icon"><i class="fas fa-building"></i></div>
-              {{ detailEntreprise.nom }}
-            </div>
-            <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
+  <!-- ══ STATS ══ -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-building"></i></div>
+      <div><div class="stat-value">{{ entreprises.length }}</div><div class="stat-label">Total</div></div>
+    </div>
+    
+  </div>
 
-            <div class="detail-section">
-              <div class="detail-row">
-                <span class="detail-label"><i class="fas fa-layer-group"></i> Secteur</span>
-                <span class="badge badge-amber">{{ detailEntreprise.secteurNom }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label"><i class="fas fa-phone"></i> Téléphone</span>
-                <span>{{ detailEntreprise.telephone }}</span>
-              </div>
-              <div class="detail-row">
-                <span class="detail-label"><i class="fas fa-map-marker-alt"></i> Adresse</span>
-                <span>{{ detailEntreprise.adresse }}</span>
-              </div>
-            </div>
-
-            <div class="detail-block">
-              <div class="detail-block-title"><i class="fas fa-user-tie"></i> Gérant</div>
-              <div class="gerant-card">
-                <div class="gerant-avatar">{{ detailEntreprise.gerantNom[0] }}{{ detailEntreprise.gerantPrenom[0] }}</div>
-                <div class="gerant-name">{{ detailEntreprise.gerantNom }} {{ detailEntreprise.gerantPrenom }}</div>
-              </div>
-            </div>
-
-            <div class="detail-block">
-              <div class="detail-block-title" style="justify-content:space-between">
-                <span><i class="fas fa-users"></i> Employés <span class="count-badge">{{ detailEmployes.length }}</span></span>
-                <button class="btn btn-primary btn-sm" (click)="openAddEmploye()">
-                  <i class="fas fa-plus"></i> Ajouter
-                </button>
-              </div>
-
-              <div *ngIf="loadingEmployes" class="detail-loading"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
-
-              <div class="employes-list" *ngIf="!loadingEmployes">
-                <div class="employe-item" *ngFor="let emp of detailEmployes">
-                  <div class="emp-avatar">{{ emp.nom[0] }}{{ emp.prenom[0] }}</div>
-                  <div class="emp-info">
-                    <div class="emp-name">{{ emp.nom }} {{ emp.prenom }}</div>
-                    <div class="emp-spec">{{ emp.specialite || 'Sans spécialité' }} · {{ emp.email }}</div>
-                  </div>
-                  <span class="emp-status" [class.archived]="emp.archived">
-                    {{ emp.archived ? 'Archivé' : 'Actif' }}
-                  </span>
-                  <button *ngIf="!emp.archived" class="btn btn-danger btn-sm btn-icon"
-                    (click)="archiverEmploye(emp)" title="Archiver">
-                    <i class="fas fa-archive"></i>
-                  </button>
-                  <button *ngIf="emp.archived" class="btn btn-success btn-sm btn-icon"
-                    (click)="desarchiverEmploye(emp)" title="Désarchiver">
-                    <i class="fas fa-undo"></i>
-                  </button>
-                </div>
-                <div class="empty-employes" *ngIf="detailEmployes.length === 0">
-                  <i class="fas fa-users"></i> Aucun employé
+  <!-- ══ TABLE ══ -->
+  <div class="card">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Entreprise</th>
+            <th>Secteur</th>
+            <th>Gérant</th>
+            <th>Téléphone</th>
+            <th>Adresse</th>
+            <th style="width:100px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let e of filtered"
+              [class.row-selected]="detailEntreprise?.id === e.id"
+              class="row-clickable" (click)="openDetail(e)">
+            <td>
+              <div class="person-cell">
+                <div class="avatar" [style.background]="entColor(e)">{{ entInitials(e) }}</div>
+                <div>
+                  <div class="person-name">{{ e.nom }}</div>
+                  <div class="person-sub">#{{ e.id }}</div>
                 </div>
               </div>
-            </div>
+            </td>
+            <td>
+              <span class="secteur-pill" *ngIf="e.secteurNom">
+                <i class="fas fa-layer-group"></i> {{ e.secteurNom }}
+              </span>
+            </td>
+            <td>
+              <div class="gerant-cell" *ngIf="e.gerantNom">
+                <div class="avatar sm" [style.background]="gerantColor(e)">{{ e.gerantNom[0] }}{{ e.gerantPrenom?.[0] }}</div>
+                <span>{{ e.gerantNom }} {{ e.gerantPrenom }}</span>
+              </div>
+            </td>
+            <td><div class="phone-cell"><i class="fas fa-phone"></i>{{ e.telephone }}</div></td>
+            <td><div class="addr-cell"><i class="fas fa-map-marker-alt"></i>{{ e.adresse }}</div></td>
+            <td>
+              <div class="row-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-info btn-sm btn-icon" (click)="openModal(e)" title="Modifier"><i class="fas fa-pen"></i></button>
+                <button class="btn btn-delete btn-sm btn-icon" (click)="delete(e)" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
+              </div>
+            </td>
+          </tr>
+          <tr *ngIf="filtered.length === 0">
+            <td colspan="6">
+              <div class="empty-state">
+                <i class="fas fa-building"></i>
+                <h3>{{ searchQuery ? 'Aucun résultat' : 'Aucune entreprise' }}</h3>
+                <p>{{ searchQuery ? 'Essayez une autre recherche' : 'Cliquez sur « Nouvelle entreprise » pour commencer' }}</p>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 
+  <!-- ══ DÉTAIL ENTREPRISE ══ -->
+  <div class="modal-overlay" *ngIf="showDetail && detailEntreprise" (click)="closeDetail()">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()">
+      <ng-container *ngIf="detailEntreprise as e">
+        <div class="modal-header">
+          <div class="detail-header-left">
+            <div class="detail-avatar" [style.background]="entColor(e)">{{ entInitials(e) }}</div>
+            <div>
+              <div class="detail-name">{{ e.nom }}</div>
+              <div class="detail-email">
+                <i class="fas fa-layer-group"></i> {{ e.secteurNom }}
+              </div>
+              <div class="detail-phone">
+                <i class="fas fa-phone"></i> {{ e.telephone }}
+              </div>
+            </div>
           </div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
         </div>
-      </div>
-    }
 
-    <!-- ═══ MODAL AJOUTER EMPLOYÉ ═══ -->
-@if (showAddEmploye) {
-  <div class="modal-overlay z-top" (click)="closeAddEmploye()">
+        <div class="modal-body">
+
+          <!-- Infos générales -->
+          <div class="drawer-section-title"><i class="fas fa-id-card"></i> Informations</div>
+          <div class="drawer-body">
+            <div class="drawer-info-row">
+              <div class="dir-icon blue"><i class="fas fa-map-marker-alt"></i></div>
+              <div>
+                <div class="dir-label">Adresse</div>
+                <div class="dir-value">{{ e.adresse }}</div>
+              </div>
+            </div>
+            <div class="drawer-info-row">
+              <div class="dir-icon purple"><i class="fas fa-layer-group"></i></div>
+              <div>
+                <div class="dir-label">Secteur</div>
+                <div class="dir-value">{{ e.secteurNom }}</div>
+              </div>
+            </div>
+            <div class="drawer-info-row">
+              <div class="dir-icon green"><i class="fas fa-user-tie"></i></div>
+              <div>
+                <div class="dir-label">Gérant</div>
+                <div class="dir-value">{{ e.gerantNom }} {{ e.gerantPrenom }}</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Employés -->
+          <div class="drawer-section-title" style="margin-top:12px">
+            <i class="fas fa-users"></i> Employés
+            <span class="count-pill">{{ detailEmployes.length }}</span>
+            <button class="btn btn-primary btn-sm" style="margin-left:auto" (click)="openAddEmploye()">
+              <i class="fas fa-plus"></i> Ajouter
+            </button>
+          </div>
+
+          <div class="detail-loading" *ngIf="loadingEmployes">
+            <i class="fas fa-spinner fa-spin"></i> Chargement...
+          </div>
+
+          <div class="employes-list" *ngIf="!loadingEmployes">
+            <div class="employe-item" *ngFor="let emp of detailEmployes">
+              <div class="avatar sm" [style.background]="empColor(emp)">{{ emp.nom[0] }}{{ emp.prenom[0] }}</div>
+              <div class="emp-info">
+                <div class="emp-name">{{ emp.nom }} {{ emp.prenom }}</div>
+                <div class="emp-spec">{{ emp.specialite || 'Sans spécialité' }} · {{ emp.email }}</div>
+              </div>
+              <span class="badge" [class.badge-success]="!emp.archived" [class.badge-warning]="emp.archived">
+                {{ emp.archived ? 'Archivé' : 'Actif' }}
+              </span>
+              <button *ngIf="!emp.archived" class="btn btn-danger btn-sm btn-icon"
+                (click)="archiverEmploye(emp)" title="Archiver">
+                <i class="fas fa-archive"></i>
+              </button>
+              <button *ngIf="emp.archived" class="btn btn-success btn-sm btn-icon"
+                (click)="desarchiverEmploye(emp)" title="Désarchiver">
+                <i class="fas fa-undo"></i>
+              </button>
+            </div>
+            <div class="empty-employes" *ngIf="detailEmployes.length === 0">
+              <i class="fas fa-users-slash"></i> Aucun employé
+            </div>
+          </div>
+
+        </div>
+
+        <div class="drawer-footer">
+          <button class="btn btn-info btn-sm" (click)="closeDetail(); openModal(e)">
+            <i class="fas fa-pen"></i> Modifier
+          </button>
+          <button class="btn btn-delete btn-sm" (click)="closeDetail(); delete(e)">
+            <i class="fas fa-trash-alt"></i> Supprimer
+          </button>
+        </div>
+      </ng-container>
+    </div>
+  </div>
+
+  <!-- ══ MODAL AJOUTER EMPLOYÉ ══ -->
+  <div class="modal-overlay z-top" *ngIf="showAddEmploye" (click)="closeAddEmploye()">
     <div class="modal" (click)="$event.stopPropagation()">
 
-      <!-- ÉTAPE 1 : saisir l'email -->
-      @if (addStep === 'email') {
+      <!-- ÉTAPE email -->
+      <ng-container *ngIf="addStep === 'email'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-plus"></i> Ajouter un employé</div>
           <button class="modal-close" (click)="closeAddEmploye()"><i class="fas fa-times"></i></button>
         </div>
+        <div class="modal-steps">
+          <div class="ms-step active"><div class="ms-dot">1</div> Email</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step"><div class="ms-dot">2</div> Profil</div>
+        </div>
         <div class="modal-body">
-          <div class="step-intro" style="margin-bottom:20px">
+          <div class="step-intro">
             <div class="step-num">1</div>
             <div>
               <div class="step-title">Vérification du compte</div>
@@ -139,8 +217,12 @@
             <div class="input-icon-wrap">
               <i class="fas fa-envelope iw-icon"></i>
               <input [(ngModel)]="checkEmailVal" type="email" class="form-control iw-input"
-                placeholder="employe@salon.com"
+                [class.is-invalid]="addEmailError"
+                placeholder="employe&#64;salon.com"
                 (keyup.enter)="doCheckEmail()" [disabled]="checkLoading">
+            </div>
+            <div class="field-error" *ngIf="addEmailError">
+              <i class="fas fa-exclamation-circle"></i> {{ addEmailError }}
             </div>
           </div>
         </div>
@@ -148,16 +230,16 @@
           <button class="btn btn-secondary" (click)="closeAddEmploye()">Annuler</button>
           <button class="btn btn-primary" (click)="doCheckEmail()" [disabled]="!checkEmailVal.trim() || checkLoading">
             <i class="fas fa-spinner fa-spin" *ngIf="checkLoading"></i>
-            <i class="fas fa-search" *ngIf="!checkLoading"></i>
-            {{ checkLoading ? 'Vérification...' : 'Vérifier' }}
+            <i class="fas fa-arrow-right" *ngIf="!checkLoading"></i>
+            {{ checkLoading ? 'Vérification...' : 'Suivant' }}
           </button>
         </div>
-      }
+      </ng-container>
 
-      <!-- ÉTAPE 2A : BUSY / ALREADY_IN_THIS_COMPANY -->
-      @if (addStep === 'occupe') {
+      <!-- ÉTAPE occupe -->
+      <ng-container *ngIf="addStep === 'occupe'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-user-lock"></i> Employé non disponible</div>
+          <div class="modal-title"><i class="fas fa-user-lock"></i> Employé non disponible</div>
           <button class="modal-close" (click)="closeAddEmploye()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -166,6 +248,7 @@
             <div class="rc-info">
               <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
               <div class="rc-email">{{ checkResult?.email }}</div>
+              <div class="rc-meta"><i class="fas fa-building"></i> {{ checkResult?.entrepriseNom }}</div>
             </div>
             <span class="rc-badge amber"><i class="fas fa-user-lock"></i> Occupé</span>
           </div>
@@ -178,12 +261,12 @@
           <button class="btn btn-secondary" (click)="resetAddEmploye()"><i class="fas fa-arrow-left"></i> Retour</button>
           <button class="btn btn-secondary" (click)="closeAddEmploye()">Fermer</button>
         </div>
-      }
+      </ng-container>
 
-      <!-- ÉTAPE 2B : FREE → proposer de rattacher -->
-      @if (addStep === 'libre') {
+      <!-- ÉTAPE libre -->
+      <ng-container *ngIf="addStep === 'libre'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--success)"><i class="fas fa-user-check"></i> Employé disponible</div>
+          <div class="modal-title"><i class="fas fa-user-check"></i> Employé disponible</div>
           <button class="modal-close" (click)="closeAddEmploye()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -212,12 +295,12 @@
             {{ addLoading ? 'Rattachement...' : 'Ajouter à cette entreprise' }}
           </button>
         </div>
-      }
+      </ng-container>
 
-      <!-- ÉTAPE 2C : ARCHIVED → désarchiver et associer -->
-      @if (addStep === 'archived') {
+      <!-- ÉTAPE archived -->
+      <ng-container *ngIf="addStep === 'archived'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--warning)"><i class="fas fa-archive"></i> Employé archivé</div>
+          <div class="modal-title"><i class="fas fa-user-clock"></i> Employé archivé</div>
           <button class="modal-close" (click)="closeAddEmploye()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -246,12 +329,12 @@
             {{ addLoading ? 'Traitement...' : 'Désarchiver et associer' }}
           </button>
         </div>
-      }
+      </ng-container>
 
-      <!-- ÉTAPE 2D : EMAIL AUTRE RÔLE -->
-      @if (addStep === 'other-role') {
+      <!-- ÉTAPE other-role -->
+      <ng-container *ngIf="addStep === 'other-role'">
         <div class="modal-header">
-          <div class="modal-title" style="color:var(--danger)"><i class="fas fa-ban"></i> Email non disponible</div>
+          <div class="modal-title"><i class="fas fa-ban"></i> Email non disponible</div>
           <button class="modal-close" (click)="closeAddEmploye()"><i class="fas fa-times"></i></button>
         </div>
         <div class="modal-body">
@@ -259,32 +342,37 @@
             <div class="rc-avatar red"><i class="fas fa-ban"></i></div>
             <div class="rc-info">
               <div class="rc-name">{{ checkEmailVal }}</div>
-              <div class="rc-email">Email déjà utilisé dans le système</div>
+              <div class="rc-email">Email utilisé par un autre type de compte</div>
             </div>
             <span class="rc-badge red"><i class="fas fa-times-circle"></i> Refusé</span>
           </div>
           <div class="info-box red">
             <i class="fas fa-exclamation-circle"></i>
-            Ce mail a déjà un compte dans le système (client, gérant ou autre rôle). Veuillez choisir un autre email.
+            Ce mail appartient à un compte client, gérant ou administrateur. Veuillez choisir un autre email.
           </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="resetAddEmploye()"><i class="fas fa-arrow-left"></i> Retour</button>
           <button class="btn btn-secondary" (click)="closeAddEmploye()">Fermer</button>
         </div>
-      }
+      </ng-container>
 
-      <!-- ÉTAPE 2E : NOUVEAU → formulaire création -->
-      @if (addStep === 'nouveau') {
+      <!-- ÉTAPE nouveau -->
+      <ng-container *ngIf="addStep === 'nouveau'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-plus"></i> Créer un nouvel employé</div>
           <button class="modal-close" (click)="closeAddEmploye()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-steps">
+          <div class="ms-step done"><div class="ms-dot"><i class="fas fa-check"></i></div> Email</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step active"><div class="ms-dot">2</div> Profil</div>
         </div>
         <form [formGroup]="addForm" (ngSubmit)="doCreateEmploye()">
           <div class="modal-body">
             <div class="new-account-hint">
               <div class="nah-icon"><i class="fas fa-user-plus"></i></div>
-              <div>Aucun compte pour <strong>{{ checkEmailVal }}</strong>. Créez un nouveau profil.</div>
+              <div>Aucun compte pour <strong>{{ checkEmailVal }}</strong>. Complétez le profil.</div>
             </div>
             <div class="form-row">
               <div class="form-group">
@@ -298,12 +386,18 @@
                   [class.is-invalid]="addForm.get('prenom')?.invalid && addForm.get('prenom')?.touched">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Email</label>
-              <input formControlName="email" type="email" class="form-control" [readonly]="true">
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input formControlName="email" type="email" class="form-control" [readonly]="true">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
+                <input formControlName="specialite" class="form-control" placeholder="Ex: Coiffeur...">
+              </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Mot de passe *</label>
+              <label class="form-label">Mot de passe * <span class="opt-label">(min 6 caractères)</span></label>
               <div class="input-icon-wrap">
                 <i class="fas fa-lock iw-icon"></i>
                 <input formControlName="password" type="password" class="form-control iw-input"
@@ -311,138 +405,152 @@
                   [class.is-invalid]="addForm.get('password')?.invalid && addForm.get('password')?.touched">
               </div>
             </div>
-            <div class="form-group">
-              <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
-              <input formControlName="specialite" class="form-control" placeholder="Ex: Coiffeur, Technicien...">
-            </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="resetAddEmploye()"><i class="fas fa-arrow-left"></i> Retour</button>
+            <button type="button" class="btn btn-secondary" (click)="resetAddEmploye()">
+              <i class="fas fa-arrow-left"></i> Retour
+            </button>
             <button type="submit" class="btn btn-primary" [disabled]="addLoading">
               <i class="fas fa-spinner fa-spin" *ngIf="addLoading"></i>
-              <i class="fas fa-user-plus" *ngIf="!addLoading"></i>
-              {{ addLoading ? 'Création...' : 'Créer' }}
+              <i class="fas fa-save" *ngIf="!addLoading"></i>
+              {{ addLoading ? 'Création...' : "Créer l'employé" }}
             </button>
           </div>
         </form>
-      }
+      </ng-container>
 
     </div>
   </div>
-}
 
-    <!-- ═══ MODAL CRÉATION / ÉDITION ENTREPRISE ═══ -->
-    @if (showModal) {
-      <div class="modal-overlay" (click)="closeModal()">
-        <div class="modal" (click)="$event.stopPropagation()">
-          <div class="modal-header">
-            <div class="modal-title"><i class="fas fa-building"></i> {{ editing ? 'Modifier' : 'Nouvelle' }} entreprise</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <form [formGroup]="form" (ngSubmit)="save()">
-            <div class="modal-body">
-              <div class="form-group">
-                <label class="form-label">Nom *</label>
-                <input formControlName="nom" class="form-control"
-                  [class.is-invalid]="form.get('nom')?.invalid && form.get('nom')?.touched">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Adresse *</label>
-                <input formControlName="adresse" class="form-control"
-                  [class.is-invalid]="form.get('adresse')?.invalid && form.get('adresse')?.touched">
-              </div>
-              <div class="form-group">
-                <label class="form-label">Téléphone *</label>
-                <input formControlName="telephone" class="form-control"
-                  (keypress)="onlyNumbers($event)"
-                  [class.is-invalid]="form.get('telephone')?.invalid && form.get('telephone')?.touched">
-                <div class="form-error" *ngIf="form.get('telephone')?.errors?.['invalidPhone'] && form.get('telephone')?.touched">
-                  Numéro invalide
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Secteur *</label>
-                <div class="cs-wrap" [class.open]="showSecteurDropdown" (click)="$event.stopPropagation()">
-                  <div #secteurTrigger class="cs-trigger" (click)="openDrop('secteur')">
-                    <span *ngIf="!selectedSecteur" class="cs-placeholder"><i class="fas fa-layer-group"></i> Choisir un secteur</span>
-                    <span *ngIf="selectedSecteur" class="cs-value"><i class="fas fa-layer-group"></i> {{ selectedSecteur.nom }}</span>
-                    <i class="fas fa-times cs-clear" *ngIf="selectedSecteur" (click)="clearSecteur();$event.stopPropagation()"></i>
-                    <i class="fas fa-chevron-down cs-arrow"></i>
-                  </div>
-                  <div class="cs-dropdown" *ngIf="showSecteurDropdown">
-                    <div style="padding:6px 8px">
-                      <input class="cs-search" [(ngModel)]="secteurSearch" [ngModelOptions]="{standalone:true}"
-                        placeholder="Rechercher..." (input)="filterSecteurs()" autocomplete="off">
-                    </div>
-                    <div class="cs-list">
-                      <div class="cs-item" *ngFor="let s of filteredSecteurs"
-                        [class.cs-selected]="selectedSecteur?.id === s.id"
-                        (mousedown)="selectSecteur(s)">
-                        {{ s.nom }}
-                        <i class="fas fa-check" *ngIf="selectedSecteur?.id === s.id"></i>
-                      </div>
-                      <div class="cs-empty" *ngIf="filteredSecteurs.length === 0">Aucun résultat</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div class="form-group">
-                <label class="form-label">Gérant *</label>
-                <div class="cs-wrap" [class.open]="showGerantDropdown" (click)="$event.stopPropagation()">
-                  <div #gerantTrigger class="cs-trigger" (click)="openDrop('gerant')">
-                    <ng-container *ngIf="!selectedGerant">
-                      <span class="cs-placeholder"><i class="fas fa-user-tie"></i> Choisir un gérant</span>
-                    </ng-container>
-                    <ng-container *ngIf="selectedGerant && !showGerantDropdown">
-                      <div class="cs-gerant-chip">
-                        <div class="cs-avatar">{{ selectedGerant.nom[0] }}{{ selectedGerant.prenom[0] }}</div>
-                        <div class="cs-chip-info">
-                          <span class="cs-chip-name">{{ selectedGerant.nom }} {{ selectedGerant.prenom }}</span>
-                          <span class="cs-chip-email">{{ selectedGerant.email }}</span>
-                        </div>
-                      </div>
-                    </ng-container>
-                    <ng-container *ngIf="showGerantDropdown">
-                      <i class="fas fa-user-tie cs-icon"></i>
-                      <input class="cs-inline-search" [(ngModel)]="gerantSearch" [ngModelOptions]="{standalone:true}"
-                        placeholder="Rechercher un gérant..." (input)="filterGerants()" autocomplete="off">
-                    </ng-container>
-                    <i class="fas fa-times cs-clear" *ngIf="selectedGerant" (click)="clearGerant();$event.stopPropagation()"></i>
-                    <i class="fas fa-chevron-down cs-arrow"></i>
-                  </div>
-                  <div class="cs-dropdown" *ngIf="showGerantDropdown">
-                    <div class="cs-list">
-                      <div class="cs-item cs-item-gerant" *ngFor="let g of filteredGerants"
-                        [class.cs-selected]="selectedGerant?.id === g.id"
-                        (mousedown)="selectGerant(g)">
-                        <div class="cs-avatar">{{ g.nom[0] }}{{ g.prenom[0] }}</div>
-                        <div class="cs-chip-info">
-                          <span class="cs-chip-name">{{ g.nom }} {{ g.prenom }}</span>
-                          <span class="cs-chip-email">{{ g.email }}</span>
-                        </div>
-                        <i class="fas fa-check" *ngIf="selectedGerant?.id === g.id"></i>
-                      </div>
-                      <div class="cs-empty" *ngIf="filteredGerants.length === 0">Aucun gérant disponible</div>
-                    </div>
-                  </div>
-                </div>
-                <div class="form-error" *ngIf="form.get('gerantId')?.invalid && form.get('gerantId')?.touched">
-                  Veuillez choisir un gérant
-                </div>
-              </div>
-
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
-              <button type="submit" class="btn btn-primary" [disabled]="loading">
-                @if (loading) { Enregistrement... } @else { <i class="fas fa-save"></i> Enregistrer }
-              </button>
-            </div>
-          </form>
+  <!-- ══ MODAL CRÉATION / ÉDITION ENTREPRISE ══ -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title">
+          <i class="fas fa-building"></i>
+          {{ editing ? 'Modifier l\'entreprise' : 'Nouvelle entreprise' }}
         </div>
+        <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
       </div>
-    }
+      <form [formGroup]="form" (ngSubmit)="save()">
+        <div class="modal-body">
 
+          <div class="edit-profile" *ngIf="editing">
+            <div class="avatar lg" [style.background]="entColor(editing)">{{ entInitials(editing) }}</div>
+            <div>
+              <div class="ep-name">{{ editing.nom }}</div>
+              <div class="ep-email">{{ editing.secteurNom }}</div>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">Nom *</label>
+            <input formControlName="nom" class="form-control"
+              [class.is-invalid]="form.get('nom')?.invalid && form.get('nom')?.touched"
+              placeholder="Nom de l'entreprise">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label class="form-label">Téléphone *</label>
+              <div class="input-icon-wrap">
+                <i class="fas fa-phone iw-icon"></i>
+                <input formControlName="telephone" class="form-control iw-input"
+                  (keypress)="onlyNumbers($event)"
+                  [class.is-invalid]="form.get('telephone')?.invalid && form.get('telephone')?.touched"
+                  placeholder="Ex: 0612345678">
+              </div>
+              <div class="field-error" *ngIf="form.get('telephone')?.errors?.['invalidPhone'] && form.get('telephone')?.touched">
+                <i class="fas fa-exclamation-circle"></i> Numéro invalide
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Adresse *</label>
+              <input formControlName="adresse" class="form-control"
+                [class.is-invalid]="form.get('adresse')?.invalid && form.get('adresse')?.touched"
+                placeholder="Adresse complète">
+            </div>
+          </div>
+
+          <!-- Secteur dropdown -->
+          <div class="form-group">
+            <label class="form-label">Secteur *</label>
+            <div class="fs-dropdown" [class.open]="showSecteurDropdown" (click)="$event.stopPropagation()">
+              <div #secteurTrigger class="fs-trigger" (click)="openDrop('secteur')"
+                [class.is-invalid]="form.get('secteurId')?.invalid && form.get('secteurId')?.touched">
+                <i class="fas fa-layer-group fs-icon"></i>
+                <span class="fs-val" [style.color]="!selectedSecteur ? 'var(--text-faint)' : ''">
+                  {{ selectedSecteur ? selectedSecteur.nom : 'Sélectionner un secteur' }}
+                </span>
+                <i class="fas fa-times fs-clear" *ngIf="selectedSecteur" (click)="clearSecteur(); $event.stopPropagation()"></i>
+                <i class="fas fa-chevron-down fs-arrow"></i>
+              </div>
+              <div class="fs-drop" *ngIf="showSecteurDropdown">
+                <div class="fs-search-wrap">
+                  <i class="fas fa-search"></i>
+                  <input class="fs-search" [(ngModel)]="secteurSearch" [ngModelOptions]="{standalone:true}"
+                    (input)="filterSecteurs()" placeholder="Rechercher..." autocomplete="off">
+                </div>
+                <div class="fs-list">
+                  <div class="fs-opt" *ngFor="let s of filteredSecteurs"
+                    [class.sel]="selectedSecteur?.id === s.id"
+                    (mousedown)="selectSecteur(s)">
+                    <i class="fas fa-layer-group" style="color:var(--primary)"></i> {{ s.nom }}
+                  </div>
+                  <div class="fs-empty" *ngIf="filteredSecteurs.length === 0">Aucun résultat</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Gérant dropdown -->
+          <div class="form-group">
+            <label class="form-label">Gérant *</label>
+            <div class="fs-dropdown" [class.open]="showGerantDropdown" (click)="$event.stopPropagation()">
+              <div #gerantTrigger class="fs-trigger" (click)="openDrop('gerant')"
+                [class.is-invalid]="form.get('gerantId')?.invalid && form.get('gerantId')?.touched">
+                <i class="fas fa-user-tie fs-icon"></i>
+                <span class="fs-val" [style.color]="!selectedGerant ? 'var(--text-faint)' : ''">
+                  {{ selectedGerant ? (selectedGerant.nom + ' ' + selectedGerant.prenom) : 'Sélectionner un gérant' }}
+                </span>
+                <i class="fas fa-times fs-clear" *ngIf="selectedGerant" (click)="clearGerant(); $event.stopPropagation()"></i>
+                <i class="fas fa-chevron-down fs-arrow"></i>
+              </div>
+              <div class="fs-drop" *ngIf="showGerantDropdown">
+                <div class="fs-search-wrap">
+                  <i class="fas fa-search"></i>
+                  <input class="fs-search" [(ngModel)]="gerantSearch" [ngModelOptions]="{standalone:true}"
+                    (input)="filterGerants()" placeholder="Rechercher..." autocomplete="off">
+                </div>
+                <div class="fs-list">
+                  <div class="fs-opt fs-opt-gerant" *ngFor="let g of filteredGerants"
+                    [class.sel]="selectedGerant?.id === g.id"
+                    (mousedown)="selectGerant(g)">
+                    <div class="avatar sm" [style.background]="gerantColorById(g)">{{ g.nom[0] }}{{ g.prenom[0] }}</div>
+                    <div class="fs-gerant-info">
+                      <span class="fs-gerant-name">{{ g.nom }} {{ g.prenom }}</span>
+                      <span class="fs-gerant-email">{{ g.email }}</span>
+                    </div>
+                  </div>
+                  <div class="fs-empty" *ngIf="filteredGerants.length === 0">Aucun gérant disponible</div>
+                </div>
+              </div>
+            </div>
+            <div class="field-error" *ngIf="form.get('gerantId')?.invalid && form.get('gerantId')?.touched">
+              <i class="fas fa-exclamation-circle"></i> Veuillez choisir un gérant
+            </div>
+          </div>
+
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+            <i class="fas fa-save" *ngIf="!loading"></i>
+            {{ loading ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
   </div>
+
+</div>

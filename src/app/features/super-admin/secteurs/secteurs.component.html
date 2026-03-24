@@ -1,53 +1,64 @@
 <div>
 
-  <!-- PAGE HEADER -->
+  <!-- ══ HEADER ══ -->
   <div class="page-header">
     <div>
       <div class="page-title">
         <div class="title-icon"><i class="fas fa-layer-group"></i></div>
         Secteurs
       </div>
-      <div class="page-subtitle">Gestion des secteurs d'activité</div>
+      <div class="page-subtitle">{{ secteurs.length }} secteur(s) d'activité</div>
     </div>
-    <button class="btn btn-primary" (click)="openModal()">
-      <i class="fas fa-plus"></i> Nouveau secteur
-    </button>
+    <div class="hdr-right">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Rechercher..." class="search-inp">
+      </div>
+      <button class="btn btn-primary" (click)="openModal()">
+        <i class="fas fa-plus"></i> Nouveau secteur
+      </button>
+    </div>
   </div>
 
-  <!-- TABLE SECTEURS -->
+
+  <!-- ══ TABLE ══ -->
   <div class="card">
     <div class="table-container">
       <table>
         <thead>
           <tr>
-            <th>#</th>
-            <th>Nom</th>
-            <th>Actions</th>
+            <th style="width:80%">Secteur</th>
+            <th style="width:20%">Actions</th>
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let s of secteurs"
-              [class.row-active]="selectedSecteur?.id === s.id"
-              (click)="openSecteur(s)" style="cursor:pointer">
-            <td class="id-cell">{{ s.id }}</td>
-            <td><strong>{{ s.nom }}</strong></td>
+          <tr *ngFor="let s of filtered"
+              [class.row-selected]="selectedSecteur?.id === s.id"
+              class="row-clickable" (click)="openSecteur(s)">
             <td>
-              <div class="row-actions">
-                <button class="btn btn-info btn-sm btn-icon" (click)="openModal(s); $event.stopPropagation()" title="Modifier">
-                  <i class="fas fa-pen"></i>
-                </button>
-                <button class="btn btn-danger btn-sm btn-icon" (click)="delete(s); $event.stopPropagation()" title="Supprimer">
-                  <i class="fas fa-trash"></i>
-                </button>
+              <div class="person-cell">
+                <div class="avatar" [style.background]="secteurColor(s)">
+                  <i class="fas fa-layer-group" style="font-size:.7rem"></i>
+                </div>
+                <div>
+                  <div class="person-name">{{ s.nom }}</div>
+                  <div class="person-sub">#{{ s.id }}</div>
+                </div>
+              </div>
+            </td>
+            <td>
+              <div class="row-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-info btn-sm btn-icon" (click)="openModal(s)" title="Modifier"><i class="fas fa-pen"></i></button>
+                <button class="btn btn-delete btn-sm btn-icon" (click)="delete(s)" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
               </div>
             </td>
           </tr>
-          <tr *ngIf="secteurs.length === 0">
-            <td colspan="3">
+          <tr *ngIf="filtered.length === 0">
+            <td colspan="2">
               <div class="empty-state">
                 <i class="fas fa-layer-group"></i>
-                <h3>Aucun secteur</h3>
-                <p>Cliquez sur "Nouveau secteur" pour commencer</p>
+                <h3>{{ searchQuery ? 'Aucun résultat' : 'Aucun secteur' }}</h3>
+                <p>{{ searchQuery ? 'Essayez une autre recherche' : 'Cliquez sur « Nouveau secteur » pour commencer' }}</p>
               </div>
             </td>
           </tr>
@@ -56,81 +67,107 @@
     </div>
   </div>
 
-  <!-- MODAL DÉTAIL SECTEUR -->
+  <!-- ══ DÉTAIL SECTEUR — liste des entreprises ══ -->
   <div class="modal-overlay" *ngIf="showEntreprisesPanel" (click)="closePanel()">
-    <div class="modal modal-secteur" (click)="$event.stopPropagation()">
-      <div class="modal-header">
-        <div class="modal-title">
-          <i class="fas fa-building"></i>
-          Entreprises — <span class="secteur-name">{{ selectedSecteur?.nom }}</span>
-        </div>
-        <button class="modal-close" (click)="closePanel()"><i class="fas fa-times"></i></button>
-      </div>
-      <div class="modal-body">
-
-        <div *ngIf="loadingEntreprises" class="panel-loading">
-          <i class="fas fa-spinner fa-spin"></i> Chargement...
-        </div>
-
-        <div *ngIf="!loadingEntreprises">
-          <div *ngIf="entreprisesDuSecteur.length === 0" class="empty-panel">
-            <i class="fas fa-building"></i>
-            Aucune entreprise dans ce secteur
+    <div class="modal" (click)="$event.stopPropagation()">
+      <ng-container *ngIf="selectedSecteur as s">
+        <div class="modal-header">
+          <div class="detail-header-left">
+            <div class="detail-avatar" [style.background]="secteurColor(s)">
+              <i class="fas fa-layer-group" style="font-size:.9rem"></i>
+            </div>
+            <div>
+              <div class="detail-name">{{ s.nom }}</div>
+              <div class="detail-email">
+                <i class="fas fa-building"></i> {{ entreprisesDuSecteur.length }} entreprise(s)
+              </div>
+            </div>
           </div>
-          <div class="entreprise-list" *ngIf="entreprisesDuSecteur.length > 0">
-            <div class="entreprise-card" *ngFor="let e of entreprisesDuSecteur">
-              <div class="ent-icon"><i class="fas fa-building"></i></div>
-              <div class="ent-info">
-                <div class="ent-name">{{ e.nom }}</div>
-                <div class="ent-detail">
-                  <i class="fas fa-phone"></i> {{ e.telephone }}
-                  &nbsp;·&nbsp;
-                  <i class="fas fa-user-tie"></i> {{ e.gerantNom }} {{ e.gerantPrenom }}
+          <button class="modal-close" (click)="closePanel()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="modal-body">
+          <div class="drawer-section-title"><i class="fas fa-building"></i> Entreprises rattachées</div>
+
+          <div class="detail-loading" *ngIf="loadingEntreprises">
+            <i class="fas fa-spinner fa-spin"></i> Chargement...
+          </div>
+
+          <div *ngIf="!loadingEntreprises">
+            <div class="empty-employes" *ngIf="entreprisesDuSecteur.length === 0">
+              <i class="fas fa-building"></i> Aucune entreprise dans ce secteur
+            </div>
+            <div class="drawer-body" *ngIf="entreprisesDuSecteur.length > 0">
+              <div class="drawer-info-row" *ngFor="let e of entreprisesDuSecteur">
+                <div class="dir-icon amber"><i class="fas fa-building"></i></div>
+                <div style="flex:1">
+                  <div class="dir-value">{{ e.nom }}</div>
+                  <div class="dir-sub">
+                    <span *ngIf="e.telephone"><i class="fas fa-phone"></i> {{ e.telephone }}</span>
+                    <span *ngIf="e.gerantNom"> · <i class="fas fa-user-tie"></i> {{ e.gerantNom }} {{ e.gerantPrenom }}</span>
+                  </div>
+                  <div class="dir-sub" *ngIf="e.adresse">
+                    <i class="fas fa-map-marker-alt"></i> {{ e.adresse }}
+                  </div>
                 </div>
-                <div class="ent-addr">{{ e.adresse }}</div>
               </div>
             </div>
           </div>
         </div>
 
-      </div>
-      <div class="modal-footer">
-        <span class="secteur-count">
-          <i class="fas fa-building"></i>
-          {{ entreprisesDuSecteur.length }} entreprise(s)
-        </span>
-        <button class="btn btn-secondary" (click)="closePanel()">Fermer</button>
-      </div>
+        <div class="drawer-footer">
+          <span class="count-pill">
+            <i class="fas fa-building"></i> {{ entreprisesDuSecteur.length }} entreprise(s)
+          </span>
+          <button class="btn btn-info btn-sm" (click)="closePanel(); openModal(s)">
+            <i class="fas fa-pen"></i> Modifier
+          </button>
+          <button class="btn btn-secondary btn-sm" (click)="closePanel()">Fermer</button>
+        </div>
+      </ng-container>
     </div>
   </div>
 
-  <!-- MODAL CRÉATION / ÉDITION SECTEUR -->
+  <!-- ══ MODAL CRÉATION / ÉDITION SECTEUR ══ -->
   <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
-    <div class="modal" (click)="$event.stopPropagation()">
+    <div class="modal modal-sm" (click)="$event.stopPropagation()">
       <div class="modal-header">
         <div class="modal-title">
           <i class="fas fa-layer-group"></i>
-          {{ editing ? 'Modifier' : 'Nouveau' }} secteur
+          {{ editing ? 'Modifier le secteur' : 'Nouveau secteur' }}
         </div>
         <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
       </div>
       <form [formGroup]="form" (ngSubmit)="save()">
         <div class="modal-body">
+
+          <div class="edit-profile" *ngIf="editing">
+            <div class="avatar lg" [style.background]="secteurColor(editing)">
+              <i class="fas fa-layer-group" style="font-size:.85rem"></i>
+            </div>
+            <div>
+              <div class="ep-name">{{ editing.nom }}</div>
+              <div class="ep-email">Modifier le nom du secteur</div>
+            </div>
+          </div>
+
           <div class="form-group">
-            <label class="form-label">Nom du secteur</label>
+            <label class="form-label">Nom du secteur *</label>
             <input formControlName="nom" class="form-control"
               placeholder="Ex: Coiffure, Médecine, Esthétique..."
               [class.is-invalid]="form.get('nom')?.invalid && form.get('nom')?.touched">
-            <div class="form-error" *ngIf="form.get('nom')?.invalid && form.get('nom')?.touched">
-              Le nom est obligatoire
+            <div class="field-error" *ngIf="form.get('nom')?.invalid && form.get('nom')?.touched">
+              <i class="fas fa-exclamation-circle"></i> Le nom est obligatoire
             </div>
           </div>
+
         </div>
         <div class="modal-footer">
           <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
           <button type="submit" class="btn btn-primary" [disabled]="loading">
-            <span *ngIf="loading">Enregistrement...</span>
-            <span *ngIf="!loading"><i class="fas fa-save"></i> Enregistrer</span>
+            <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+            <i class="fas fa-save" *ngIf="!loading"></i>
+            {{ loading ? 'Enregistrement...' : 'Enregistrer' }}
           </button>
         </div>
       </form>

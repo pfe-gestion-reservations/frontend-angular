@@ -6,12 +6,6 @@ import { ToastService } from '../../../core/services/toast.service';
 import { ClientResponse, EntrepriseResponse, ReservationResponse, FileAttenteResponse } from '../../../core/models/api.models';
 import { forkJoin } from 'rxjs';
 
-// Flux création : tel → email → new-form
-// tel-taken        : numéro actif d'un autre client
-// tel-archived     : numéro appartient à un client archivé → proposer désarchivage
-// email-client     : email déjà pris par un client actif
-// email-archived   : email appartient à un client archivé → proposer désarchivage
-// email-other-role : email déjà pris par un autre rôle
 type ClientStep = 'tel-check' | 'tel-taken' | 'tel-archived'
                 | 'email-check' | 'email-client' | 'email-archived' | 'email-other-role'
                 | 'new-form';
@@ -38,23 +32,21 @@ export class SaClientsComponent implements OnInit {
   filtered:    ClientResponse[]     = [];
   entreprises: EntrepriseResponse[] = [];
 
-  showModal    = false;
+  showModal    = false;     
   editing: ClientResponse | null = null;
   loading      = false;
   showArchived = false;
   searchQuery  = '';
-
-  // Modale détail client
   selectedClient: ClientResponse | null = null;
 
   // Association depuis la modale détail
-  assocDropOpen      = false;
-  assocSearch        = '';
+  assocDropOpen      = false; //liste deroulante initialement fermé
+  assocSearch        = '';    
   assocSelectedEnt:  EntrepriseResponse | null = null;
   filteredAssocEnts: EntrepriseResponse[] = [];
   assocLoading       = false;
 
-  // Flux création
+  //flux du création
   step: ClientStep = 'tel-check';
   telToCheck       = '';
   emailToCheck     = '';

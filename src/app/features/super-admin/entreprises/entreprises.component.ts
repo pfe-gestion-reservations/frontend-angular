@@ -5,7 +5,7 @@ import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
 import {
   EntrepriseResponse, SecteurResponse, GerantResponse,
-  EmployeResponse, EmployeCheckResponse, RattachementRequest
+  EmployeResponse, RattachementRequest
 } from '../../../core/models/api.models';
 
 function phoneValidator(control: AbstractControl): ValidationErrors | null {
@@ -13,11 +13,16 @@ function phoneValidator(control: AbstractControl): ValidationErrors | null {
   return /^[0-9+\s\-()]{0,20}$/.test(v) ? null : { invalidPhone: true };
 }
 
+const AV_COLORS = [
+  '#2563eb','#16a34a','#d97706','#dc2626','#7c3aed',
+  '#0284c7','#059669','#ea580c','#9333ea','#0891b2'
+];
+
 @Component({
   selector: 'app-entreprises',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, FormsModule],
-  templateUrl: './entreprises.component.html' ,
+  templateUrl: './entreprises.component.html',
   styleUrls: ['./entreprises.component.css']
 })
 export class EntreprisesComponent implements OnInit {
@@ -25,15 +30,17 @@ export class EntreprisesComponent implements OnInit {
   private toast = inject(ToastService);
   private fb    = inject(FormBuilder);
 
-  entreprises: EntrepriseResponse[] = [];
-  secteurs:    SecteurResponse[]    = [];
-  gerants:     GerantResponse[]     = [];
-  filteredSecteurs: SecteurResponse[] = [];
-  filteredGerants:  GerantResponse[]  = [];
+  entreprises:      EntrepriseResponse[] = [];
+  filtered:         EntrepriseResponse[] = [];
+  secteurs:         SecteurResponse[]    = [];
+  gerants:          GerantResponse[]     = [];
+  filteredSecteurs: SecteurResponse[]    = [];
+  filteredGerants:  GerantResponse[]     = [];
 
   showModal = false;
   editing: EntrepriseResponse | null = null;
   loading = false;
+  searchQuery = '';
 
   secteurSearch = '';
   selectedSecteur: SecteurResponse | null = null;
@@ -59,6 +66,8 @@ export class EntreprisesComponent implements OnInit {
   checkResult: any = null;
   specialiteRattach = '';
   addLoading = false;
+  addEmailError = '';
+
 
   addForm = this.fb.group({
     nom:        ['', Validators.required],
@@ -76,6 +85,31 @@ export class EntreprisesComponent implements OnInit {
     gerantId:  ['', Validators.required]
   });
 
+  // ── Computed ──────────────────────────────────────────────────────────────
+  get totalEmployes() {
+    return this.entreprises.reduce((acc, e) => acc + (e.nombreEmployes ?? 0), 0);
+  }
+  get totalSecteurs() {
+    return new Set(this.entreprises.map(e => e.secteurId)).size;
+  }
+
+  // ── Helpers avatar ────────────────────────────────────────────────────────
+  entInitials(e: EntrepriseResponse): string {
+    return e.nom?.substring(0, 2).toUpperCase() ?? '??';
+  }
+  entColor(e: EntrepriseResponse): string {
+    return AV_COLORS[(e.id || 0) % AV_COLORS.length];
+  }
+  gerantColor(e: EntrepriseResponse): string {
+    return AV_COLORS[(e.gerantId || 0) % AV_COLORS.length];
+  }
+  gerantColorById(g: GerantResponse): string {
+    return AV_COLORS[(g.id || 0) % AV_COLORS.length];
+  }
+  empColor(emp: EmployeResponse): string {
+    return AV_COLORS[(emp.id || 0) % AV_COLORS.length];
+  }
+
   @HostListener('document:click')
   onDocumentClick(): void {
     this.showSecteurDropdown = false;
@@ -88,7 +122,17 @@ export class EntreprisesComponent implements OnInit {
     this.api.getGerantsDisponibles().subscribe(d => { this.gerants = d; this.filteredGerants = this.availableGerants(); });
   }
 
-  load(): void { this.api.getEntreprises().subscribe(d => this.entreprises = d); }
+  load(): void {
+    this.api.getEntreprises().subscribe(d => { this.entreprises = d; this.applyFilter(); });
+  }
+
+  applyFilter(): void {
+    const q = this.searchQuery.toLowerCase();
+    this.filtered = !q ? [...this.entreprises]
+      : this.entreprises.filter(e =>
+          `${e.nom} ${e.secteurNom} ${e.gerantNom} ${e.gerantPrenom} ${e.telephone} ${e.adresse}`.toLowerCase().includes(q)
+        );
+  }
 
   private availableGerants(): GerantResponse[] {
     const assignedIds = new Set(this.entreprises.map(e => e.gerantId));
@@ -135,33 +179,43 @@ export class EntreprisesComponent implements OnInit {
   }
   closeDetail(): void { this.showDetail = false; this.detailEntreprise = null; this.detailEmployes = []; }
 
-  // ── AJOUTER EMPLOYÉ ──
+  // ── AJOUTER EMPLOYÉ ──────────────────────────────────────────────────────
   openAddEmploye(): void { this.showAddEmploye = true; this.resetAddEmploye(); }
-  closeAddEmploye(): void { this.showAddEmploye = false; }
+  closeAddEmploye(): void { this.showAddEmploye = false; this.addEmailError = ''; }
 
   resetAddEmploye(): void {
     this.addStep = 'email';
     this.checkEmailVal = '';
     this.checkResult = null;
     this.specialiteRattach = '';
+    this.addEmailError = '';
     this.addForm.reset();
   }
 
   doCheckEmail(): void {
-    if (!this.checkEmailVal || !this.checkEmailVal.includes('@')) { this.toast.error('Email invalide'); return; }
+    this.addEmailError = '';
+    const email = this.checkEmailVal.trim();
+    if (!email) return;
+
+    const emailRegex = /^[a-zA-Z0-9._%+\-]{4,}@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+    if (!emailRegex.test(email)) {
+      this.addEmailError = 'Email invalide — au moins 4 caractères avant le @, ex: prenom.nom@gmail.com';
+      return;
+    }
+
     this.checkLoading = true;
-    this.api.checkEmailEmploye(this.checkEmailVal, this.detailEntreprise?.id).subscribe({
+    this.api.checkEmailEmploye(email, this.detailEntreprise?.id).subscribe({
       next: (r: any) => {
         this.checkResult = r;
         this.checkLoading = false;
         switch (r.status) {
-          case 'NOT_FOUND':               this.addForm.patchValue({ email: this.checkEmailVal }); this.addStep = 'nouveau'; break;
+          case 'NOT_FOUND':               this.addForm.patchValue({ email }); this.addStep = 'nouveau'; break;
           case 'FREE':                    this.addStep = 'libre';      break;
           case 'BUSY':                    this.addStep = 'occupe';     break;
           case 'ALREADY_IN_THIS_COMPANY': this.addStep = 'occupe';     break;
           case 'ARCHIVED':                this.addStep = 'archived';   break;
           case 'EMAIL_OTHER_ROLE':        this.addStep = 'other-role'; break;
-          default:                        this.addForm.patchValue({ email: this.checkEmailVal }); this.addStep = 'nouveau';
+          default:                        this.addForm.patchValue({ email }); this.addStep = 'nouveau';
         }
       },
       error: (e: any) => {
@@ -174,18 +228,9 @@ export class EntreprisesComponent implements OnInit {
   doRattacher(): void {
     if (!this.checkResult?.email || !this.detailEntreprise) return;
     this.addLoading = true;
-    const req: RattachementRequest = {
-      email:        this.checkResult.email,
-      entrepriseId: this.detailEntreprise.id,
-      specialite:   this.specialiteRattach || undefined
-    };
+    const req: RattachementRequest = { email: this.checkResult.email, entrepriseId: this.detailEntreprise.id, specialite: this.specialiteRattach || undefined };
     this.api.rattacherEmploye(req).subscribe({
-      next: () => {
-        this.toast.success('Employé rattaché !');
-        this.addLoading = false;
-        this.closeAddEmploye();
-        this.openDetail(this.detailEntreprise!);
-      },
+      next: () => { this.toast.success('Employé rattaché !'); this.addLoading = false; this.closeAddEmploye(); this.openDetail(this.detailEntreprise!); },
       error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.addLoading = false; }
     });
   }
@@ -193,18 +238,9 @@ export class EntreprisesComponent implements OnInit {
   doDesarchiverEtAssocier(): void {
     if (!this.checkResult?.email || !this.detailEntreprise) return;
     this.addLoading = true;
-    const req: RattachementRequest = {
-      email:        this.checkResult.email,
-      entrepriseId: this.detailEntreprise.id,
-      specialite:   this.specialiteRattach || undefined
-    };
+    const req: RattachementRequest = { email: this.checkResult.email, entrepriseId: this.detailEntreprise.id, specialite: this.specialiteRattach || undefined };
     this.api.rattacherEmploye(req).subscribe({
-      next: () => {
-        this.toast.success('Employé désarchivé et associé !');
-        this.addLoading = false;
-        this.closeAddEmploye();
-        this.openDetail(this.detailEntreprise!);
-      },
+      next: () => { this.toast.success('Employé désarchivé et associé !'); this.addLoading = false; this.closeAddEmploye(); this.openDetail(this.detailEntreprise!); },
       error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.addLoading = false; }
     });
   }
@@ -214,12 +250,7 @@ export class EntreprisesComponent implements OnInit {
     this.addLoading = true;
     const v = this.addForm.value;
     this.api.createEmploye({ ...v as any, entrepriseId: this.detailEntreprise?.id }).subscribe({
-      next: () => {
-        this.toast.success('Employé créé !');
-        this.addLoading = false;
-        this.closeAddEmploye();
-        this.openDetail(this.detailEntreprise!);
-      },
+      next: () => { this.toast.success('Employé créé !'); this.addLoading = false; this.closeAddEmploye(); this.openDetail(this.detailEntreprise!); },
       error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.addLoading = false; }
     });
   }

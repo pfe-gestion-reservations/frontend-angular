@@ -8,6 +8,11 @@ import { GerantResponse } from '../../../core/models/api.models';
 
 type GerantCreateStep = 'email-check' | 'email-occupe' | 'email-libre' | 'email-other-role' | 'new-form';
 
+const AV_COLORS = [
+  '#2563eb','#16a34a','#d97706','#dc2626','#7c3aed',
+  '#0284c7','#059669','#ea580c','#9333ea','#0891b2'
+];
+
 @Component({
   selector: 'app-gerants',
   standalone: true,
@@ -24,9 +29,13 @@ export class GerantsComponent implements OnInit {
 
   gerants:  GerantResponse[] = [];
   filtered: GerantResponse[] = [];
-  showModal  = false;
-  showCreate      = false;
+
+  showModal       = false;
   showCreateModal = false;
+  showArchived    = false;
+  searchQuery     = '';
+
+  emailError = '';
 
   // Flux email-check création gérant
   createStep: GerantCreateStep = 'email-check';
@@ -34,8 +43,9 @@ export class GerantsComponent implements OnInit {
   checking      = false;
   checkResult: any = null;
   editing: GerantResponse | null = null;
-  loading      = false;
-  showArchived    = false;
+  loading       = false;
+
+  // Détail (remplace le drawer)
   selectedGerant: GerantResponse | null = null;
 
   // Création
@@ -47,9 +57,6 @@ export class GerantsComponent implements OnInit {
   });
   createLoading = false;
   createError   = '';
-  createdId     = 0;
-  createdEmail  = '';
-  justCreated   = false;
 
   // Édition
   editForm = this.fb.group({
@@ -67,6 +74,10 @@ export class GerantsComponent implements OnInit {
   archiverLoading = false;
   gerantSearch = '';
 
+  // ── Computed ──────────────────────────────────────────────────────────────
+  get totalActifs()   { return this.gerants.filter(g => !g.archived).length; }
+  get totalArchives() { return this.gerants.filter(g =>  g.archived).length; }
+
   get filteredRemplacants(): GerantResponse[] {
     const q = this.gerantSearch.toLowerCase();
     return this.gerantsDisponibles.filter(g =>
@@ -74,31 +85,49 @@ export class GerantsComponent implements OnInit {
     );
   }
 
+  // ── Helpers avatar ────────────────────────────────────────────────────────
+  initials(g: GerantResponse | null): string {
+    if (!g) return '';
+    return `${g.nom?.charAt(0) ?? ''}${g.prenom?.charAt(0) ?? ''}`.toUpperCase();
+  }
+
+  avColor(g: GerantResponse | null): string {
+    if (!g) return AV_COLORS[0];
+    return AV_COLORS[(g.id || 0) % AV_COLORS.length];
+  }
+
+  // ── Init ──────────────────────────────────────────────────────────────────
   ngOnInit(): void { this.load(); }
 
   load(): void {
-    this.api.getGerants().subscribe(d => { this.gerants = d; this.applyFilter(); });
+    this.api.getGerants().subscribe(d => {
+      this.gerants = d;
+      this.applyFilter();
+      if (this.selectedGerant)
+        this.selectedGerant = d.find(g => g.id === this.selectedGerant!.id) ?? null;
+    });
   }
 
   applyFilter(): void {
-    const list = this.showArchived ? this.gerants : this.gerants.filter(g => !g.archived);
-    this.filtered = [...list.filter(g => !g.archived), ...list.filter(g => g.archived)];
+    const q = this.searchQuery.toLowerCase();
+    this.filtered = this.gerants.filter(g => {
+      const ms = !q || `${g.nom} ${g.prenom} ${g.email}`.toLowerCase().includes(q);
+      return ms && (this.showArchived ? true : !g.archived);
+    });
   }
 
-  // ── DRAWER ──
+  // ── Détail (modal) ────────────────────────────────────────────────────────
   openDrawer(g: GerantResponse): void  { this.selectedGerant = g; }
   closeDrawer(): void                  { this.selectedGerant = null; }
 
-  // ── CRÉATION ──
-  toggleCreate(): void { this.showCreate = !this.showCreate; this.justCreated = false; this.createError = ''; this.createForm.reset(); }
-
+  // ── Création ──────────────────────────────────────────────────────────────
   openCreateModal(): void {
-    this.justCreated    = false;
     this.createError    = '';
     this.createStep     = 'email-check';
     this.emailToCheck   = '';
     this.checkResult    = null;
     this.createForm.reset();
+    this.createLoading  = false;
     this.showCreateModal = true;
   }
 
@@ -108,20 +137,30 @@ export class GerantsComponent implements OnInit {
     this.emailToCheck    = '';
     this.checkResult     = null;
     this.createForm.reset();
-    this.createError = '';
+    this.createError     = '';
+    this.createLoading   = false;
   }
 
   doCheckGerantEmail(): void {
-  if (!this.emailToCheck.trim()) return;
+  this.emailError = '';
+  const email = this.emailToCheck.trim();
+  if (!email) return;
+
+  const emailRegex = /^[a-zA-Z0-9._%+\-]{4,}@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    this.emailError = 'Email invalide — au moins 4 caractères avant le @, ex: prenom.nom@gmail.com';
+    return;
+  }
+
   this.checking = true;
-  this.api.checkGerantEmail(this.emailToCheck.trim()).subscribe({
+  this.api.checkGerantEmail(email).subscribe({
     next: (res: any) => {
       this.checking    = false;
       this.checkResult = res;
       const s = res.statut || res.status;
       switch (s) {
         case 'NOUVEAU':
-          this.createForm.patchValue({ email: this.emailToCheck.trim() });
+          this.createForm.patchValue({ email });
           this.createStep = 'new-form';
           break;
         case 'OCCUPE':
@@ -131,8 +170,6 @@ export class GerantsComponent implements OnInit {
           this.createStep = 'email-libre';
           break;
         case 'EMAIL_OTHER_ROLE':
-          this.createStep = 'email-other-role';
-          break;
         default:
           this.createStep = 'email-other-role';
       }
@@ -145,9 +182,8 @@ export class GerantsComponent implements OnInit {
     if (this.createForm.invalid) { this.createForm.markAllAsTouched(); return; }
     this.createLoading = true;
     this.createError   = '';
-    this.justCreated   = false;
     this.auth.createGerant(this.createForm.value as any).subscribe({
-      next: (res: any) => {
+      next: () => {
         this.createLoading = false;
         this.load();
         this.closeCreateModal();
@@ -160,31 +196,52 @@ export class GerantsComponent implements OnInit {
     });
   }
 
-  // ── ÉDITION ──
+  // ── Désarchiver depuis modal création ─────────────────────────────────────
+  desarchiverDepuisModal(): void {
+    if (!this.checkResult?.userId && !this.checkResult?.id) return;
+    const id = this.checkResult.userId || this.checkResult.id;
+    this.createLoading = true;
+    this.api.desarchiverGerant(id).subscribe({
+      next: () => {
+        this.toast.success('Gérant désarchivé !');
+        this.load();
+        this.closeCreateModal();
+        this.createLoading = false;
+      },
+      error: () => { this.toast.error('Erreur lors du désarchivage'); this.createLoading = false; }
+    });
+  }
+
+  // ── Édition ───────────────────────────────────────────────────────────────
   openEdit(g: GerantResponse): void {
     this.editing = g;
     this.editForm.patchValue({ nom: g.nom, prenom: g.prenom, email: g.email, password: '' });
     this.showModal = true;
   }
+
   closeModal(): void { this.showModal = false; this.editing = null; this.editForm.reset(); }
 
   onEdit(): void {
     if (this.editForm.invalid || !this.editing) { this.editForm.markAllAsTouched(); return; }
     this.loading = true;
     this.api.updateGerant(this.editing.id, this.editForm.value as any).subscribe({
-      next: () => { this.toast.success('Gérant modifié !'); this.load(); this.closeModal(); this.loading = false; },
+      next: () => {
+        this.toast.success('Gérant modifié !');
+        this.load();
+        this.closeModal();
+        this.loading = false;
+      },
       error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.loading = false; }
     });
   }
 
-  // ── ARCHIVER — ouvre modal pour choisir remplaçant ──
+  // ── Archivage ─────────────────────────────────────────────────────────────
   openArchiver(g: GerantResponse): void {
-    this.gerantAArchiver   = g;
+    this.gerantAArchiver      = g;
     this.selectedRemplacantId = null;
-    this.gerantSearch      = '';
-    this.archiverLoading   = false;
-    this.showArchiverModal = true;
-    // Charger les gérants disponibles comme remplaçants (non archivés, sans entreprise, != gérant archivé)
+    this.gerantSearch         = '';
+    this.archiverLoading      = false;
+    this.showArchiverModal    = true;
     this.api.getGerantsDisponibles().subscribe(d => {
       this.gerantsDisponibles = d.filter(x => x.id !== g.id);
     });
@@ -199,8 +256,8 @@ export class GerantsComponent implements OnInit {
       next: () => {
         this.toast.success('Gérant archivé avec succès !');
         this.archiverLoading   = false;
-        this.showArchiverModal  = false;
-        this.gerantAArchiver    = null;
+        this.showArchiverModal = false;
+        this.gerantAArchiver   = null;
         this.load();
       },
       error: (e: any) => {
@@ -210,20 +267,14 @@ export class GerantsComponent implements OnInit {
     });
   }
 
-  // ── DÉSARCHIVER depuis modal création ──
-  desarchiverDepuisModal(): void {
-    if (!this.checkResult?.userId && !this.checkResult?.id) return;
-    const id = this.checkResult.userId || this.checkResult.id;
-    this.api.desarchiverGerant(id).subscribe({
-      next: () => {
-        this.toast.success('Gérant désarchivé !');
-        this.load();
-        this.closeCreateModal();
-      },
-      error: () => this.toast.error('Erreur lors du désarchivage')
+  desarchiver(g: GerantResponse): void {
+    this.api.desarchiverGerant(g.id).subscribe({
+      next: () => { this.toast.success('Désarchivé'); this.load(); },
+      error: () => this.toast.error('Erreur')
     });
   }
 
+  // ── Suppression ───────────────────────────────────────────────────────────
   supprimer(g: GerantResponse): void {
     if (g.entrepriseNom != null && g.entrepriseNom !== '') {
       this._openLinkedDialog(g);
@@ -233,35 +284,65 @@ export class GerantsComponent implements OnInit {
   }
 
   private _showDeleteConfirm(g: GerantResponse): void {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const overlay = this.renderer.createElement('div');
     this.renderer.setStyle(overlay, 'position', 'fixed');
     this.renderer.setStyle(overlay, 'inset', '0');
-    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.65)');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.6)');
     this.renderer.setStyle(overlay, 'z-index', '99999');
     this.renderer.setStyle(overlay, 'display', 'flex');
     this.renderer.setStyle(overlay, 'align-items', 'center');
     this.renderer.setStyle(overlay, 'justify-content', 'center');
+    this.renderer.setStyle(overlay, 'backdrop-filter', 'blur(4px)');
+
     const box = this.renderer.createElement('div');
-    this.renderer.setStyle(box, 'background', '#1e1e2e');
-    this.renderer.setStyle(box, 'border', '1px solid rgba(239,68,68,.3)');
-    this.renderer.setStyle(box, 'border-radius', '16px');
+    const bg     = isDark ? '#16161f' : '#ffffff';
+    const border = isDark ? 'rgba(239,68,68,.25)' : '#fecaca';
+    const text   = isDark ? '#f2f2f8' : '#0f0f1a';
+    const muted  = isDark ? '#a2a2b8' : '#7070a0';
+    const btnCancelBg     = isDark ? 'rgba(255,255,255,.06)' : '#f4f4f8';
+    const btnCancelBorder = isDark ? 'rgba(255,255,255,.12)' : '#e2e2f0';
+    const btnCancelColor  = isDark ? '#a2a2b8' : '#4a4a6a';
+
+    this.renderer.setStyle(box, 'background', bg);
+    this.renderer.setStyle(box, 'border', `1px solid ${border}`);
+    this.renderer.setStyle(box, 'border-radius', '20px');
     this.renderer.setStyle(box, 'padding', '32px 28px');
     this.renderer.setStyle(box, 'text-align', 'center');
     this.renderer.setStyle(box, 'max-width', '380px');
     this.renderer.setStyle(box, 'width', '90%');
-    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.6)');
-    this.renderer.setStyle(box, 'font-family', 'inherit');
+    this.renderer.setStyle(box, 'box-shadow', isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)');
+    this.renderer.setStyle(box, 'font-family', 'Plus Jakarta Sans, sans-serif');
+    this.renderer.setStyle(box, 'animation', 'slideUp .2s cubic-bezier(.34,1.56,.64,1)');
+
     const close = () => this.renderer.removeChild(document.body, overlay);
+
     box.innerHTML = `
-      <div style="font-size:2.2rem;margin-bottom:12px">🗑️</div>
-      <div style="font-size:1.05rem;font-weight:700;color:#fff;margin-bottom:8px">Supprimer ce gérant ?</div>
-      <div style="font-size:.875rem;color:#94a3b8;margin-bottom:14px">
-        <strong style="color:#fff">${g.nom} ${g.prenom}</strong>
+      <div style="width:52px;height:52px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);
+           border-radius:14px;display:flex;align-items:center;justify-content:center;
+           font-size:1.3rem;margin:0 auto 16px;color:#ef4444">
+        <i class="fas fa-trash-alt"></i>
       </div>
-      <div style="font-size:.78rem;color:#f87171;margin-bottom:22px">⚠️ Cette action est irréversible.</div>
-      <div style="display:flex;gap:10px;justify-content:center">
-        <button id="del-cancel" style="background:transparent;color:#aaa;border:1px solid rgba(255,255,255,0.15);padding:9px 20px;border-radius:8px;font-size:.875rem;cursor:pointer">Annuler</button>
-        <button id="del-ok" style="background:#ef4444;color:#fff;border:none;padding:9px 22px;border-radius:8px;font-size:.875rem;font-weight:700;cursor:pointer">Supprimer</button>
+      <div style="font-size:1rem;font-weight:700;color:${text};margin-bottom:8px;letter-spacing:-0.01em">
+        Supprimer ce gérant ?
+      </div>
+      <div style="font-size:.82rem;color:${muted};margin-bottom:8px;line-height:1.5">
+        <strong style="color:${text}">${g.nom} ${g.prenom}</strong>
+      </div>
+      <div style="font-size:.75rem;color:#ef4444;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);
+           border-radius:8px;padding:8px 12px;margin-bottom:22px">
+        <i class="fas fa-exclamation-triangle" style="margin-right:5px"></i>
+        Cette action est irréversible.
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center">
+        <button id="del-cancel" style="background:${btnCancelBg};color:${btnCancelColor};
+          border:1px solid ${btnCancelBorder};padding:9px 20px;border-radius:8px;
+          font-size:.82rem;font-weight:600;cursor:pointer;font-family:inherit">Annuler</button>
+        <button id="del-ok" style="background:#ef4444;color:#fff;border:none;
+          padding:9px 22px;border-radius:8px;font-size:.82rem;font-weight:700;
+          cursor:pointer;font-family:inherit">
+          <i class="fas fa-trash-alt" style="margin-right:5px"></i>Supprimer
+        </button>
       </div>
     `;
     this.renderer.appendChild(overlay, box);
@@ -270,7 +351,7 @@ export class GerantsComponent implements OnInit {
     box.querySelector('#del-ok')!.addEventListener('click', () => {
       close();
       this.api.supprimerGerant(g.id).subscribe({
-        next: () => { this.toast.success('Gérant supprimé définitivement.'); this.load(); },
+        next: () => { this.load(); this.toast.success('Gérant supprimé définitivement.'); },
         error: () => this.toast.error('Erreur lors de la suppression')
       });
     });
@@ -278,64 +359,77 @@ export class GerantsComponent implements OnInit {
   }
 
   private _openLinkedDialog(g: GerantResponse): void {
+    const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const overlay = this.renderer.createElement('div');
     this.renderer.setStyle(overlay, 'position', 'fixed');
     this.renderer.setStyle(overlay, 'inset', '0');
-    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.7)');
+    this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.6)');
     this.renderer.setStyle(overlay, 'z-index', '99999');
     this.renderer.setStyle(overlay, 'display', 'flex');
     this.renderer.setStyle(overlay, 'align-items', 'center');
     this.renderer.setStyle(overlay, 'justify-content', 'center');
+    this.renderer.setStyle(overlay, 'backdrop-filter', 'blur(4px)');
+
     const box = this.renderer.createElement('div');
-    this.renderer.setStyle(box, 'background', '#1e1e2e');
-    this.renderer.setStyle(box, 'border', '1px solid rgba(245,158,11,.4)');
-    this.renderer.setStyle(box, 'border-radius', '18px');
-    this.renderer.setStyle(box, 'padding', '32px 28px 28px');
+    const bg    = isDark ? '#16161f' : '#ffffff';
+    const text  = isDark ? '#f2f2f8' : '#0f0f1a';
+    const muted = isDark ? '#a2a2b8' : '#7070a0';
+    const sub   = isDark ? '#78788c' : '#9090b0';
+    const hintBg     = isDark ? 'rgba(255,255,255,.04)' : '#f4f4f8';
+    const hintBorder = isDark ? 'rgba(255,255,255,.08)' : '#e2e2f0';
+    const btnBg = 'linear-gradient(135deg,#6366f1,#4f46e5)';
+
+    this.renderer.setStyle(box, 'background', bg);
+    this.renderer.setStyle(box, 'border', `1px solid ${isDark ? 'rgba(255,255,255,.1)' : '#e2e2f0'}`);
+    this.renderer.setStyle(box, 'border-radius', '20px');
+    this.renderer.setStyle(box, 'padding', '28px 24px');
     this.renderer.setStyle(box, 'text-align', 'center');
-    this.renderer.setStyle(box, 'max-width', '440px');
+    this.renderer.setStyle(box, 'max-width', '420px');
     this.renderer.setStyle(box, 'width', '92%');
-    this.renderer.setStyle(box, 'box-shadow', '0 24px 64px rgba(0,0,0,0.7)');
-    this.renderer.setStyle(box, 'font-family', 'inherit');
+    this.renderer.setStyle(box, 'box-shadow', isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)');
+    this.renderer.setStyle(box, 'font-family', 'Plus Jakarta Sans, sans-serif');
+
     const close = () => this.renderer.removeChild(document.body, overlay);
+
     box.innerHTML = `
-      <div style="width:52px;height:52px;background:rgba(245,158,11,.12);border:2px solid rgba(245,158,11,.35);
-           border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 16px">⚠️</div>
-      <div style="font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:6px">Suppression impossible</div>
-      <div style="font-size:.82rem;color:#94a3b8;margin-bottom:18px;line-height:1.5">
-        <strong style="color:#f1f5f9">${g.nom} ${g.prenom}</strong> est encore assigné à une entreprise :
+      <div style="width:48px;height:48px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);
+           border-radius:14px;display:flex;align-items:center;justify-content:center;
+           font-size:1.2rem;margin:0 auto 14px;color:#f59e0b">
+        <i class="fas fa-exclamation-triangle"></i>
       </div>
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.25);
-           border-radius:10px;padding:14px 16px;text-align:left;margin-bottom:18px">
-        <span style="font-size:1.5rem;flex-shrink:0">🏢</span>
+      <div style="font-size:.98rem;font-weight:700;color:${text};margin-bottom:6px;letter-spacing:-0.01em">
+        Suppression impossible
+      </div>
+      <div style="font-size:.8rem;color:${muted};margin-bottom:16px;line-height:1.5">
+        <strong style="color:${text}">${g.nom} ${g.prenom}</strong> est encore assigné à une entreprise.
+      </div>
+      <div style="display:flex;align-items:center;gap:12px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);
+           border-radius:12px;padding:12px 14px;text-align:left;margin-bottom:14px">
+        <div style="width:34px;height:34px;background:rgba(34,197,94,.12);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#22c55e;font-size:.9rem">
+          <i class="fas fa-building"></i>
+        </div>
         <div>
-          <div style="color:#6ee7b7;font-weight:700;font-size:.88rem;margin-bottom:3px">Entreprise gérée</div>
-          <div style="color:#fff;font-size:.85rem;font-weight:600">${g.entrepriseNom ?? ''}</div>
-          <div style="color:#94a3b8;font-size:.76rem;margin-top:3px">Réassignez un autre gérant à cette entreprise avant de supprimer.</div>
+          <div style="color:#22c55e;font-weight:700;font-size:.82rem;margin-bottom:2px">Entreprise rattachée</div>
+          <div style="color:${muted};font-size:.74rem">${g.entrepriseNom ?? ''}</div>
         </div>
       </div>
-      <div style="font-size:.76rem;color:#64748b;margin-bottom:20px;line-height:1.5;background:rgba(255,255,255,.03);
-           border-radius:8px;padding:10px;border:1px solid rgba(255,255,255,.06)">
-        💡 Archivez le gérant pour le désactiver tout en gardant son entreprise opérationnelle.
+      <div style="font-size:.74rem;color:${sub};background:${hintBg};
+           border-radius:10px;padding:10px 12px;border:1px solid ${hintBorder};
+           margin-bottom:18px;text-align:left;line-height:1.6">
+        <i class="fas fa-lightbulb" style="color:#6366f1;margin-right:5px"></i>
+        Réassignez un autre gérant à cette entreprise avant de supprimer.<br>
+        <span>Ou <strong style="color:${muted}">archivez</strong> le gérant pour le désactiver sans perdre les données.</span>
       </div>
       <button id="linked-ok"
-        style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;
-        padding:11px 36px;border-radius:10px;font-size:.9rem;font-weight:600;cursor:pointer;
-        width:100%;transition:opacity .2s"
-        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">
-        Compris
+        style="background:${btnBg};color:#fff;border:none;
+        padding:10px 0;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;
+        width:100%;font-family:inherit;box-shadow:0 2px 8px rgba(99,102,241,.35)">
+        <i class="fas fa-check" style="margin-right:6px"></i>Compris
       </button>
     `;
     this.renderer.appendChild(overlay, box);
     this.renderer.appendChild(document.body, overlay);
     box.querySelector('#linked-ok')!.addEventListener('click', close);
     overlay.addEventListener('click', (ev: Event) => { if (ev.target === overlay) close(); });
-  }
-
-  // ── DÉSARCHIVER ──
-  desarchiver(g: GerantResponse): void {
-    this.api.desarchiverGerant(g.id).subscribe({
-      next: () => { this.toast.success('Gérant désarchivé'); this.load(); },
-      error: () => this.toast.error('Erreur')
-    });
   }
 }
