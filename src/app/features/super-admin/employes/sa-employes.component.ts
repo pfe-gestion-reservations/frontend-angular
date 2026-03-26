@@ -26,6 +26,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   private fb       = inject(FormBuilder);
   private renderer = inject(Renderer2);
 
+  emailError = '';
   employes:     EmployeResponse[]    = [];
   filtered:     EmployeResponse[]    = [];
   entreprises:  EntrepriseResponse[] = [];
@@ -40,6 +41,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   selectedEntrepriseId: number | null = null;
   entDropOpen = false;
   entSearch   = '';
+  
 
   // ── Détail employé ──────────────────────────────────────────────────────
   selectedEmploye: EmployeResponse | null = null;
@@ -168,31 +170,40 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
 
   // ── Vérification email ──────────────────────────────────────────────────
   checkEmail(): void {
-    if (!this.emailToCheck.trim()) return;
-    this.checking = true;
-    this.api.checkEmployeEmail(this.emailToCheck.trim(), this.selectedEntrepriseId ?? undefined).subscribe({
-      next: (res: any) => {
-        this.checking = false;
-        this.checkResult = res;
-        const s = res.status;
-        // ── Archivé en priorité absolue ─────────────────────────────────
-        if (res.archived) {
-          this.step = 'result-archived';
-        } else if (s === 'FREE' || s === 'BUSY' || s === 'ALREADY_IN_THIS_COMPANY') {
-          // Email appartient à un employé (actif, libre ou rattaché)
-          this.step = 'result-employe-exists';
-        } else if (s === 'EMAIL_OTHER_ROLE') {
-          // Email appartient à un autre rôle (client, gérant, SA...)
-          this.step = 'result-other-role';
-        } else {
-          // NOT_FOUND → formulaire création
-          this.form.patchValue({ email: this.emailToCheck.trim() });
-          this.step = 'new-form';
-        }
-      },
-      error: () => { this.checking = false; this.toast.error('Erreur lors de la vérification'); }
-    });
+  this.emailError = '';
+  const email = this.emailToCheck.trim();
+  if (!email) return;
+
+  const emailRegex = /^[a-zA-Z0-9._%+\-]{4,}@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+  if (!emailRegex.test(email)) {
+    this.emailError = 'Email invalide — au moins 4 caractères avant le @';
+    return;
   }
+
+  this.checking = true;
+
+  this.api.checkEmployeEmail(email, this.selectedEntrepriseId ?? undefined).subscribe({
+    next: (res: any) => {
+      this.checking = false;
+      this.checkResult = res;
+
+      if (res.archived) {
+        this.step = 'result-archived';
+      } else if (res.status === 'FREE' || res.status === 'BUSY' || res.status === 'ALREADY_IN_THIS_COMPANY') {
+        this.step = 'result-employe-exists';
+      } else if (res.status === 'EMAIL_OTHER_ROLE') {
+        this.step = 'result-other-role';
+      } else {
+        this.form.patchValue({ email });
+        this.step = 'new-form';
+      }
+    },
+    error: () => {
+      this.checking = false;
+      this.toast.error('Erreur lors de la vérification');
+    }
+  });
+}
 
   // ── Désarchiver depuis modal ────────────────────────────────────────────
   desarchiverDepuisModal(): void {
@@ -490,4 +501,5 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
       error: () => this.toast.error('Erreur')
     });
   }
-}
+
+  }

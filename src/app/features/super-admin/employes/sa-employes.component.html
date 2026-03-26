@@ -233,43 +233,75 @@
     <div class="modal" (click)="$event.stopPropagation()">
 
       <!-- STEP 1 : saisie email -->
-      <ng-container *ngIf="step === 'email-check'">
-        <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-user-plus"></i> Ajouter un employé</div>
-          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      <!-- STEP 1 : saisie email -->
+<ng-container *ngIf="step === 'email-check'">
+  <div class="modal-header">
+    <div class="modal-title">
+      <i class="fas fa-user-plus"></i> Ajouter un employé
+    </div>
+    <button class="modal-close" (click)="closeModal()">
+      <i class="fas fa-times"></i>
+    </button>
+  </div>
+
+  <div class="modal-steps">
+    <div class="ms-step active"><div class="ms-dot">1</div> Email</div>
+    <div class="ms-sep"></div>
+    <div class="ms-step"><div class="ms-dot">2</div> Profil</div>
+  </div>
+
+  <div class="modal-body">
+    <div class="step-intro">
+      <div class="step-num">1</div>
+      <div>
+        <div class="step-title">Vérification du compte</div>
+        <div class="step-desc">
+          Entrez l'adresse email pour vérifier si un compte existe déjà dans le système.
         </div>
-        <div class="modal-steps">
-          <div class="ms-step active"><div class="ms-dot">1</div> Email</div>
-          <div class="ms-sep"></div>
-          <div class="ms-step"><div class="ms-dot">2</div> Profil</div>
-        </div>
-        <div class="modal-body">
-          <div class="step-intro">
-            <div class="step-num">1</div>
-            <div>
-              <div class="step-title">Vérification du compte</div>
-              <div class="step-desc">Entrez l'adresse email pour vérifier si un compte existe déjà dans le système.</div>
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Adresse email *</label>
-            <div class="input-icon-wrap">
-              <i class="fas fa-envelope iw-icon"></i>
-              <input [(ngModel)]="emailToCheck" type="email" class="form-control iw-input"
-                placeholder="employe&#64;exemple.com"
-                (keyup.enter)="checkEmail()" [disabled]="checking">
-            </div>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeModal()">Annuler</button>
-          <button class="btn btn-primary" (click)="checkEmail()" [disabled]="!emailToCheck.trim() || checking">
-            <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
-            <i class="fas fa-arrow-right" *ngIf="!checking"></i>
-            {{ checking ? 'Vérification...' : 'Suivant' }}
-          </button>
-        </div>
-      </ng-container>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="form-label">Adresse email *</label>
+
+      <div class="input-icon-wrap">
+        <i class="fas fa-envelope iw-icon"></i>
+
+        <input
+          [(ngModel)]="emailToCheck"
+          type="email"
+          class="form-control iw-input"
+          placeholder="employe@exemple.com"
+          [class.is-invalid]="emailError"
+          (keyup.enter)="checkEmail()"
+          [disabled]="checking"
+        >
+      </div>
+
+      <!-- message erreur -->
+      <div class="field-error" *ngIf="emailError">
+        <i class="fas fa-exclamation-circle"></i>
+        {{ emailError }}
+      </div>
+    </div>
+  </div>
+
+  <div class="modal-footer">
+    <button class="btn btn-secondary" (click)="closeModal()">
+      Annuler
+    </button>
+
+    <button
+      class="btn btn-primary"
+      (click)="checkEmail()"
+      [disabled]="!emailToCheck.trim() || checking"
+    >
+      <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
+      <i class="fas fa-arrow-right" *ngIf="!checking"></i>
+      {{ checking ? 'Vérification...' : 'Suivant' }}
+    </button>
+  </div>
+</ng-container>
 
       <!-- STEP : email employé existant -->
       <ng-container *ngIf="step === 'result-employe-exists'">

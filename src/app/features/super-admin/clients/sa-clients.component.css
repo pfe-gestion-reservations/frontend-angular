@@ -433,3 +433,24 @@
   background: var(--bg-elevated);
   border-radius: 0 0 var(--radius-2xl) var(--radius-2xl);
 }
+.error-text {
+  color: #ef4444;
+  font-size: 0.75rem;
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+button {
+  box-sizing: border-box;
+}
+.form-group {
+  position: relative;
+}
+
+.error-text {
+  position: absolute;
+  bottom: -18px;
+  left: 0;
+  font-size: 12px;
+  color: red;
+}

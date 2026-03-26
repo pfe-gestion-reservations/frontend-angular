@@ -31,15 +31,25 @@
           {{ e.nom }}
         </button>
       </div>
-      <div style="margin-left:auto">
-        <select class="form-control form-control-sm" [(ngModel)]="filtreStatut">
-          <option value="">Tous les statuts</option>
-          <option value="EN_ATTENTE">En attente</option>
-          <option value="APPELE">Appelé</option>
-          <option value="EN_COURS">En cours</option>
-          <option value="TERMINE">Terminé</option>
-          <option value="ANNULE">Annulé</option>
-        </select>
+      <div class="statut-tabs" style="margin-left:auto">
+        <button class="statut-tab" [class.active]="filtreStatut === ''" (click)="filtreStatut = ''">
+          Tous
+        </button>
+        <button class="statut-tab statut-tab-attente" [class.active]="filtreStatut === 'EN_ATTENTE'" (click)="filtreStatut = 'EN_ATTENTE'">
+          <span class="stab-dot"></span> En attente
+        </button>
+        <button class="statut-tab statut-tab-appele" [class.active]="filtreStatut === 'APPELE'" (click)="filtreStatut = 'APPELE'">
+          <span class="stab-dot"></span> Appelé
+        </button>
+        <button class="statut-tab statut-tab-encours" [class.active]="filtreStatut === 'EN_COURS'" (click)="filtreStatut = 'EN_COURS'">
+          <span class="stab-dot"></span> En cours
+        </button>
+        <button class="statut-tab statut-tab-termine" [class.active]="filtreStatut === 'TERMINE'" (click)="filtreStatut = 'TERMINE'">
+          <span class="stab-dot"></span> Terminé
+        </button>
+        <button class="statut-tab statut-tab-annule" [class.active]="filtreStatut === 'ANNULE'" (click)="filtreStatut = 'ANNULE'">
+          <span class="stab-dot"></span> Annulé
+        </button>
       </div>
     </div>
   </div>

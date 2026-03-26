@@ -80,17 +80,157 @@
       });
     }
 
-    delete(s: SecteurResponse): void {
-      if (!confirm(`Supprimer "${s.nom}" ?`)) return;
-      this.api.deleteSecteur(s.id).subscribe({
-        next: () => {
-          this.toast.success('Secteur supprimé');
-          this.load();
-          if (this.selectedSecteur?.id === s.id) this.closePanel();
-        },
-        error: () => this.toast.error('Erreur')
-      });
-    }
+    private _showErrorPopup(message: string): void {
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const overlay = document.createElement('div');
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'rgba(0,0,0,0.6)',
+    zIndex: '99999',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backdropFilter: 'blur(4px)'
+  });
+
+  const box = document.createElement('div');
+
+  const bg    = isDark ? '#16161f' : '#ffffff';
+  const text  = isDark ? '#f2f2f8' : '#0f0f1a';
+  const muted = isDark ? '#a2a2b8' : '#7070a0';
+
+  Object.assign(box.style, {
+    background: bg,
+    border: `1px solid rgba(239,68,68,.25)`,
+    borderRadius: '20px',
+    padding: '28px 24px',
+    textAlign: 'center',
+    maxWidth: '360px',
+    width: '90%'
+  });
+
+  const close = () => document.body.removeChild(overlay);
+
+  box.innerHTML = `
+    <div style="color:#ef4444;font-size:1.2rem;margin-bottom:10px">
+      <i class="fas fa-times"></i>
+    </div>
+
+    <div style="font-weight:700;color:${text};margin-bottom:6px">
+      Erreur
+    </div>
+
+    <div style="font-size:.85rem;color:${muted};margin-bottom:16px">
+      ${message}
+    </div>
+
+    <button id="ok-btn"
+      style="background:#6366f1;color:#fff;border:none;
+      padding:10px;border-radius:8px;width:100%;cursor:pointer">
+      OK
+    </button>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  box.querySelector('#ok-btn')!.addEventListener('click', close);
+}
+
+   delete(s: SecteurResponse): void {
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const overlay = document.createElement('div');
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'rgba(0,0,0,0.6)',
+    zIndex: '99999',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backdropFilter: 'blur(4px)'
+  });
+
+  const box = document.createElement('div');
+
+  const bg     = isDark ? '#16161f' : '#ffffff';
+  const border = isDark ? 'rgba(239,68,68,.25)' : '#fecaca';
+  const text   = isDark ? '#f2f2f8' : '#0f0f1a';
+  const muted  = isDark ? '#a2a2b8' : '#7070a0';
+
+  Object.assign(box.style, {
+    background: bg,
+    border: `1px solid ${border}`,
+    borderRadius: '20px',
+    padding: '32px 28px',
+    textAlign: 'center',
+    maxWidth: '380px',
+    width: '90%',
+    boxShadow: isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)',
+    fontFamily: 'Plus Jakarta Sans, sans-serif'
+  });
+
+  const close = () => document.body.removeChild(overlay);
+
+  box.innerHTML = `
+    <div style="width:52px;height:52px;background:rgba(239,68,68,.12);
+         border:1px solid rgba(239,68,68,.3);
+         border-radius:14px;display:flex;align-items:center;justify-content:center;
+         font-size:1.3rem;margin:0 auto 16px;color:#ef4444">
+      <i class="fas fa-layer-group"></i>
+    </div>
+
+    <div style="font-size:1rem;font-weight:700;color:${text};margin-bottom:8px">
+      Supprimer ce secteur ?
+    </div>
+
+    <div style="font-size:.82rem;color:${muted};margin-bottom:20px">
+      <strong style="color:${text}">${s.nom}</strong>
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button id="sec-cancel"
+        style="padding:9px 20px;border-radius:8px;cursor:pointer">
+        Annuler
+      </button>
+
+      <button id="sec-ok"
+        style="background:#ef4444;color:#fff;border:none;
+        padding:9px 22px;border-radius:8px;cursor:pointer">
+        Supprimer
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  box.querySelector('#sec-cancel')!.addEventListener('click', close);
+
+  box.querySelector('#sec-ok')!.addEventListener('click', () => {
+    close();
+
+    this.api.deleteSecteur(s.id).subscribe({
+      next: () => {
+        this.toast.success('Secteur supprimé');
+        this.load();
+        if (this.selectedSecteur?.id === s.id) this.closePanel();
+      },
+      error: () => {
+        this._showErrorPopup(
+          "Impossible de supprimer ce secteur car il est lié à une ou plusieurs entreprises"
+        );
+      }
+    });
+  });
+
+  overlay.addEventListener('click', (ev: Event) => {
+    if (ev.target === overlay) close();
+  });
+}
 
     // ── Détail ────────────────────────────────────────────────────────────────
     openSecteur(s: SecteurResponse): void {

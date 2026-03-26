@@ -225,16 +225,33 @@
           </div>
           <div class="form-group">
             <label class="form-label">Numéro de téléphone *</label>
-            <div class="tel-input-row">
-              <div class="tel-flag"><i class="fas fa-phone"></i></div>
-              <input [(ngModel)]="telToCheck" type="tel" class="form-control"
-                placeholder="Ex : 22 123 456" (keyup.enter)="checkTelephone()" [disabled]="checking">
-              <button class="btn btn-primary" (click)="checkTelephone()" [disabled]="!telToCheck.trim() || checking">
-                <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
-                <i class="fas fa-arrow-right" *ngIf="!checking"></i>
-                {{ checking ? '' : 'Suivant' }}
-              </button>
+          <div class="tel-input-row">
+            <div class="tel-flag"><i class="fas fa-phone"></i></div>
+
+            <div style="flex:1">
+              <input [(ngModel)]="telToCheck"
+                (input)="telError = ''"
+                type="tel"
+                class="form-control"
+                placeholder="Ex : 22123456"
+                (keyup.enter)="checkTelephone()"
+                [disabled]="checking">
+
+              <!-- erreur -->
+              <div *ngIf="telError" class="error-text">
+                {{ telError }}
+              </div>
             </div>
+
+            <button class="btn btn-primary"
+              (click)="checkTelephone()"
+              [disabled]="!telToCheck.trim() || checking || telError">
+              
+              <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
+              <i class="fas fa-arrow-right" *ngIf="!checking"></i>
+              {{ checking ? '' : 'Suivant' }}
+            </button>
+          </div>
           </div>
         </div>
         <div class="modal-footer">
@@ -322,10 +339,24 @@
           </div>
           <div class="form-group">
             <label class="form-label">Adresse email *</label>
+
             <div class="input-icon-wrap">
               <i class="fas fa-envelope iw-icon"></i>
-              <input [(ngModel)]="emailToCheck" type="email" class="form-control iw-input"
-                placeholder="client@exemple.com" (keyup.enter)="checkEmail()" [disabled]="checking">
+
+              <div style="width:100%">
+                <input [(ngModel)]="emailToCheck"
+                  (input)="emailError = ''"
+                  type="email"
+                  class="form-control iw-input"
+                  placeholder="client@exemple.com"
+                  (keyup.enter)="checkEmail()"
+                  [disabled]="checking">
+
+                <!-- erreur -->
+                <div *ngIf="emailError" class="error-text">
+                  {{ emailError }}
+                </div>
+              </div>
             </div>
           </div>
         </div>

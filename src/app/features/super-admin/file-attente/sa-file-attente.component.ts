@@ -103,7 +103,7 @@ export class SaFileAttenteComponent implements OnInit {
           serviceNom: fa.serviceNom,
           entrepriseNom: fa.entrepriseNom ?? null,
           ressourceGroups: [],
-          expanded: wasExpanded !== undefined ? wasExpanded : true
+          expanded: wasExpanded !== undefined ? wasExpanded : false
         });
       }
       const svcGroup = svcMap.get(fa.serviceId)!;
@@ -112,7 +112,7 @@ export class SaFileAttenteComponent implements OnInit {
       if (!rGroup) {
         const rgKey = 'rg_' + fa.serviceId + '_' + rKey;
         const wasRgExpanded = oldExpanded.get(rgKey);
-        rGroup = { ressourceNom: fa.ressourceNom ?? null, entries: [], expanded: wasRgExpanded !== undefined ? wasRgExpanded : true };
+        rGroup = { ressourceNom: fa.ressourceNom ?? null, entries: [], expanded: wasRgExpanded !== undefined ? wasRgExpanded : false };
         svcGroup.ressourceGroups.push(rGroup);
       }
       rGroup.entries.push(fa);

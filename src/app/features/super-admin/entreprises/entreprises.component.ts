@@ -28,6 +28,8 @@ const AV_COLORS = [
 export class EntreprisesComponent implements OnInit {
   private api   = inject(ApiService);
   private toast = inject(ToastService);
+
+  
   private fb    = inject(FormBuilder);
 
   entreprises:      EntrepriseResponse[] = [];
@@ -41,6 +43,7 @@ export class EntreprisesComponent implements OnInit {
   editing: EntrepriseResponse | null = null;
   loading = false;
   searchQuery = '';
+  modalStep = 1;
 
   secteurSearch = '';
   selectedSecteur: SecteurResponse | null = null;
@@ -80,7 +83,7 @@ export class EntreprisesComponent implements OnInit {
   form = this.fb.group({
     nom:       ['', Validators.required],
     adresse:   ['', Validators.required],
-    telephone: ['', [Validators.required, phoneValidator]],
+    telephone: ['', [Validators.required, phoneValidator, Validators.pattern('^[0-9]{8,}$')]],
     secteurId: ['', Validators.required],
     gerantId:  ['', Validators.required]
   });
@@ -274,6 +277,7 @@ export class EntreprisesComponent implements OnInit {
     this.selectedSecteur = null; this.selectedGerant = null;
     this.secteurSearch = ''; this.gerantSearch = '';
     this.filteredSecteurs = this.secteurs; this.filteredGerants = this.availableGerants();
+    this.modalStep = e ? 2 : 1;
     if (e) {
       this.form.patchValue({ nom: e.nom, adresse: e.adresse, telephone: e.telephone });
       const s = this.secteurs.find(x => x.id === e.secteurId);
@@ -283,7 +287,13 @@ export class EntreprisesComponent implements OnInit {
     } else { this.form.reset(); }
     this.showModal = true;
   }
-  closeModal(): void { this.showModal = false; this.form.reset(); this.editing = null; this.selectedSecteur = null; this.selectedGerant = null; }
+  closeModal(): void { this.showModal = false; this.form.reset(); this.editing = null; this.selectedSecteur = null; this.selectedGerant = null; this.modalStep = 1; }
+
+  goToStep2(): void {
+    ['nom', 'telephone', 'adresse'].forEach(f => this.form.get(f)?.markAsTouched());
+    const step1Valid = this.form.get('nom')?.valid && this.form.get('telephone')?.valid && this.form.get('adresse')?.valid;
+    if (step1Valid) { this.modalStep = 2; }
+  }
 
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
@@ -297,11 +307,177 @@ export class EntreprisesComponent implements OnInit {
     });
   }
 
-  delete(e: EntrepriseResponse): void {
-    if (!confirm(`Supprimer "${e.nom}" ?`)) return;
+  _showDeleteEntrepriseConfirm(e: EntrepriseResponse): void {
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const overlay = document.createElement('div');
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'rgba(0,0,0,0.6)',
+    zIndex: '99999',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backdropFilter: 'blur(4px)'
+  });
+
+  const box = document.createElement('div');
+
+  const bg     = isDark ? '#16161f' : '#ffffff';
+  const border = isDark ? 'rgba(239,68,68,.25)' : '#fecaca';
+  const text   = isDark ? '#f2f2f8' : '#0f0f1a';
+  const muted  = isDark ? '#a2a2b8' : '#7070a0';
+  const btnCancelBg     = isDark ? 'rgba(255,255,255,.06)' : '#f4f4f8';
+  const btnCancelBorder = isDark ? 'rgba(255,255,255,.12)' : '#e2e2f0';
+  const btnCancelColor  = isDark ? '#a2a2b8' : '#4a4a6a';
+
+  Object.assign(box.style, {
+    background: bg,
+    border: `1px solid ${border}`,
+    borderRadius: '20px',
+    padding: '32px 28px',
+    textAlign: 'center',
+    maxWidth: '380px',
+    width: '90%',
+    boxShadow: isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)',
+    fontFamily: 'Plus Jakarta Sans, sans-serif',
+    animation: 'slideUp .2s cubic-bezier(.34,1.56,.64,1)'
+  });
+
+  const close = () => document.body.removeChild(overlay);
+
+  box.innerHTML = `
+    <div style="width:52px;height:52px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);
+         border-radius:14px;display:flex;align-items:center;justify-content:center;
+         font-size:1.3rem;margin:0 auto 16px;color:#ef4444">
+      <i class="fas fa-building"></i>
+    </div>
+
+    <div style="font-size:1rem;font-weight:700;color:${text};margin-bottom:8px;letter-spacing:-0.01em">
+      Supprimer cette entreprise ?
+    </div>
+
+    <div style="font-size:.82rem;color:${muted};margin-bottom:8px;line-height:1.5">
+      <strong style="color:${text}">${e.nom}</strong>
+    </div>
+
+    <div style="font-size:.75rem;color:#ef4444;background:rgba(239,68,68,.08);
+         border:1px solid rgba(239,68,68,.2);
+         border-radius:8px;padding:8px 12px;margin-bottom:22px">
+      <i class="fas fa-exclamation-triangle" style="margin-right:5px"></i>
+      Cette action est irréversible.
+    </div>
+
+    <div style="display:flex;gap:8px;justify-content:center">
+      <button id="ent-del-cancel"
+        style="background:${btnCancelBg};color:${btnCancelColor};
+        border:1px solid ${btnCancelBorder};
+        padding:9px 20px;border-radius:8px;
+        font-size:.82rem;font-weight:600;cursor:pointer">
+        Annuler
+      </button>
+
+      <button id="ent-del-ok"
+        style="background:#ef4444;color:#fff;border:none;
+        padding:9px 22px;border-radius:8px;
+        font-size:.82rem;font-weight:700;cursor:pointer">
+        <i class="fas fa-trash-alt" style="margin-right:5px"></i>
+        Supprimer
+      </button>
+    </div>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  box.querySelector('#ent-del-cancel')!.addEventListener('click', close);
+
+  box.querySelector('#ent-del-ok')!.addEventListener('click', () => {
+    close();
     this.api.deleteEntreprise(e.id).subscribe({
-      next: () => { this.toast.success('Supprimée'); this.load(); },
-      error: () => this.toast.error('Erreur')
-    });
-  }
+    next: () => {
+      this.toast.success('Entreprise supprimée');
+      this.load();
+    },
+    error: () => {
+      this._showErrorPopup('Vous ne pouvez pas supprimer cette entreprise car elle est relié à plusieurs éléments');
+    }
+  });
+  });
+
+  overlay.addEventListener('click', (ev: Event) => {
+    if (ev.target === overlay) close();
+  });
+}
+
+private _showErrorPopup(message: string): void {
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const overlay = document.createElement('div');
+  Object.assign(overlay.style, {
+    position: 'fixed',
+    inset: '0',
+    background: 'rgba(0,0,0,0.6)',
+    zIndex: '99999',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backdropFilter: 'blur(4px)'
+  });
+
+  const box = document.createElement('div');
+
+  const bg    = isDark ? '#16161f' : '#ffffff';
+  const text  = isDark ? '#f2f2f8' : '#0f0f1a';
+  const muted = isDark ? '#a2a2b8' : '#7070a0';
+
+  Object.assign(box.style, {
+    background: bg,
+    border: `1px solid rgba(239,68,68,.25)`,
+    borderRadius: '20px',
+    padding: '28px 24px',
+    textAlign: 'center',
+    maxWidth: '360px',
+    width: '90%',
+    boxShadow: isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)',
+    fontFamily: 'Plus Jakarta Sans, sans-serif'
+  });
+
+  const close = () => document.body.removeChild(overlay);
+
+  box.innerHTML = `
+    <div style="width:48px;height:48px;background:rgba(239,68,68,.12);
+         border:1px solid rgba(239,68,68,.3);
+         border-radius:14px;display:flex;align-items:center;justify-content:center;
+         font-size:1.2rem;margin:0 auto 14px;color:#ef4444">
+      <i class="fas fa-times"></i>
+    </div>
+
+    <div style="font-size:.95rem;font-weight:700;color:${text};margin-bottom:6px">
+      Une erreur est survenue
+    </div>
+
+    <div style="font-size:.8rem;color:${muted};margin-bottom:18px;line-height:1.5">
+      ${message}
+    </div>
+
+    <button id="error-ok"
+      style="background:linear-gradient(135deg,#6366f1,#4f46e5);
+      color:#fff;border:none;padding:10px 0;border-radius:10px;
+      font-size:.85rem;font-weight:700;cursor:pointer;
+      width:100%">
+      Compris
+    </button>
+  `;
+
+  overlay.appendChild(box);
+  document.body.appendChild(overlay);
+
+  box.querySelector('#error-ok')!.addEventListener('click', close);
+
+  overlay.addEventListener('click', (ev: Event) => {
+    if (ev.target === overlay) close();
+  });
+}
 }

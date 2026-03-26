@@ -89,38 +89,63 @@ import { finalize } from 'rxjs/operators';
   `]
 })
 export class LoginComponent {
-  private fb = inject(FormBuilder);
-  private auth = inject(AuthService);
-  private toast = inject(ToastService);
+  private fb     = inject(FormBuilder);
+  private auth   = inject(AuthService);
+  private toast  = inject(ToastService);
+  private router = inject(Router);
 
   form = this.fb.group({
-    email: ['', [Validators.required, Validators.email]],
+    email:    ['', [Validators.required, Validators.email]],
     password: ['', Validators.required]
   });
   loading = false;
-  error = '';
+  error   = '';
   showPwd = false;
 
   onSubmit(): void {
-  if (this.form.invalid) {
-    this.form.markAllAsTouched();
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      return;
+    }
+
+    this.loading = true;
+    this.error   = '';
+
+    this.auth.login(this.form.value as any).pipe(
+      finalize(() => this.loading = false)
+    ).subscribe({
+      next: () => {
+        this.toast.success('Connexion réussie !');
+        this.auth.redirectToDashboard();
+      },
+      error: (err) => {
+        if (err.status === 403 && err.error?.reason) {
+          this.router.navigate(['/auth/compte-bloque'], {
+            state: {
+              reason: err.error.reason,
+              email: this.form.value.email
+            }
+      });
     return;
   }
 
-  this.loading = true;
-  this.error = '';
 
-  this.auth.login(this.form.value as any).pipe(
-    finalize(() => this.loading = false)
-  ).subscribe({
-    next: () => {
-      this.toast.success('Connexion réussie !');
-      this.auth.redirectToDashboard();
-    },
-    error: (err) => {
-      console.error(err);
-      this.error = err.error?.message || 'Email ou mot de passe incorrect.';
-    }
-  });
+  this.error = this.getErrorMessage(err);
+}
+    });
+  }
+
+getErrorMessage(error: any): string {
+  const msg = error?.error?.message?.toLowerCase() || '';
+
+  if (msg.includes('bad credentials')) {
+    return 'Email ou mot de passe incorrect.';
+  }
+
+  if (msg.includes('disabled')) {
+    return 'Compte désactivé.';
+  }
+
+  return error?.error?.message || 'Une erreur est survenue';
 }
 }

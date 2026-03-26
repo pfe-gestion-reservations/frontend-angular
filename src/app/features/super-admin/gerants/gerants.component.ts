@@ -249,23 +249,94 @@ export class GerantsComponent implements OnInit {
 
   closeArchiverModal(): void { this.showArchiverModal = false; this.gerantAArchiver = null; }
 
-  confirmerArchivage(): void {
-    if (!this.gerantAArchiver) return;
-    this.archiverLoading = true;
-    this.api.archiverGerant(this.gerantAArchiver.id, this.selectedRemplacantId ?? undefined).subscribe({
-      next: () => {
-        this.toast.success('Gérant archivé avec succès !');
-        this.archiverLoading   = false;
-        this.showArchiverModal = false;
-        this.gerantAArchiver   = null;
-        this.load();
-      },
-      error: (e: any) => {
-        this.toast.error(e?.error?.message || e?.error || 'Erreur lors de l\'archivage');
-        this.archiverLoading = false;
+  private _openNoRemplacantDialog(): void {
+  const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+
+  const overlay = this.renderer.createElement('div');
+  this.renderer.setStyle(overlay, 'position', 'fixed');
+  this.renderer.setStyle(overlay, 'inset', '0');
+  this.renderer.setStyle(overlay, 'background', 'rgba(0,0,0,0.6)');
+  this.renderer.setStyle(overlay, 'z-index', '99999');
+  this.renderer.setStyle(overlay, 'display', 'flex');
+  this.renderer.setStyle(overlay, 'align-items', 'center');
+  this.renderer.setStyle(overlay, 'justify-content', 'center');
+  this.renderer.setStyle(overlay, 'backdrop-filter', 'blur(4px)');
+
+  const box = this.renderer.createElement('div');
+
+  const bg    = isDark ? '#16161f' : '#ffffff';
+  const text  = isDark ? '#f2f2f8' : '#0f0f1a';
+  const muted = isDark ? '#a2a2b8' : '#7070a0';
+
+  this.renderer.setStyle(box, 'background', bg);
+  this.renderer.setStyle(box, 'border-radius', '20px');
+  this.renderer.setStyle(box, 'padding', '28px 24px');
+  this.renderer.setStyle(box, 'text-align', 'center');
+  this.renderer.setStyle(box, 'max-width', '420px');
+  this.renderer.setStyle(box, 'width', '92%');
+
+  const close = () => this.renderer.removeChild(document.body, overlay);
+
+  box.innerHTML = `
+    <div style="width:48px;height:48px;background:rgba(239,68,68,.12);
+      border-radius:14px;display:flex;align-items:center;justify-content:center;
+      margin:0 auto 14px;color:#ef4444">
+      <i class="fas fa-exclamation-triangle"></i>
+    </div>
+
+    <div style="font-size:1rem;font-weight:700;color:${text};margin-bottom:8px">
+      Remplaçant requis
+    </div>
+
+    <div style="font-size:.85rem;color:${muted};margin-bottom:18px">
+      Ce gérant est assigné à une entreprise.<br>
+      Vous devez sélectionner un gérant remplaçant avant de l’archiver.
+    </div>
+
+    <button id="ok-btn"
+      style="background:#6366f1;color:#fff;border:none;
+      padding:10px 20px;border-radius:10px;font-weight:700;cursor:pointer">
+      Compris
+    </button>
+  `;
+
+  this.renderer.appendChild(overlay, box);
+  this.renderer.appendChild(document.body, overlay);
+
+  box.querySelector('#ok-btn')!.addEventListener('click', close);
+  overlay.addEventListener('click', (e: any) => {
+    if (e.target === overlay) close();
+  });
+}
+
+    confirmerArchivage(): void {
+      if (!this.gerantAArchiver) return;
+
+      // 🔥 CAS IMPORTANT
+      if (this.gerantAArchiver.entrepriseNom && !this.selectedRemplacantId) {
+        this._openNoRemplacantDialog();
+        return;
       }
-    });
-  }
+
+      this.archiverLoading = true;
+
+      this.api.archiverGerant(
+        this.gerantAArchiver.id,
+        this.selectedRemplacantId ?? undefined
+      ).subscribe({
+        next: () => {
+          this.toast.success('Gérant archivé avec succès !');
+          this.archiverLoading   = false;
+          this.showArchiverModal = false;
+          this.gerantAArchiver   = null;
+          this.load();
+        },
+        error: (e: any) => {
+          this.toast.error(e?.error?.message || e?.error || 'Erreur lors de l\'archivage');
+          this.archiverLoading = false;
+        }
+      });
+    }
 
   desarchiver(g: GerantResponse): void {
     this.api.desarchiverGerant(g.id).subscribe({

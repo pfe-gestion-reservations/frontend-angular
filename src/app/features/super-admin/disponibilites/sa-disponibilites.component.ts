@@ -66,6 +66,7 @@ export class SaDisponibilitesComponent implements OnInit {
   // ── Modal état ──────────────────────────────────────────────────────────
   showModal = false;
   editing:  DisponibiliteResponse | null = null;
+  editingHasActiveRes = false; // true si le créneau en édition a des résa actives
   loading   = false;
   formStep: FormStep = 'service';
 
@@ -209,7 +210,7 @@ export class SaDisponibilitesComponent implements OnInit {
 
   // ── Détail ───────────────────────────────────────────────────────────────
   openDetail(d: DisponibiliteResponse): void {
-    this.detailDispo = d; this.detailDispoRessources = []; this.showDetail = true;
+    this.detailDispo = d; this.detailDispoRessources = []; this.showDetail = true; document.body.classList.add('no-scroll');
     if (this.getConfig(d.serviceId)?.typeService === 'RESSOURCE_PARTAGEE') {
       this.api.getRessourcesByService(d.serviceId).subscribe({
         next: r => this.detailDispoRessources = r.filter(x => !x.archived),
@@ -217,11 +218,12 @@ export class SaDisponibilitesComponent implements OnInit {
       });
     }
   }
-  closeDetail(): void { this.showDetail = false; this.detailDispo = null; this.detailDispoRessources = []; }
+  closeDetail(): void { this.showDetail = false; this.detailDispo = null; this.detailDispoRessources = []; document.body.classList.remove('no-scroll');}
 
   // ── Modal stepper ────────────────────────────────────────────────────────
   openModal(d?: DisponibiliteResponse): void {
     this.editing = d ?? null;
+    this.editingHasActiveRes = false;
     this.formStep = 'service';
     this.selectedJour = null;
     this.clearModalSelect();
@@ -245,8 +247,30 @@ export class SaDisponibilitesComponent implements OnInit {
       this.form.get('jour')?.setValue(d.jour);
       this.form.get('heureDebut')?.setValue(d.heureDebut);
       this.form.get('heureFin')?.setValue(d.heureFin);
-      // In edit mode, jump to step 3 directly
       this.formStep = 'horaire';
+
+      // Charger les réservations actives liées à ce créneau
+      const ACTIVE = new Set(['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS']);
+      const JS_JOUR: Record<number,string> = {0:'DIMANCHE',1:'LUNDI',2:'MARDI',3:'MERCREDI',4:'JEUDI',5:'VENDREDI',6:'SAMEDI'};
+      const toMin = (hhmm: string) => { const [h,m] = hhmm.split(':').map(Number); return h*60+(m||0); };
+      this.api.getReservations().subscribe({
+        next: (reservations) => {
+          const dispoDebutMin = toMin(d.heureDebut.substring(0, 5));
+          const dispoFinMin   = toMin(d.heureFin.substring(0, 5));
+          const dispoJour     = d.jour;
+          this.editingHasActiveRes = reservations.some(r => {
+            if (r.serviceId !== d.serviceId || !ACTIVE.has(r.statut)) return false;
+            const raw = r.heureDebut?.toString() ?? '';
+            const tIdx = raw.indexOf('T');
+            const timePart = tIdx !== -1 ? raw.substring(tIdx + 1, tIdx + 6) : raw.substring(0, 5);
+            const jourResa  = JS_JOUR[new Date(raw).getDay()];
+            if (jourResa !== dispoJour) return false;
+            const resaMin = toMin(timePart);
+            return resaMin >= dispoDebutMin && resaMin < dispoFinMin;
+          });
+        },
+        error: () => {}
+      });
     }
     this.showModal = true;
   }
@@ -389,6 +413,13 @@ export class SaDisponibilitesComponent implements OnInit {
       this._showValidationPopup('Créneau en conflit', this.chevauchement);
       return;
     }
+    if (this.editing && this.editingHasActiveRes) {
+      this._showValidationPopup(
+        'Modification impossible',
+        'Vous ne pouvez pas modifier ce créneau car il est lié à une ou des réservations actives (non annulées / non terminées).'
+      );
+      return;
+    }
     this.loading = true;
     const v    = this.form.value;
     const body = { serviceId: Number(v.serviceId), jour: v.jour as JourSemaine, heureDebut: v.heureDebut!, heureFin: v.heureFin! };
@@ -412,29 +443,51 @@ export class SaDisponibilitesComponent implements OnInit {
 
   // ── Suppression ──────────────────────────────────────────────────────────
   delete(d: DisponibiliteResponse): void {
-    const toMin = (t: string) => { const [h,m] = t.split(':').map(Number); return h*60+m; };
-    const dMin = toMin(d.heureDebut), fMin = toMin(d.heureFin);
+    const ACTIVE_RES  = new Set(['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS']);
+    const ACTIVE_FILE = new Set(['EN_ATTENTE', 'APPELE', 'EN_COURS']);
+
     forkJoin({
       reservations: this.api.getReservations(),
       fileAttente:  this.api.getFileAttente()
     }).subscribe({
       next: ({ reservations, fileAttente }) => {
-        const resLiees  = reservations.filter(r =>
+        const matchesSlot = (heureDebut: string | null): boolean => {
+          if (!heureDebut) return false;
+          return heureDebut.substring(0, 5) === d.heureDebut.substring(0, 5);
+        };
+
+        const nbRes  = reservations.filter(r =>
           r.serviceId === d.serviceId &&
-          toMin(r.heureDebut) >= dMin && toMin(r.heureDebut) < fMin
-        );
-        const fileLiees = fileAttente.filter(f =>
+          ACTIVE_RES.has(r.statut) &&
+          matchesSlot(r.heureDebut)
+        ).length;
+
+        const nbFile = fileAttente.filter(f =>
           f.serviceId === d.serviceId &&
-          f.heureDebut != null &&
-          toMin(f.heureDebut) >= dMin && toMin(f.heureDebut) < fMin
-        );
-        if (resLiees.length > 0 || fileLiees.length > 0) {
-          this._showLinkedCreneauDialog(d, resLiees.length, fileLiees.length);
+          ACTIVE_FILE.has(f.statut) &&
+          matchesSlot(f.heureDebut)
+        ).length;
+
+        if (nbRes > 0 || nbFile > 0) {
+          this._showLinkedCreneauDialog(d, nbRes, nbFile);
         } else {
           this._showDeleteCreneauConfirm(d);
         }
       },
-      error: () => this._showDeleteCreneauConfirm(d)
+      error: (err: any) => {
+        // Si le pré-check échoue (ex: 401, réseau), on affiche l'erreur
+        // sans tenter la suppression
+        const raw = err?.error;
+        let msg = '';
+        if (typeof raw === 'string') {
+          try { msg = JSON.parse(raw)?.message || JSON.parse(raw)?.error || raw; }
+          catch { msg = raw; }
+        } else {
+          msg = raw?.message || raw?.error || '';
+        }
+        if (!msg) msg = `Erreur ${err.status ?? 'réseau'} lors de la vérification.`;
+        this._showValidationPopup('Impossible de vérifier', msg);
+      }
     });
   }
 
@@ -553,18 +606,20 @@ export class SaDisponibilitesComponent implements OnInit {
     this.renderer.appendChild(overlay, box);
     this.renderer.appendChild(document.body, overlay);
     box.querySelector('#del-cancel')!.addEventListener('click', close);
+
     box.querySelector('#del-ok')!.addEventListener('click', () => {
       close();
       this.api.deleteDispo(d.id).subscribe({
-        next: () => { this.toast.success('Créneau supprimé'); this.loadAllDispos(); },
-        error: err => {
-          if (err.status === 409 || err.status === 400) {
-            this._showLinkedCreneauDialog(d, 0, 0); return;
-          }
-          this._showValidationPopup('Erreur de suppression', err?.error?.message || 'Une erreur est survenue.');
+        next: () => {
+          this.toast.success('Créneau supprimé');
+          this.loadAllDispos();
+        },
+        error: () => {
+          this._showValidationPopup('Erreur', 'Vous ne pouvez pas supprimer ce créneau car il est lié a un ou plusieurs réservation(s).');
         }
       });
     });
+
     overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 
@@ -574,9 +629,6 @@ export class SaDisponibilitesComponent implements OnInit {
     const bg     = isDark ? '#16161f' : '#ffffff';
     const text   = isDark ? '#f2f2f8' : '#0f0f1a';
     const muted  = isDark ? '#a2a2b8' : '#7070a0';
-    const sub    = isDark ? '#78788c' : '#9090b0';
-    const hintBg = isDark ? 'rgba(255,255,255,.04)' : '#f4f4f8';
-    const hintBd = isDark ? 'rgba(255,255,255,.08)' : '#e2e2f0';
 
     const overlay = this.renderer.createElement('div');
     this.renderer.setStyle(overlay, 'position', 'fixed');
@@ -587,85 +639,114 @@ export class SaDisponibilitesComponent implements OnInit {
     this.renderer.setStyle(overlay, 'align-items', 'center');
     this.renderer.setStyle(overlay, 'justify-content', 'center');
     this.renderer.setStyle(overlay, 'backdrop-filter', 'blur(4px)');
+
     const box = this.renderer.createElement('div');
     this.renderer.setStyle(box, 'background', bg);
-    this.renderer.setStyle(box, 'border', `1px solid ${isDark ? 'rgba(255,255,255,.1)' : '#e2e2f0'}`);
+    this.renderer.setStyle(box, 'border', `1px solid ${isDark ? 'rgba(239,68,68,.3)' : '#fecaca'}`);
     this.renderer.setStyle(box, 'border-radius', '20px');
-    this.renderer.setStyle(box, 'padding', '28px 24px');
+    this.renderer.setStyle(box, 'padding', '32px 28px');
     this.renderer.setStyle(box, 'text-align', 'center');
-    this.renderer.setStyle(box, 'max-width', '450px');
+    this.renderer.setStyle(box, 'max-width', '420px');
     this.renderer.setStyle(box, 'width', '92%');
-    this.renderer.setStyle(box, 'box-shadow', isDark ? '0 24px 64px rgba(0,0,0,.6)' : '0 16px 48px rgba(0,0,0,.15)');
+    this.renderer.setStyle(box, 'box-shadow', isDark ? '0 24px 64px rgba(0,0,0,0.6)' : '0 16px 48px rgba(0,0,0,0.15)');
     this.renderer.setStyle(box, 'font-family', 'Plus Jakarta Sans, sans-serif');
+    this.renderer.setStyle(box, 'animation', 'slideUp .2s cubic-bezier(.34,1.56,.64,1)');
 
     const close = () => this.renderer.removeChild(document.body, overlay);
-    const items: string[] = [];
 
-    if (nbRes > 0) items.push(`
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(239,68,68,.08);
-           border:1px solid rgba(239,68,68,.18);border-radius:12px;padding:12px 14px;text-align:left">
-        <div style="width:34px;height:34px;background:rgba(239,68,68,.1);border-radius:10px;
-          display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#ef4444;font-size:.9rem">
-          <i class="fas fa-calendar-alt"></i>
-        </div>
-        <div>
-          <div style="color:#ef4444;font-weight:700;font-size:.82rem;margin-bottom:2px">
-            ${nbRes} réservation${nbRes > 1 ? 's' : ''} sur ce créneau
+    // Construire les badges de comptage
+    const badgesHtml: string[] = [];
+
+    if (nbRes > 0) {
+      badgesHtml.push(`
+        <div style="display:flex;align-items:center;gap:14px;
+          background:rgba(239,68,68,.07);border:1px solid rgba(239,68,68,.2);
+          border-radius:14px;padding:14px 16px;text-align:left">
+          <div style="width:40px;height:40px;background:rgba(239,68,68,.12);border-radius:12px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+            color:#ef4444;font-size:1rem">
+            <i class="fas fa-calendar-alt"></i>
           </div>
-          <div style="font-size:.74rem;color:${sub}">Réservations liées à cet horaire</div>
-        </div>
-      </div>`);
-
-    if (nbFile > 0) items.push(`
-      <div style="display:flex;align-items:center;gap:12px;background:rgba(245,158,11,.08);
-           border:1px solid rgba(245,158,11,.18);border-radius:12px;padding:12px 14px;text-align:left">
-        <div style="width:34px;height:34px;background:rgba(245,158,11,.1);border-radius:10px;
-          display:flex;align-items:center;justify-content:center;flex-shrink:0;color:#f59e0b;font-size:.9rem">
-          <i class="fas fa-list-ol"></i>
-        </div>
-        <div>
-          <div style="color:#f59e0b;font-weight:700;font-size:.82rem;margin-bottom:2px">
-            ${nbFile} entrée${nbFile > 1 ? 's' : ''} en file d'attente
+          <div>
+            <div style="font-size:1.25rem;font-weight:800;color:#ef4444;line-height:1">
+              ${nbRes}
+            </div>
+            <div style="font-size:.78rem;color:${muted};margin-top:2px">
+              réservation${nbRes > 1 ? 's' : ''} active${nbRes > 1 ? 's' : ''} liée${nbRes > 1 ? 's' : ''} à ce créneau
+            </div>
           </div>
-          <div style="font-size:.74rem;color:${sub}">File d'attente active sur ce créneau</div>
-        </div>
-      </div>`);
+        </div>`);
+    }
 
-    const itemsHtml = items.length > 0
-      ? `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:16px;text-align:left">${items.join('')}</div>`
-      : `<div style="font-size:.875rem;color:${muted};margin-bottom:16px;line-height:1.6">
-           Ce créneau est lié à des <strong style="color:${text}">réservations ou une file d'attente</strong> existantes.
-         </div>`;
+    if (nbFile > 0) {
+      badgesHtml.push(`
+        <div style="display:flex;align-items:center;gap:14px;
+          background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);
+          border-radius:14px;padding:14px 16px;text-align:left">
+          <div style="width:40px;height:40px;background:rgba(245,158,11,.12);border-radius:12px;
+            display:flex;align-items:center;justify-content:center;flex-shrink:0;
+            color:#f59e0b;font-size:1rem">
+            <i class="fas fa-list-ol"></i>
+          </div>
+          <div>
+            <div style="font-size:1.25rem;font-weight:800;color:#f59e0b;line-height:1">
+              ${nbFile}
+            </div>
+            <div style="font-size:.78rem;color:${muted};margin-top:2px">
+              entrée${nbFile > 1 ? 's' : ''} en file d'attente active${nbFile > 1 ? 's' : ''}
+            </div>
+          </div>
+        </div>`);
+    }
+
+    // Résumé du créneau concerné
+    const creneauInfo = `
+      <div style="display:flex;align-items:center;gap:10px;
+        background:${isDark ? 'rgba(255,255,255,.04)' : '#f8f8fc'};
+        border:1px solid ${isDark ? 'rgba(255,255,255,.08)' : '#e8e8f0'};
+        border-radius:12px;padding:11px 14px;text-align:left;margin-bottom:14px">
+        <i class="fas fa-concierge-bell" style="color:#6366f1;font-size:.85rem;flex-shrink:0"></i>
+        <div style="font-size:.78rem;color:${muted}">
+          <span style="font-weight:700;color:${text}">${svc?.nom ?? d.serviceNom}</span>
+          &nbsp;·&nbsp; ${this.JOUR_FULL[d.jour]}
+          &nbsp;·&nbsp; ${this.fmt(d.heureDebut)} – ${this.fmt(d.heureFin)}
+        </div>
+      </div>`;
 
     box.innerHTML = `
-      <div style="width:48px;height:48px;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.3);
-           border-radius:14px;display:flex;align-items:center;justify-content:center;
-           font-size:1.2rem;margin:0 auto 14px;color:#f59e0b">
-        <i class="fas fa-exclamation-triangle"></i>
+      <div style="width:52px;height:52px;background:rgba(239,68,68,.1);border:1.5px solid rgba(239,68,68,.3);
+           border-radius:16px;display:flex;align-items:center;justify-content:center;
+           font-size:1.4rem;margin:0 auto 18px;color:#ef4444">
+        <i class="fas fa-ban"></i>
       </div>
-      <div style="font-size:.98rem;font-weight:700;color:${text};margin-bottom:6px">Suppression impossible</div>
-      <div style="background:${isDark ? 'rgba(255,255,255,.04)' : '#f8f8fc'};border:1px solid ${isDark ? 'rgba(255,255,255,.06)' : '#e2e2f0'};
-           border-radius:10px;padding:10px 14px;margin-bottom:14px">
-        <div style="font-size:.78rem;color:${muted};margin-bottom:2px">${svc?.nom ?? d.serviceNom}</div>
-        <div style="font-size:.9rem;font-weight:700;color:${text}">
-          ${this.JOUR_FULL[d.jour]} · ${this.fmt(d.heureDebut)} – ${this.fmt(d.heureFin)}
-        </div>
+      <div style="font-size:1rem;font-weight:800;color:${text};margin-bottom:8px;letter-spacing:-0.02em">
+        Suppression impossible
       </div>
-      <div style="font-size:.82rem;color:${muted};margin-bottom:14px">Ce créneau ne peut pas être supprimé :</div>
-      ${itemsHtml}
-      <div style="font-size:.74rem;color:${sub};background:${hintBg};border-radius:10px;
-           padding:10px 12px;border:1px solid ${hintBd};margin-bottom:18px;text-align:left;line-height:1.6">
-        <i class="fas fa-lightbulb" style="color:#6366f1;margin-right:5px"></i>
-        Annulez ou supprimez d'abord les réservations et entrées en file d'attente associées.
+      <div style="font-size:.83rem;color:${muted};margin-bottom:18px;line-height:1.6">
+        Vous ne pouvez pas supprimer ce créneau car il est déjà lié à des réservations actives.
       </div>
-      <button id="linked-ok" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;
-        padding:10px 0;border-radius:10px;font-size:.85rem;font-weight:700;cursor:pointer;
-        width:100%;font-family:inherit;box-shadow:0 2px 8px rgba(99,102,241,.35)">
-        <i class="fas fa-check" style="margin-right:6px"></i>Compris
+      ${creneauInfo}
+      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:22px">
+        ${badgesHtml.join('')}
+      </div>
+      <div style="font-size:.74rem;color:${muted};
+           background:${isDark ? 'rgba(255,255,255,.04)' : '#f4f4f8'};
+           border:1px solid ${isDark ? 'rgba(255,255,255,.08)' : '#e2e2f0'};
+           border-radius:10px;padding:10px 14px;margin-bottom:20px;
+           text-align:left;line-height:1.6">
+        <i class="fas fa-info-circle" style="color:#6366f1;margin-right:5px"></i>
+        Annulez d'abord les réservations concernées avant de supprimer ce créneau.
+      </div>
+      <button id="lc-ok" style="background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;border:none;
+        padding:11px 36px;border-radius:10px;font-size:.875rem;font-weight:700;
+        cursor:pointer;font-family:inherit;width:100%">
+        Compris
       </button>`;
+
     this.renderer.appendChild(overlay, box);
     this.renderer.appendChild(document.body, overlay);
-    box.querySelector('#linked-ok')!.addEventListener('click', close);
+
+    box.querySelector('#lc-ok')!.addEventListener('click', close);
     overlay.addEventListener('click', (e: Event) => { if (e.target === overlay) close(); });
   }
 }

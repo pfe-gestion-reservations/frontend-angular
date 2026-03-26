@@ -200,3 +200,21 @@
 .dur-preview i { color:var(--primary); }
 .overlap-warn { display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:var(--radius-md); background:rgba(239,68,68,.08); border:1px solid rgba(239,68,68,.25); color:#f87171; font-size:.82rem; margin-top:8px; }
 .overlap-warn i { flex-shrink:0; color:#ef4444; }
+
+
+/* MODAL DETAIL – SCROLL FIABLE */
+.detail-modal {
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.detail-modal .modal-body {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Bloquer le scroll de la page derrière */
+body.no-scroll {
+  overflow: hidden;
+}

@@ -25,11 +25,8 @@ export class ApiService {
   constructor(private http: HttpClient) {}
 
   private getHeaders(): HttpHeaders {
-    try {
-      const raw = localStorage.getItem('auth_user');
-      const token = raw ? JSON.parse(raw).token : null;
-      if (token) return new HttpHeaders({ Authorization: `Bearer ${token}` });
-    } catch {}
+    // Le token est injecté automatiquement par authInterceptor.
+    // On retourne des headers vides pour éviter un double Authorization.
     return new HttpHeaders();
   }
 
@@ -139,7 +136,14 @@ export class ApiService {
   getDispoByService(serviceId: number): Observable<DisponibiliteResponse[]> { return this.http.get<DisponibiliteResponse[]>(`${this.api}/disponibilites/service/${serviceId}`, { headers: this.getHeaders() }); }
   createDispo(d: DisponibiliteRequest): Observable<DisponibiliteResponse> { return this.http.post<DisponibiliteResponse>(`${this.api}/disponibilites`, d, { headers: this.getHeaders() }); }
   updateDispo(id: number, d: DisponibiliteRequest): Observable<DisponibiliteResponse> { return this.http.put<DisponibiliteResponse>(`${this.api}/disponibilites/${id}`, d, { headers: this.getHeaders() }); }
-  deleteDispo(id: number): Observable<any> { return this.http.delete(`${this.api}/disponibilites/${id}`, { headers: this.getHeaders(), responseType: 'text' }); }
+
+  deleteDispo(id: number): Observable<any> {
+    return this.http.delete(`${this.api}/disponibilites/${id}`, { headers: this.getHeaders(), responseType: 'text' });
+  }
+
+  deleteDispoForce(id: number): Observable<any> {
+    return this.http.delete(`${this.api}/disponibilites/${id}/force`, { headers: this.getHeaders(), responseType: 'text' });
+  }
 
   // ── CRENEAUX ──────────────────────────────────────────────
   getCreneaux(serviceId: number, date: string): Observable<CreneauResponse[]> {

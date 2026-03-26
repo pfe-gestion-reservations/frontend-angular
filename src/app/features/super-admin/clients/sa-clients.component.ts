@@ -38,6 +38,8 @@ export class SaClientsComponent implements OnInit {
   showArchived = false;
   searchQuery  = '';
   selectedClient: ClientResponse | null = null;
+  emailError = '';
+  telError = '';
 
   // Association depuis la modale détail
   assocDropOpen      = false; //liste deroulante initialement fermé
@@ -212,52 +214,94 @@ export class SaClientsComponent implements OnInit {
 
   // ÉTAPE 1 : vérifier le numéro de téléphone
   checkTelephone(): void {
-    if (!this.telToCheck.trim()) return;
-    this.checking = true;
-    this.api.getClientByTelephone(this.telToCheck.trim()).subscribe({
-      next: (res: any) => {
-        this.checking = false;
-        if (res.status === 'ARCHIVED') {
-          this.archivedClientId     = res.clientId;
-          this.archivedClientNom    = res.nom;
-          this.archivedClientPrenom = res.prenom;
-          this.archivedClientEmail  = res.email;
-          this.step = 'tel-archived';
-        } else if (res.status === 'ALREADY_TAKEN') {
-          this.step = 'tel-taken';
-        } else {
-          this.step = 'email-check';
-        }
-      },
-      error: () => { this.checking = false; this.toast.error('Erreur lors de la vérification'); }
-    });
+  this.telError = '';
+
+  const tel = this.telToCheck.trim();
+  if (!tel) return;
+
+  const telRegex = /^[0-9]{8,}$/;
+
+  if (!telRegex.test(tel)) {
+    this.telError = 'Numéro invalide';
+    return;
   }
+
+  this.checking = true;
+
+  this.api.getClientByTelephone(tel).subscribe({
+    next: (res: any) => {
+      this.checking = false;
+
+      if (res.status === 'ARCHIVED') {
+        this.archivedClientId     = res.clientId;
+        this.archivedClientNom    = res.nom;
+        this.archivedClientPrenom = res.prenom;
+        this.archivedClientEmail  = res.email;
+        this.step = 'tel-archived';
+
+      } else if (res.status === 'ALREADY_TAKEN') {
+        this.step = 'tel-taken';
+
+      } else {
+        this.step = 'email-check';
+      }
+    },
+    error: () => {
+      this.checking = false;
+      this.toast.error('Erreur lors de la vérification');
+    }
+  });
+}
 
   // ÉTAPE 2 : vérifier l'email
   checkEmail(): void {
-    if (!this.emailToCheck.trim()) return;
-    this.checking = true;
-    this.api.checkClientEmail(this.emailToCheck.trim()).subscribe({
-      next: (res: any) => {
-        this.checking = false;
-        if (res.status === 'NOT_FOUND') {
-          this.form.patchValue({ email: this.emailToCheck.trim(), numtel: this.telToCheck.trim() });
-          this.step = 'new-form';
-        } else if (res.status === 'ROLE_CLIENT_ARCHIVED') {
-          this.archivedClientId     = res.clientId;
-          this.archivedClientNom    = res.nom;
-          this.archivedClientPrenom = res.prenom;
-          this.archivedClientEmail  = res.email;
-          this.step = 'email-archived';
-        } else if (res.status === 'ROLE_CLIENT') {
-          this.step = 'email-client';
-        } else {
-          this.step = 'email-other-role';
-        }
-      },
-      error: () => { this.checking = false; this.toast.error('Erreur lors de la vérification'); }
-    });
+  this.emailError = '';
+
+  const email = this.emailToCheck.trim();
+  if (!email) return;
+
+  // Regex (comme ton exemple)
+  const emailRegex = /^[a-zA-Z0-9._%+\-]{4,}@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+
+  if (!emailRegex.test(email)) {
+    this.emailError = 'Email invalide — au moins 4 caractères avant le @ (ex: prenom.nom@gmail.com)';
+    return;
   }
+
+  this.checking = true;
+
+  this.api.checkClientEmail(email).subscribe({
+    next: (res: any) => {
+      this.checking = false;
+
+      if (res.status === 'NOT_FOUND') {
+        this.form.patchValue({
+          email: email,
+          numtel: this.telToCheck.trim()
+        });
+        this.step = 'new-form';
+
+      } else if (res.status === 'ROLE_CLIENT_ARCHIVED') {
+        this.archivedClientId     = res.clientId;
+        this.archivedClientNom    = res.nom;
+        this.archivedClientPrenom = res.prenom;
+        this.archivedClientEmail  = res.email;
+        this.step = 'email-archived';
+
+      } else if (res.status === 'ROLE_CLIENT') {
+        this.step = 'email-client';
+
+      } else {
+        this.step = 'email-other-role';
+      }
+    },
+    error: () => {
+      this.checking = false;
+      this.toast.error('Erreur lors de la vérification');
+    }
+  });
+}
+  
 
   // Désarchiver le client trouvé (depuis tel-archived ou email-archived)
   desarchiverClientArchive(): void {
@@ -547,17 +591,59 @@ export class SaClientsComponent implements OnInit {
   }
 
 
-  archiver(c: ClientResponse): void {
-    if (!confirm(`Archiver "${c.nom} ${c.prenom}" ?`)) return;
-    this.api.archiverClient(c.id).subscribe({
-      next: () => { this.toast.success('Client archivé'); this.load(); },
-      error: () => this.toast.error('Erreur')
-    });
-  }
+  // ── Remplace archiver() par cette version corrigée ──────────────────────
+archiver(c: ClientResponse): void {
+  forkJoin({
+    reservations: this.api.getReservations(),
+    fileAttente:  this.api.getFileAttente()
+  }).subscribe({
+    next: ({ reservations, fileAttente }) => {
+      const resActives  = reservations.filter(r =>
+        r.clientId === c.id && ['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS'].includes(r.statut)
+      );
+      const fileActives = fileAttente.filter(f =>
+        f.clientId === c.id && ['EN_ATTENTE', 'APPELE', 'EN_COURS'].includes(String(f.statut))
+      );
+
+      const hasActive = resActives.length > 0 || fileActives.length > 0;
+
+      let message = `Archiver "${c.nom} ${c.prenom}" ?`;
+      if (hasActive) {
+        const parts: string[] = [];
+        if (resActives.length > 0)
+          parts.push(`${resActives.length} réservation(s) active(s)`);
+        if (fileActives.length > 0)
+          parts.push(`${fileActives.length} entrée(s) en file d'attente`);
+        message = `Archiver "${c.nom} ${c.prenom}" ?\n\n⚠️ Attention : ${parts.join(' et ')} seront annulées.`;
+      }
+
+      if (!confirm(message)) return;
+
+      this.api.archiverClient(c.id).subscribe({
+        next: () => { this.toast.success('Client archivé'); this.load(); },
+        error: () => this.toast.error('Erreur lors de l\'archivage')
+      });
+    },
+    error: () => {
+      // fallback si l'API échoue : on archive quand même après confirmation simple
+      if (!confirm(`Archiver "${c.nom} ${c.prenom}" ?`)) return;
+      this.api.archiverClient(c.id).subscribe({
+        next: () => { this.toast.success('Client archivé'); this.load(); },
+        error: () => this.toast.error('Erreur lors de l\'archivage')
+      });
+    }
+  });
+}
+
+// ── SUPPRIME complètement archiverClient() ── (efface ces lignes)
 
   desarchiver(c: ClientResponse): void {
     this.api.desarchiverClient(c.id).subscribe({
       next: () => { this.toast.success('Client désarchivé'); this.load(); },
       error: () => this.toast.error('Erreur')
     });
-  }}
+  }
+
+  
+
+}
