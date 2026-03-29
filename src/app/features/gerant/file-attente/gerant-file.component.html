@@ -21,25 +21,50 @@
     <div class="stat-card"><div class="stat-icon red"><i class="fas fa-times"></i></div><div><div class="stat-value">{{ countByStatut('ANNULE') }}</div><div class="stat-label">Annulés</div></div></div>
   </div>
 
-  <!-- ══ FILTRE STATUT ══ -->
+  <!-- ══ FILTRES ══ -->
   <div class="card filters-card">
+    <!-- Ligne 1 : statut + toggle terminés -->
     <div class="filters-row">
-      <select class="form-control form-control-sm" [(ngModel)]="filtreStatut">
-        <option value="">Tous les statuts actifs</option>
-        <option value="EN_ATTENTE">En attente</option>
-        <option value="APPELE">Appelé</option>
-        <option value="EN_COURS">En cours</option>
-        <option value="TERMINE">Terminé</option>
-        <option value="ANNULE">Annulé</option>
-      </select>
-      <button class="btn btn-secondary btn-sm" (click)="showTermine = !showTermine"
-        [class.btn-active]="showTermine">
+      <div class="statut-tabs">
+        <button class="statut-tab" [class.active]="filtreStatut === ''" (click)="filtreStatut = ''">Tous</button>
+        <button class="statut-tab statut-tab-attente" [class.active]="filtreStatut === 'EN_ATTENTE'" (click)="filtreStatut = 'EN_ATTENTE'"><span class="stab-dot"></span> En attente</button>
+        <button class="statut-tab statut-tab-appele"  [class.active]="filtreStatut === 'APPELE'"     (click)="filtreStatut = 'APPELE'"><span class="stab-dot"></span> Appelé</button>
+        <button class="statut-tab statut-tab-encours" [class.active]="filtreStatut === 'EN_COURS'"   (click)="filtreStatut = 'EN_COURS'"><span class="stab-dot"></span> En cours</button>
+        <button class="statut-tab statut-tab-termine" [class.active]="filtreStatut === 'TERMINE'"    (click)="filtreStatut = 'TERMINE'"><span class="stab-dot"></span> Terminé</button>
+        <button class="statut-tab statut-tab-annule"  [class.active]="filtreStatut === 'ANNULE'"     (click)="filtreStatut = 'ANNULE'"><span class="stab-dot"></span> Annulé</button>
+      </div>
+      <button class="toggle-termine-btn" [class.active]="showTermine" (click)="showTermine = !showTermine" style="margin-left:auto">
         <i class="fas fa-eye" *ngIf="!showTermine"></i>
         <i class="fas fa-eye-slash" *ngIf="showTermine"></i>
         {{ showTermine ? 'Masquer terminés' : 'Afficher terminés' }}
       </button>
-      <button class="btn btn-secondary btn-sm" *ngIf="filtreStatut" (click)="resetFiltres()">
-        <i class="fas fa-times"></i> Réinitialiser
+    </div>
+
+    <!-- Ligne 2 : Filtre par date -->
+    <div class="filters-date-row">
+      <div class="date-filter-group">
+        <!-- Bouton Aujourd'hui -->
+        <button class="today-btn" [class.today-active]="isAujourdhui" (click)="setAujourdhui()">
+          <i class="fas fa-calendar-day"></i>
+          <span>Aujourd'hui</span>
+          <span class="today-badge" *ngIf="isAujourdhui">✓</span>
+        </button>
+        <div class="date-sep"></div>
+        <!-- Date picker pill -->
+        <div class="date-filter-pill" [class.active]="hasDateFilter && !isAujourdhui">
+          <i class="fas fa-calendar-alt"></i>
+          <span class="date-pill-label">{{ hasDateFilter ? formattedFilterDate : 'Choisir une date' }}</span>
+          <input type="date" class="date-native" [(ngModel)]="filtreDate">
+        </div>
+        <!-- Badge résultats -->
+        <div class="date-result-badge" *ngIf="hasDateFilter">
+          <i class="fas fa-filter"></i>
+          {{ serviceGroups.length === 0 ? 'Aucun résultat' : filteredEntries.length + ' entrée(s)' }} — {{ formattedFilterDate }}
+        </div>
+      </div>
+      <div style="flex:1"></div>
+      <button class="date-clear-btn-pill" *ngIf="hasDateFilter" (click)="clearDate()">
+        <i class="fas fa-times"></i> Retirer filtre date
       </button>
     </div>
   </div>

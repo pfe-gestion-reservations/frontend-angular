@@ -48,8 +48,35 @@ export class GerantFileComponent implements OnInit {
   loadingModal = false;
 
   private _filtreStatut = '';
+  private _filtreDate   = '';
+
   get filtreStatut(): string { return this._filtreStatut; }
   set filtreStatut(v: string) { this._filtreStatut = v; this.buildGroups(); }
+
+  get filtreDate(): string { return this._filtreDate; }
+  set filtreDate(v: string) { this._filtreDate = v; this.buildGroups(); }
+
+  get hasDateFilter(): boolean { return !!this._filtreDate; }
+
+  get isAujourdhui(): boolean {
+    return this._filtreDate === new Date().toISOString().slice(0, 10);
+  }
+
+  setAujourdhui(): void {
+    this._filtreDate = new Date().toISOString().slice(0, 10);
+    this.buildGroups();
+  }
+
+  clearDate(): void {
+    this._filtreDate = '';
+    this.buildGroups();
+  }
+
+  get formattedFilterDate(): string {
+    if (!this._filtreDate) return '';
+    const [y, m, d] = this._filtreDate.split('-');
+    return `${d}/${m}/${y}`;
+  }
 
   showModal    = false;
   formClientId: number | null = null;
@@ -125,9 +152,15 @@ export class GerantFileComponent implements OnInit {
 
   get filteredEntries(): FileAttenteResponse[] {
     return this.fileAttente.filter(fa => {
-      const matchStatut = !this._filtreStatut || fa.statut === this._filtreStatut;
+      const matchStatut  = !this._filtreStatut || fa.statut === this._filtreStatut;
       const matchTermine = this.showTermine ? true : fa.statut !== 'TERMINE' && fa.statut !== 'ANNULE';
-      return matchStatut && matchTermine;
+      let matchDate = true;
+      if (this._filtreDate) {
+        const arr = fa.heureArrivee ? new Date(fa.heureArrivee).toISOString().slice(0, 10) : '';
+        const rdv = fa.dateHeureRdv ? new Date(fa.dateHeureRdv).toISOString().slice(0, 10) : '';
+        matchDate = arr === this._filtreDate || rdv === this._filtreDate;
+      }
+      return matchStatut && matchTermine && matchDate;
     });
   }
 
@@ -258,5 +291,5 @@ export class GerantFileComponent implements OnInit {
     this.buildGroups();
   }
 
-  resetFiltres(): void { this._filtreStatut = ''; this.buildGroups(); }
+  resetFiltres(): void { this._filtreStatut = ''; this._filtreDate = ''; this.buildGroups(); }
 }

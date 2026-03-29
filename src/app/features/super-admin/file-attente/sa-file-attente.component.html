@@ -24,13 +24,33 @@
   <!-- ══ FILTRES ══ -->
   <div class="card filters-card">
     <div class="filters-row">
-      <div class="ent-tabs">
-        <button class="ent-tab" [class.active]="filtreEntrepriseId === null" (click)="filtreEntrepriseId = null">Toutes</button>
-        <button class="ent-tab" *ngFor="let e of entreprisesActives"
-          [class.active]="filtreEntrepriseId === e.id" (click)="filtreEntrepriseId = e.id">
-          {{ e.nom }}
-        </button>
-      </div>
+<!-- Filtre Entreprise (identique à Gestion des Réservations) -->
+<div class="filter-pill ent-filter-pill"
+     [class.active]="filtreEntrepriseId !== null">
+
+  <i class="fas fa-building"></i>
+
+  <span class="filter-select-label">
+    {{ filtreEntrepriseId ? getEntNom(filtreEntrepriseId) : 'Toutes les entreprises' }}
+  </span>
+
+  <i class="fas fa-chevron-down fsp-chevron"></i>
+
+    <select class="filter-select-native"
+        [(ngModel)]="filtreEntrepriseId">
+
+      <option [ngValue]="null">Toutes les entreprises</option>
+
+      <option *ngFor="let e of entreprisesActives"
+              [ngValue]="e.id">
+        {{ e.nom }}
+      </option>
+    </select>
+
+  <span class="ent-count-badge" *ngIf="filtreEntrepriseId">
+    {{ filteredEntries.length }}
+  </span>
+</div>
       <div class="statut-tabs" style="margin-left:auto">
         <button class="statut-tab" [class.active]="filtreStatut === ''" (click)="filtreStatut = ''">
           Tous
@@ -50,6 +70,31 @@
         <button class="statut-tab statut-tab-annule" [class.active]="filtreStatut === 'ANNULE'" (click)="filtreStatut = 'ANNULE'">
           <span class="stab-dot"></span> Annulé
         </button>
+      </div>
+    </div>
+
+    <!-- Date filter row -->
+    <div class="filters-date-row">
+      <div class="date-filter-group">
+        <div class="date-filter-pill" [class.active]="hasDateFilter">
+          <i class="fas fa-calendar-day"></i>
+          <input type="date" class="date-filter-input" [(ngModel)]="filtreDate" title="Filtrer par date">
+          <button class="date-clear-btn" *ngIf="hasDateFilter" (click)="filtreDate = ''" title="Effacer la date">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+        <button class="today-btn" [class.today-active]="isAujourdhui()" (click)="setAujourdhui()">
+          <i class="fas fa-calendar-check"></i>
+          <span>Aujourd'hui</span>
+          <span class="today-badge" *ngIf="isAujourdhui()">✓</span>
+        </button>
+      </div>
+
+      <div class="date-filter-info" *ngIf="hasDateFilter">
+        <i class="fas fa-filter"></i>
+        <span>{{ filtreDate | date:'EEEE d MMMM yyyy':'':'fr' }}</span>
+        <span class="df-count">{{ filteredEntries.length }} entrée(s)</span>
+        <button class="df-reset-btn" (click)="resetFiltres()"><i class="fas fa-times"></i> Réinitialiser</button>
       </div>
     </div>
   </div>

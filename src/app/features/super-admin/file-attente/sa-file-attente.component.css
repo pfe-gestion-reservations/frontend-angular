@@ -700,3 +700,261 @@
 /* Annulé */
 .statut-tab-annule:hover    { border-color: #f87171; color: #f87171; background: rgba(239,68,68,.08); }
 .statut-tab-annule.active   { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.35); color: #f87171; box-shadow: 0 2px 8px rgba(239,68,68,.15); }
+/* ─── DATE FILTER ROW ────────────────────────────────────── */
+.filters-date-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.date-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Date pill */
+.date-filter-pill {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 13px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  transition: all .18s;
+  cursor: pointer;
+}
+.date-filter-pill i { font-size: .78rem; color: var(--text-muted); }
+.date-filter-pill.active {
+  border-color: var(--primary-border);
+  background: var(--indigo-glow);
+  box-shadow: 0 0 0 3px rgba(99,102,241,.08);
+}
+.date-filter-pill.active i { color: var(--primary); }
+
+.date-filter-input {
+  border: none;
+  background: transparent;
+  font-size: .82rem;
+  color: var(--text-primary);
+  outline: none;
+  cursor: pointer;
+  font-family: inherit;
+  min-width: 120px;
+}
+.date-filter-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+}
+
+.date-clear-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: var(--primary);
+  color: white;
+  font-size: .58rem;
+  cursor: pointer;
+  transition: background .15s, transform .12s;
+  flex-shrink: 0;
+}
+.date-clear-btn:hover { background: var(--danger); transform: scale(1.1); }
+
+/* Today button */
+.today-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 15px;
+  border: 1.5px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-secondary);
+  font-size: .82rem;
+  font-weight: 700;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all .18s;
+  font-family: inherit;
+  position: relative;
+}
+.today-btn i { font-size: .78rem; transition: transform .2s; }
+.today-btn:hover {
+  border-color: var(--primary-border);
+  color: var(--primary);
+  background: var(--indigo-glow);
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(99,102,241,.15);
+}
+.today-btn:hover i { transform: scale(1.15); }
+.today-btn.today-active {
+  border-color: var(--primary);
+  background: linear-gradient(135deg, var(--indigo-600), var(--indigo-500));
+  color: white;
+  box-shadow: 0 3px 12px rgba(79,70,229,.3);
+}
+.today-btn.today-active:hover { transform: none; box-shadow: 0 4px 14px rgba(79,70,229,.35); }
+
+.today-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.25);
+  font-size: .6rem;
+  font-weight: 900;
+}
+
+/* Active filter info bar */
+.date-filter-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: .8rem;
+  font-weight: 600;
+  color: var(--primary);
+  background: var(--indigo-glow);
+  padding: 5px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--primary-border);
+  flex-wrap: wrap;
+}
+.date-filter-info i { font-size: .72rem; }
+.df-count {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 20px;
+  background: var(--primary);
+  color: white;
+  font-size: .68rem;
+  font-weight: 800;
+}
+.df-reset-btn {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  border: none;
+  background: transparent;
+  color: var(--danger);
+  font-size: .75rem;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 6px;
+  transition: background .15s;
+  font-family: inherit;
+}
+.df-reset-btn:hover { background: var(--danger-bg); }
+
+/* ─── FILTRE ENTREPRISE (ASSORTI TOOLBAR) ─────────────────── */
+
+.filter-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 12px;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all .15s ease;
+  position: relative;
+}
+
+.filter-pill i {
+  font-size: .72rem;
+  color: var(--text-muted);
+}
+
+/* état actif */
+.filter-pill.active {
+  background: var(--indigo-glow);
+  border-color: var(--primary-border);
+}
+
+.filter-pill.active i {
+  color: var(--primary);
+}
+
+/* spécifique entreprise */
+.ent-filter-pill {
+  gap: 7px;
+}
+
+/* label affiché */
+.filter-select-label {
+  font-size: .78rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 160px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* chevron */
+.fsp-chevron {
+  font-size: .6rem !important;
+  color: var(--text-muted) !important;
+  pointer-events: none;
+  transition: transform .15s ease;
+}
+
+/* rotation subtile */
+.filter-pill:hover .fsp-chevron,
+.filter-pill:focus-within .fsp-chevron {
+  transform: rotate(180deg);
+}
+
+/* select natif invisible */
+.filter-select-native {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+  z-index: 2;
+}
+
+/* badge compteur */
+.ent-count-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 20px;
+  font-size: .65rem;
+  font-weight: 800;
+  background: var(--primary);
+  color: white;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* hover global */
+.filter-pill:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary-border);
+}

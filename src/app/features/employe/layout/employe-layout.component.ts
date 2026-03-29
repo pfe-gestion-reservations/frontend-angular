@@ -8,20 +8,19 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
   standalone: true,
   imports: [RouterOutlet, SidebarComponent, NavbarComponent],
   template: `
-    <div class="app-layout">
-      <app-sidebar
-        [groups]="navGroups"
-        [collapsed]="collapsed()"
-        roleName="Employé"
-        (toggleCollapse)="toggleCollapsed()" />
-
-      <div class="main-content" [class.sidebar-collapsed]="collapsed()">
-        <app-navbar />
-        <main class="page-wrapper">
-          <router-outlet />
-        </main>
-      </div>
+  <div class="app-layout">
+    <app-sidebar
+      [groups]="navGroups"
+      [collapsed]="collapsed()"
+      roleName="Gérant"
+      (toggleCollapse)="toggleCollapsed()" />
+    <div class="main-content" [class.sidebar-collapsed]="collapsed()">
+      <app-navbar [sidebarCollapsed]="collapsed()" />
+      <main class="page-wrapper">
+        <router-outlet />
+      </main>
     </div>
+  </div>
   `
 })
 export class EmployeLayoutComponent {
@@ -32,15 +31,20 @@ export class EmployeLayoutComponent {
   }
 
   navGroups: NavGroup[] = [
-    {
-      title: 'Navigation',
-      items: [
-        { label: 'Tableau de bord', icon: 'fa-tachometer-alt', route: '/employe/dashboard' },
-        { label: "File d’attente",  icon: 'fa-list-ol',        route: '/employe/file-attente' },
-        { label: 'Réservations',    icon: 'fa-calendar-alt',   route: '/employe/reservations' },
-        { label: 'Clients',         icon: 'fa-user-friends',   route: '/employe/clients' },
-        { label: 'Mes avis',        icon: 'fa-star',           route: '/employe/avis' }
-      ]
-    }
-  ];
-}
+      {
+        title: 'Vue générale',
+        items: [
+          { label: 'Tableau de bord', icon: 'fa-chart-bar', route: '/employe/dashboard' }
+        ]
+      },
+      {
+        title: 'Activité',
+        items: [
+          { label: 'Clients',   icon: 'fa-user-friends', route: '/employe/clients' },
+    { label: 'Réservations',   icon: 'fa-calendar-alt', route: '/employe/reservations' },
+          { label: "File d'attente", icon: 'fa-list-ol',      route: '/employe/file-attente' },
+          { label: 'Avis clients',   icon: 'fa-star',         route: '/employe/avis' }
+        ]
+      }
+    ];
+} 

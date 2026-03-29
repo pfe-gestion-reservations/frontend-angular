@@ -1,414 +1,486 @@
 <div>
 
-    <!-- ══ HEADER ══ -->
-    <div class="page-header">
-      <div>
-        <div class="page-title">
-          <div class="title-icon"><i class="fas fa-user-friends"></i></div>
-          Clients
-        </div>
+  <!-- ══ HEADER ══ -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        <div class="title-icon"><i class="fas fa-user-friends"></i></div>
+        Clients
       </div>
-      <div class="hdr-right">
-        <div class="search-box">
-          <i class="fas fa-search"></i>
-          <input [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Rechercher..." class="search-inp">
-        </div>
-        <button class="btn btn-primary" (click)="openCreate()">
-          <i class="fas fa-plus"></i> Nouveau client
-        </button>
+      <div class="page-subtitle">
+        {{ filtered.length }} client(s) affiché(s)
+        <span *ngIf="showArchived"> · archivés inclus</span>
       </div>
     </div>
-
-    <!-- ══ STATS ══ -->
-    <div class="stat-grid">
-      <div class="stat-card">
-        <div class="stat-icon blue"><i class="fas fa-users"></i></div>
-        <div><div class="stat-value">{{ clients.length }}</div><div class="stat-label">Total clients</div></div>
+    <div class="hdr-right">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="searchQuery" (input)="applyFilter()" placeholder="Rechercher..." class="search-inp">
       </div>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <i class="fas fa-plus"></i> Ajouter un client
+      </button>
     </div>
+  </div>
 
-    <!-- ══ TABLE ══ -->
-    <div class="card">
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Client</th><th>Email</th><th>Téléphone</th><th style="width:110px">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let c of filtered" [class.row-archived]="c.archived">
-              <td>
-                <div class="person-cell">
-                  <div class="avatar" [style.background]="avColor(c)">{{ initials(c) }}</div>
-                  <div>
-                    <div class="person-name">{{ c.nom }} {{ c.prenom }}</div>
-                    <div class="person-sub">#{{ c.id }}</div>
-                  </div>
-                </div>
-              </td>
-              <td><div class="email-cell"><i class="fas fa-envelope"></i>{{ c.email }}</div></td>
-              <td>
-                <div class="phone-cell" *ngIf="c.numtel"><i class="fas fa-phone"></i>{{ c.numtel }}</div>
-                <span class="no-data" *ngIf="!c.numtel">—</span>
-              </td>
-              <td>
-                <div class="row-actions">
-                  <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(c)" title="Modifier"><i class="fas fa-pen"></i></button>
-                  <button *ngIf="!c.archived" class="btn btn-danger btn-sm btn-icon" (click)="dissocierClient(c)" title="Retirer de mon entreprise"><i class="fas fa-user-slash"></i></button>
-                  <button *ngIf="c.archived"  class="btn btn-success btn-sm btn-icon" (click)="desarchiver(c)" title="Désarchiver"><i class="fas fa-undo"></i></button>
-                  <button class="btn btn-delete btn-sm btn-icon" (click)="supprimer(c)" title="Supprimer définitivement"><i class="fas fa-trash-alt"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr *ngIf="filtered.length === 0">
-              <td colspan="5">
-                <div class="empty-state">
-                  <i class="fas fa-users-slash"></i>
-                  <h3>{{ searchQuery ? 'Aucun résultat' : 'Aucun client' }}</h3>
-                  <p>{{ searchQuery ? 'Essayez une autre recherche' : 'Ajoutez votre premier client via le bouton ci-dessus' }}</p>
-                </div>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+  <!-- ══ STATS ══ -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-users"></i></div>
+      <div><div class="stat-value">{{ clients.length }}</div><div class="stat-label">Total</div></div>
     </div>
+  </div>
 
-    <!-- ══ MODAL CRÉATION ══ -->
-    <div class="modal-overlay" *ngIf="showModal && !editing" (click)="closeModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
-
-        <!-- STEP 1 : Téléphone -->
-        <ng-container *ngIf="step === 'tel-check'">
-          <div class="modal-header">
-            <div class="modal-title"><i class="fas fa-user-plus"></i> Ajouter un client</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="step-intro">
-              <div class="step-num">1</div>
-              <div>
-                <div class="step-title">Numéro de téléphone</div>
-                <div class="step-desc">Entrez le numéro pour vérifier si un compte existe déjà.</div>
-              </div>
-            </div>
-            <div class="form-group" style="margin-top:20px">
-              <label class="form-label">Numéro de téléphone *</label>
-              <div class="tel-input-row">
-                <div class="tel-flag"><i class="fas fa-phone"></i></div>
-                <input [(ngModel)]="telToCheck" type="tel" class="form-control"
-                  placeholder="Ex : 22 123 456" (keyup.enter)="checkTelephone()" [disabled]="checking">
-                <button class="btn btn-primary" (click)="checkTelephone()" [disabled]="!telToCheck.trim() || checking">
-                  <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
-                  <i class="fas fa-arrow-right" *ngIf="!checking"></i>
-                  {{ checking ? '' : 'Suivant' }}
-                </button>
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="closeModal()">Annuler</button>
-          </div>
-        </ng-container>
-
-        <!-- STEP : numéro trouvé → client actif → proposer association -->
-        <ng-container *ngIf="step === 'tel-found'">
-          <div class="modal-header">
-            <div class="modal-title" style="color:var(--success)"><i class="fas fa-user-check"></i> Client trouvé</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="result-card green">
-              <div class="rc-avatar green">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
-              <div class="rc-info">
-                <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
-                <div class="rc-email">{{ checkResult?.email }}</div>
-                <div class="rc-meta"><i class="fas fa-phone"></i> {{ checkResult?.numtel }}</div>
-              </div>
-              <span class="rc-badge green"><i class="fas fa-check-circle"></i> Compte actif</span>
-            </div>
-            <div class="info-box green">
-              <i class="fas fa-info-circle"></i>
-              Ce client a déjà un compte. Voulez-vous l'ajouter à votre entreprise ?
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="step='tel-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-            <button class="btn btn-primary" (click)="associerClientExistant()" [disabled]="loading">
-              <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
-              <i class="fas fa-link" *ngIf="!loading"></i>
-              {{ loading ? 'Ajout...' : 'Ajouter à mon entreprise' }}
-            </button>
-          </div>
-        </ng-container>
-
-        <!-- STEP : numéro appartient à un client archivé -->
-        <ng-container *ngIf="step === 'tel-archived'">
-          <div class="modal-header">
-            <div class="modal-title" style="color:var(--warning)"><i class="fas fa-user-clock"></i> Numéro déjà utilisé</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="result-card amber">
-              <div class="rc-avatar amber"><i class="fas fa-user-clock"></i></div>
-              <div class="rc-info">
-                <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
-                <div class="rc-email">{{ checkResult?.email }}</div>
-                <div class="rc-meta"><i class="fas fa-phone"></i> {{ telToCheck }}</div>
-              </div>
-              <span class="rc-badge amber"><i class="fas fa-archive"></i> Archivé</span>
-            </div>
-            <div class="info-box amber">
-              <i class="fas fa-exclamation-triangle"></i>
-              Ce numéro appartient à un client archivé. Contactez un super administrateur pour le réactiver.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="step='tel-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-            <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
-          </div>
-        </ng-container>
-
-        <!-- STEP 2 : Email -->
-        <ng-container *ngIf="step === 'email-check'">
-          <div class="modal-header">
-            <div class="modal-title"><i class="fas fa-envelope"></i> Adresse email</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="step-intro">
-              <div class="step-num">2</div>
-              <div>
-                <div class="step-title">Vérification de l'email</div>
-                <div class="step-desc">Numéro <strong>{{ telToCheck }}</strong> disponible. Entrez l'adresse email.</div>
-              </div>
-            </div>
-            <div class="form-group" style="margin-top:20px">
-              <label class="form-label">Adresse email *</label>
-              <div class="input-icon-wrap">
-                <i class="fas fa-envelope iw-icon"></i>
-                <input [(ngModel)]="emailToCheck" type="email" class="form-control iw-input"
-                  placeholder="client@exemple.com" (keyup.enter)="checkEmail()" [disabled]="checking">
-              </div>
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="step='tel-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-            <button class="btn btn-primary" (click)="checkEmail()" [disabled]="!emailToCheck.trim() || checking">
-              <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
-              <i class="fas fa-arrow-right" *ngIf="!checking"></i>
-              {{ checking ? 'Vérification...' : 'Suivant' }}
-            </button>
-          </div>
-        </ng-container>
-
-        <!-- STEP : email d'un client actif → associer directement -->
-        <ng-container *ngIf="step === 'email-client-actif'">
-          <div class="modal-header">
-            <div class="modal-title" style="color:var(--success)"><i class="fas fa-user-check"></i> Client existant</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="result-card green">
-              <div class="rc-avatar green">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
-              <div class="rc-info">
-                <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
-                <div class="rc-email">{{ checkResult?.email }}</div>
-              </div>
-              <span class="rc-badge green"><i class="fas fa-check-circle"></i> Compte client</span>
-            </div>
-            <div class="info-box green">
-              <i class="fas fa-info-circle"></i>
-              Ce client a déjà un compte. Confirmez pour l'ajouter à votre entreprise.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="step='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-            <button class="btn btn-primary" (click)="associerClientExistant()" [disabled]="loading">
-              <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
-              <i class="fas fa-link" *ngIf="!loading"></i>
-              {{ loading ? 'Ajout...' : 'Ajouter à mon entreprise' }}
-            </button>
-          </div>
-        </ng-container>
-
-        <!-- STEP : email d'un client archivé → informer seulement -->
-        <ng-container *ngIf="step === 'email-archived'">
-          <div class="modal-header">
-            <div class="modal-title" style="color:var(--warning)"><i class="fas fa-user-clock"></i> Client archivé</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="result-card amber">
-              <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
-              <div class="rc-info">
-                <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
-                <div class="rc-email">{{ checkResult?.email }}</div>
-              </div>
-              <span class="rc-badge amber"><i class="fas fa-archive"></i> Archivé</span>
-            </div>
-            <div class="info-box amber">
-              <i class="fas fa-exclamation-triangle"></i>
-              Ce client est archivé. Contactez un super administrateur pour le réactiver.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="step='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-            <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
-          </div>
-        </ng-container>
-
-        <!-- STEP : email d'un autre rôle → bloquer -->
-        <ng-container *ngIf="step === 'email-other-role'">
-          <div class="modal-header">
-            <div class="modal-title" style="color:var(--danger)"><i class="fas fa-ban"></i> Email non disponible</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="result-card red">
-              <div class="rc-avatar red"><i class="fas fa-ban"></i></div>
-              <div class="rc-info">
-                <div class="rc-name">{{ emailToCheck }}</div>
-                <div class="rc-email">Email utilisé par un autre type de compte</div>
-              </div>
-              <span class="rc-badge red"><i class="fas fa-times-circle"></i> Refusé</span>
-            </div>
-            <div class="info-box red">
-              <i class="fas fa-exclamation-circle"></i>
-              Cet email appartient à un compte employé, gérant ou admin. Veuillez utiliser un autre email.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="step='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
-            <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
-          </div>
-        </ng-container>
-
-        <!-- STEP : client déjà dans cette entreprise -->
-        <ng-container *ngIf="step === 'already-associated'">
-          <div class="modal-header">
-            <div class="modal-title" style="color:var(--warning)"><i class="fas fa-check-double"></i> Déjà dans votre entreprise</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <div class="modal-body">
-            <div class="result-card amber">
-              <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
-              <div class="rc-info">
-                <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
-                <div class="rc-email">{{ checkResult?.email }}</div>
-              </div>
-              <span class="rc-badge amber"><i class="fas fa-check-double"></i> Déjà associé</span>
-            </div>
-            <div class="info-box amber">
-              <i class="fas fa-exclamation-triangle"></i>
-              Ce client fait déjà partie de votre entreprise.
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
-          </div>
-        </ng-container>
-
-        <!-- STEP 3 : Nouveau compte -->
-        <ng-container *ngIf="step === 'new-form'">
-          <div class="modal-header">
-            <div class="modal-title"><i class="fas fa-user-plus"></i> Nouveau client</div>
-            <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-          </div>
-          <form [formGroup]="form" (ngSubmit)="save()">
-            <div class="modal-body">
-              <div class="new-account-hint">
-                <div class="nah-icon"><i class="fas fa-user-plus"></i></div>
-                <div>Aucun compte pour <strong>{{ emailToCheck }}</strong>. Créez un nouveau profil.</div>
-              </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Nom *</label>
-                  <input formControlName="nom" class="form-control"
-                    [class.is-invalid]="form.get('nom')?.invalid && form.get('nom')?.touched" placeholder="Dupont">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Prénom *</label>
-                  <input formControlName="prenom" class="form-control"
-                    [class.is-invalid]="form.get('prenom')?.invalid && form.get('prenom')?.touched" placeholder="Jean">
+  <!-- ══ TABLE ══ -->
+  <div class="card">
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th>Client</th>
+            <th>Email</th>
+            <th>Téléphone</th>
+            <th style="width:120px">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let c of filtered"
+              [class.row-archived]="c.archived"
+              [class.row-selected]="selectedClient?.id === c.id"
+              class="row-clickable" (click)="openDetail(c)">
+            <td>
+              <div class="person-cell">
+                <div class="avatar" [style.background]="avColor(c)">{{ initials(c) }}</div>
+                <div>
+                  <div class="person-name">{{ c.nom }} {{ c.prenom }}</div>
+                  <div class="person-sub">#{{ c.id }}</div>
                 </div>
               </div>
-              <div class="form-row">
-                <div class="form-group">
-                  <label class="form-label">Email</label>
-                  <input formControlName="email" type="email" class="form-control" [readonly]="true">
-                </div>
-                <div class="form-group">
-                  <label class="form-label">Téléphone</label>
-                  <input formControlName="numtel" class="form-control" [readonly]="true">
-                </div>
+            </td>
+            <td><div class="email-cell"><i class="fas fa-envelope"></i>{{ c.email }}</div></td>
+            <td>
+              <div class="phone-cell" *ngIf="c.numtel"><i class="fas fa-phone"></i>{{ c.numtel }}</div>
+              <span class="no-data" *ngIf="!c.numtel">—</span>
+            </td>
+            <td>
+              <div class="row-actions" (click)="$event.stopPropagation()">
+                <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(c)" title="Modifier"><i class="fas fa-pen"></i></button>
+                <button *ngIf="!c.archived" class="btn btn-warning btn-sm btn-icon" (click)="dissocierClient(c)" title="Retirer de mon entreprise"><i class="fas fa-unlink"></i></button>
+                <button *ngIf="c.archived"  class="btn btn-success btn-sm btn-icon" (click)="desarchiver(c)" title="Désarchiver"><i class="fas fa-undo"></i></button>
               </div>
-              <div class="form-group">
-                <label class="form-label">Mot de passe * <span class="opt-label">(min 6 caractères)</span></label>
-                <div class="input-icon-wrap">
-                  <i class="fas fa-lock iw-icon"></i>
-                  <input formControlName="password" type="password" class="form-control iw-input"
-                    placeholder="Min. 6 caractères"
-                    [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched">
-                </div>
+            </td>
+          </tr>
+          <tr *ngIf="filtered.length === 0">
+            <td colspan="4">
+              <div class="empty-state">
+                <i class="fas fa-users-slash"></i>
+                <h3>{{ searchQuery ? 'Aucun résultat' : 'Aucun client' }}</h3>
+                <p>{{ searchQuery ? 'Essayez une autre recherche' : 'Ajoutez votre premier client via le bouton ci-dessus' }}</p>
               </div>
-            </div>
-            <div class="modal-footer">
-              <button type="button" class="btn btn-secondary" (click)="step='email-check'">
-                <i class="fas fa-arrow-left"></i> Retour
-              </button>
-              <button type="submit" class="btn btn-primary" [disabled]="loading">
-                <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
-                <i class="fas fa-save" *ngIf="!loading"></i>
-                {{ loading ? 'Création...' : 'Créer le client' }}
-              </button>
-            </div>
-          </form>
-        </ng-container>
-
-      </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
     </div>
+  </div>
 
-    <!-- ══ MODAL ÉDITION ══ -->
-    <div class="modal-overlay" *ngIf="showModal && editing" (click)="closeModal()">
-      <div class="modal" (click)="$event.stopPropagation()">
+  <!-- ══ DÉTAIL CLIENT ══ -->
+  @if (selectedClient) {
+    <div class="modal-overlay" (click)="closeDetail()">
+      <div class="modal modal-detail" (click)="$event.stopPropagation()">
         <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-user-edit"></i> Modifier le client</div>
+          <div class="detail-header-left">
+            <div class="detail-avatar" [style.background]="avColor(selectedClient)">{{ initials(selectedClient) }}</div>
+            <div>
+              <div class="detail-name">{{ selectedClient.nom }} {{ selectedClient.prenom }}</div>
+              <div class="detail-email">{{ selectedClient.email }}</div>
+              <div class="detail-phone" *ngIf="selectedClient.numtel">
+                <i class="fas fa-phone"></i> {{ selectedClient.numtel }}
+              </div>
+            </div>
+          </div>
+          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+
+
+        <div class="drawer-footer">
+          <button class="btn btn-info btn-sm" (click)="closeDetail(); openEdit(selectedClient)">
+            <i class="fas fa-pen"></i> Modifier
+          </button>
+          <button *ngIf="!selectedClient.archived" class="btn btn-warning btn-sm" (click)="closeDetail(); dissocierClient(selectedClient)">
+            <i class="fas fa-unlink"></i> Retirer
+          </button>
+          <button *ngIf="selectedClient.archived" class="btn btn-success btn-sm" (click)="closeDetail(); desarchiver(selectedClient)">
+            <i class="fas fa-undo"></i> Désarchiver
+          </button>
+        </div>
+      </div>
+    </div>
+  }
+
+  <!-- ══ MODAL CRÉATION ══ -->
+  <div class="modal-overlay" *ngIf="showModal && !editing" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+
+      <!-- STEP 1 : Téléphone -->
+      <ng-container *ngIf="step === 'tel-check'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-user-plus"></i> Ajouter un client</div>
           <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
         </div>
-        <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <div class="modal-steps">
+          <div class="ms-step active"><div class="ms-dot">1</div> Téléphone</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step"><div class="ms-dot">2</div> Email</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step"><div class="ms-dot">3</div> Profil</div>
+        </div>
+        <div class="modal-body">
+          <div class="step-intro">
+            <div class="step-num">1</div>
+            <div>
+              <div class="step-title">Numéro de téléphone</div>
+              <div class="step-desc">Entrez le numéro pour vérifier si un compte client existe déjà.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Numéro de téléphone *</label>
+            <div class="tel-input-row">
+              <div class="tel-flag"><i class="fas fa-phone"></i></div>
+              <div style="flex:1">
+                <input [(ngModel)]="telToCheck" (input)="telError=''" type="tel" class="form-control"
+                  [class.is-invalid]="!!telError"
+                  placeholder="Ex : 22123456" (keyup.enter)="checkTelephone()" [disabled]="checking">
+                <div class="field-error" *ngIf="telError"><i class="fas fa-exclamation-circle"></i> {{ telError }}</div>
+              </div>
+              <button class="btn btn-primary" (click)="checkTelephone()" [disabled]="!telToCheck.trim() || checking">
+                <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
+                <i class="fas fa-arrow-right" *ngIf="!checking"></i>
+                {{ checking ? '' : 'Suivant' }}
+              </button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+        </div>
+      </ng-container>
+
+      <!-- tel-found : client actif → proposer association -->
+      <ng-container *ngIf="step === 'tel-found'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-user-check"></i> Client trouvé</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="result-card green">
+            <div class="rc-avatar green">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
+            <div class="rc-info">
+              <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
+              <div class="rc-email">{{ checkResult?.email }}</div>
+              <div class="rc-meta"><i class="fas fa-phone"></i> {{ checkResult?.numtel }}</div>
+            </div>
+            <span class="rc-badge green"><i class="fas fa-check-circle"></i> Compte actif</span>
+          </div>
+          <div class="info-box green">
+            <i class="fas fa-info-circle"></i>
+            Ce client a déjà un compte. Voulez-vous l'ajouter à votre entreprise ?
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="step='tel-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+          <button class="btn btn-primary" (click)="associerClientExistant()" [disabled]="loading">
+            <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+            <i class="fas fa-link" *ngIf="!loading"></i>
+            {{ loading ? 'Ajout...' : 'Ajouter à mon entreprise' }}
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- tel-archived -->
+      <ng-container *ngIf="step === 'tel-archived'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-user-clock"></i> Numéro déjà utilisé</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="result-card amber">
+            <div class="rc-avatar amber"><i class="fas fa-user-clock"></i></div>
+            <div class="rc-info">
+              <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
+              <div class="rc-email">{{ checkResult?.email }}</div>
+              <div class="rc-meta"><i class="fas fa-phone"></i> {{ telToCheck }}</div>
+            </div>
+            <span class="rc-badge amber"><i class="fas fa-archive"></i> Archivé</span>
+          </div>
+          <div class="info-box amber">
+            <i class="fas fa-exclamation-triangle"></i>
+            Ce numéro appartient à un client archivé. Contactez un super administrateur pour le réactiver.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="step='tel-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+          <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
+        </div>
+      </ng-container>
+
+      <!-- STEP 2 : Email -->
+      <ng-container *ngIf="step === 'email-check'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-envelope"></i> Adresse email</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-steps">
+          <div class="ms-step done"><div class="ms-dot"><i class="fas fa-check"></i></div> Téléphone</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step active"><div class="ms-dot">2</div> Email</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step"><div class="ms-dot">3</div> Profil</div>
+        </div>
+        <div class="modal-body">
+          <div class="step-intro">
+            <div class="step-num">2</div>
+            <div>
+              <div class="step-title">Vérification de l'email</div>
+              <div class="step-desc">Numéro <strong>{{ telToCheck }}</strong> disponible. Entrez l'adresse email du client.</div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Adresse email *</label>
+            <div class="input-icon-wrap">
+              <i class="fas fa-envelope iw-icon"></i>
+              <div style="width:100%">
+                <input [(ngModel)]="emailToCheck" (input)="emailError=''" type="email"
+                  class="form-control iw-input" [class.is-invalid]="!!emailError"
+                  placeholder="client@exemple.com" (keyup.enter)="checkEmail()" [disabled]="checking">
+                <div class="field-error" *ngIf="emailError"><i class="fas fa-exclamation-circle"></i> {{ emailError }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="step='tel-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+          <button class="btn btn-primary" (click)="checkEmail()" [disabled]="!emailToCheck.trim() || checking">
+            <i class="fas fa-spinner fa-spin" *ngIf="checking"></i>
+            <i class="fas fa-arrow-right" *ngIf="!checking"></i>
+            {{ checking ? 'Vérification...' : 'Suivant' }}
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- email-client-actif → associer -->
+      <ng-container *ngIf="step === 'email-client-actif'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-user-check"></i> Client existant</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="result-card green">
+            <div class="rc-avatar green">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
+            <div class="rc-info">
+              <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
+              <div class="rc-email">{{ checkResult?.email }}</div>
+            </div>
+            <span class="rc-badge green"><i class="fas fa-check-circle"></i> Compte client</span>
+          </div>
+          <div class="info-box green">
+            <i class="fas fa-info-circle"></i>
+            Ce client a déjà un compte. Confirmez pour l'ajouter à votre entreprise.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="step='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+          <button class="btn btn-primary" (click)="associerClientExistant()" [disabled]="loading">
+            <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+            <i class="fas fa-link" *ngIf="!loading"></i>
+            {{ loading ? 'Ajout...' : 'Ajouter à mon entreprise' }}
+          </button>
+        </div>
+      </ng-container>
+
+      <!-- email-archived -->
+      <ng-container *ngIf="step === 'email-archived'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-user-clock"></i> Client archivé</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="result-card amber">
+            <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
+            <div class="rc-info">
+              <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
+              <div class="rc-email">{{ checkResult?.email }}</div>
+            </div>
+            <span class="rc-badge amber"><i class="fas fa-archive"></i> Archivé</span>
+          </div>
+          <div class="info-box amber">
+            <i class="fas fa-exclamation-triangle"></i>
+            Ce client est archivé. Contactez un super administrateur pour le réactiver.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="step='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+          <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
+        </div>
+      </ng-container>
+
+      <!-- email-other-role -->
+      <ng-container *ngIf="step === 'email-other-role'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-ban"></i> Email non disponible</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="result-card red">
+            <div class="rc-avatar red"><i class="fas fa-ban"></i></div>
+            <div class="rc-info">
+              <div class="rc-name">{{ emailToCheck }}</div>
+              <div class="rc-email">Email utilisé par un autre type de compte</div>
+            </div>
+            <span class="rc-badge red"><i class="fas fa-times-circle"></i> Refusé</span>
+          </div>
+          <div class="info-box red">
+            <i class="fas fa-exclamation-circle"></i>
+            Cet email appartient à un compte employé, gérant ou administrateur.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="step='email-check'"><i class="fas fa-arrow-left"></i> Retour</button>
+          <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
+        </div>
+      </ng-container>
+
+      <!-- already-associated -->
+      <ng-container *ngIf="step === 'already-associated'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-check-double"></i> Déjà dans votre entreprise</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-body">
+          <div class="result-card amber">
+            <div class="rc-avatar amber">{{ checkResult?.nom?.charAt(0) }}{{ checkResult?.prenom?.charAt(0) }}</div>
+            <div class="rc-info">
+              <div class="rc-name">{{ checkResult?.nom }} {{ checkResult?.prenom }}</div>
+              <div class="rc-email">{{ checkResult?.email }}</div>
+            </div>
+            <span class="rc-badge amber"><i class="fas fa-check-double"></i> Déjà associé</span>
+          </div>
+          <div class="info-box amber">
+            <i class="fas fa-exclamation-triangle"></i>
+            Ce client fait déjà partie de votre entreprise.
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeModal()">Fermer</button>
+        </div>
+      </ng-container>
+
+      <!-- STEP 3 : new-form -->
+      <ng-container *ngIf="step === 'new-form'">
+        <div class="modal-header">
+          <div class="modal-title"><i class="fas fa-user-plus"></i> Créer le client</div>
+          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        </div>
+        <div class="modal-steps">
+          <div class="ms-step done"><div class="ms-dot"><i class="fas fa-check"></i></div> Téléphone</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step done"><div class="ms-dot"><i class="fas fa-check"></i></div> Email</div>
+          <div class="ms-sep"></div>
+          <div class="ms-step active"><div class="ms-dot">3</div> Profil</div>
+        </div>
+        <form [formGroup]="form" (ngSubmit)="save()">
           <div class="modal-body">
-            <div class="edit-profile">
-              <div class="avatar lg" [style.background]="avColor(editing!)">{{ initials(editing!) }}</div>
-              <div>
-                <div class="ep-name">{{ editing!.nom }} {{ editing!.prenom }}</div>
-                <div class="ep-email">{{ editing!.email }}</div>
+            <div class="new-account-hint">
+              <div class="nah-icon"><i class="fas fa-user-plus"></i></div>
+              <div>Aucun compte pour <strong>{{ emailToCheck }}</strong>. Complétez le profil.</div>
+            </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Nom *</label>
+                <input formControlName="nom" class="form-control"
+                  [class.is-invalid]="form.get('nom')?.invalid && form.get('nom')?.touched" placeholder="Dupont">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Prénom *</label>
+                <input formControlName="prenom" class="form-control"
+                  [class.is-invalid]="form.get('prenom')?.invalid && form.get('prenom')?.touched" placeholder="Jean">
               </div>
             </div>
             <div class="form-row">
-              <div class="form-group"><label class="form-label">Nom *</label><input formControlName="nom" class="form-control"></div>
-              <div class="form-group"><label class="form-label">Prénom *</label><input formControlName="prenom" class="form-control"></div>
-            </div>
-            <div class="form-row">
-              <div class="form-group"><label class="form-label">Email *</label><input formControlName="email" type="email" class="form-control"></div>
-              <div class="form-group"><label class="form-label">Téléphone *</label><input formControlName="numtel" class="form-control"></div>
+              <div class="form-group">
+                <label class="form-label">Email</label>
+                <input formControlName="email" type="email" class="form-control" [readonly]="true">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Téléphone</label>
+                <input formControlName="numtel" class="form-control" [readonly]="true">
+              </div>
             </div>
             <div class="form-group">
-              <label class="form-label">Nouveau mot de passe <span class="opt-label">(laisser vide pour garder)</span></label>
-              <input formControlName="password" type="password" class="form-control" placeholder="Nouveau mot de passe...">
+              <label class="form-label">Mot de passe * <span class="opt-label">(min 6 caractères)</span></label>
+              <div class="input-icon-wrap">
+                <i class="fas fa-lock iw-icon"></i>
+                <input formControlName="password" type="password" class="form-control iw-input"
+                  placeholder="Min. 6 caractères"
+                  [class.is-invalid]="form.get('password')?.invalid && form.get('password')?.touched">
+              </div>
             </div>
           </div>
           <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+            <button type="button" class="btn btn-secondary" (click)="step='email-check'">
+              <i class="fas fa-arrow-left"></i> Retour
+            </button>
             <button type="submit" class="btn btn-primary" [disabled]="loading">
               <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
               <i class="fas fa-save" *ngIf="!loading"></i>
-              {{ loading ? 'Enregistrement...' : 'Enregistrer' }}
+              {{ loading ? 'Création...' : 'Créer le client' }}
             </button>
           </div>
         </form>
-      </div>
-    </div>
+      </ng-container>
 
+    </div>
   </div>
+
+  <!-- ══ MODAL ÉDITION ══ -->
+  <div class="modal-overlay" *ngIf="showModal && editing" (click)="closeModal()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-user-edit"></i> Modifier le client</div>
+        <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+      <form [formGroup]="editForm" (ngSubmit)="saveEdit()">
+        <div class="modal-body">
+          <div class="edit-profile">
+            <div class="avatar lg" [style.background]="avColor(editing!)">{{ initials(editing!) }}</div>
+            <div>
+              <div class="ep-name">{{ editing!.nom }} {{ editing!.prenom }}</div>
+              <div class="ep-email">{{ editing!.email }}</div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Nom *</label><input formControlName="nom" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Prénom *</label><input formControlName="prenom" class="form-control"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Email *</label><input formControlName="email" type="email" class="form-control"></div>
+            <div class="form-group"><label class="form-label">Téléphone *</label><input formControlName="numtel" class="form-control"></div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Nouveau mot de passe <span class="opt-label">(laisser vide pour garder)</span></label>
+            <input formControlName="password" type="password" class="form-control" placeholder="Nouveau mot de passe...">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" [disabled]="loading">
+            <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+            <i class="fas fa-save" *ngIf="!loading"></i>
+            {{ loading ? 'Enregistrement...' : 'Enregistrer' }}
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+</div>

@@ -52,12 +52,16 @@ export class SaFileAttenteComponent implements OnInit {
 
   private _filtreEntrepriseId: number | null = null;
   private _filtreStatut = '';
+  private _filtreDate   = '';
 
   get filtreEntrepriseId(): number | null { return this._filtreEntrepriseId; }
   set filtreEntrepriseId(v: number | null) { this._filtreEntrepriseId = v; this.buildGroups(); }
 
   get filtreStatut(): string { return this._filtreStatut; }
   set filtreStatut(v: string) { this._filtreStatut = v; this.buildGroups(); }
+
+  get filtreDate(): string { return this._filtreDate; }
+  set filtreDate(v: string) { this._filtreDate = v; this.buildGroups(); }
 
   showModal        = false;
   formEntrepriseId = 0;
@@ -77,8 +81,25 @@ export class SaFileAttenteComponent implements OnInit {
     return this.fileAttente.filter(fa => {
       const matchEnt    = !this._filtreEntrepriseId || fa.entrepriseId === this._filtreEntrepriseId;
       const matchStatut = !this._filtreStatut || fa.statut === this._filtreStatut;
-      return matchEnt && matchStatut;
+      let matchDate = true;
+      if (this._filtreDate) {
+        const arr = fa.heureArrivee ? new Date(fa.heureArrivee).toISOString().slice(0, 10) : '';
+        const rdv = fa.dateHeureRdv ? new Date(fa.dateHeureRdv).toISOString().slice(0, 10) : '';
+        matchDate = arr === this._filtreDate || rdv === this._filtreDate;
+      }
+      return matchEnt && matchStatut && matchDate;
     });
+  }
+
+  get hasDateFilter(): boolean { return !!this._filtreDate; }
+
+  setAujourdhui(): void {
+    this._filtreDate = new Date().toISOString().slice(0, 10);
+    this.buildGroups();
+  }
+
+  isAujourdhui(): boolean {
+    return this._filtreDate === new Date().toISOString().slice(0, 10);
   }
 
   serviceGroups: ServiceGroup[] = [];
@@ -255,5 +276,10 @@ export class SaFileAttenteComponent implements OnInit {
     this.buildGroups();
   }
 
-  resetFiltres(): void { this._filtreEntrepriseId = null; this._filtreStatut = ''; this.buildGroups(); }
+  resetFiltres(): void { this._filtreEntrepriseId = null; this._filtreStatut = ''; this._filtreDate = ''; this.buildGroups(); }
+
+  getEntNom(id: number | null): string {
+  if (!id) return '';
+  return this.entreprises.find(e => e.id === id)?.nom ?? '';
+}
 }

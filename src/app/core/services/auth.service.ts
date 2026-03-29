@@ -82,4 +82,8 @@ export class AuthService {
       return raw ? JSON.parse(raw) : null;
     } catch { return null; }
   }
+
+  getCurrentUser(): AuthUser | null {
+  return this.currentUser();   
+}
 }

@@ -95,10 +95,40 @@
 .table-card { background:var(--bg-card); border:1px solid var(--border); border-radius:16px; overflow:hidden; box-shadow:var(--shadow-xs); position:relative; min-height:120px; z-index:1; }
 .loading-overlay { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:14px; color:var(--text-muted); font-size:.85rem; }
 .loader-ring { width:36px; height:36px; border:3px solid var(--border); border-top-color:var(--primary); border-radius:50%; animation:spin .7s linear infinite; }
-.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:60px 20px; gap:10px; text-align:center; }
-.es-icon  { width:56px; height:56px; border-radius:16px; background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:var(--text-muted); margin-bottom:6px; }
-.es-title { font-size:1rem; font-weight:700; color:var(--text-primary); margin:0; }
-.es-sub   { font-size:.82rem; color:var(--text-muted); margin:0 0 10px; max-width:320px; line-height:1.5; }
+/* ─── EMPTY STATE ─────────────────────────────────────────── */
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:64px 24px 72px; gap:0; text-align:center; }
+
+/* Illustration */
+.es-illustration { position:relative; width:140px; height:130px; margin-bottom:28px; }
+.es-blob { position:absolute; inset:0; border-radius:50% 60% 55% 65% / 55% 50% 65% 60%; background:linear-gradient(135deg, var(--indigo-glow) 0%, rgba(99,102,241,.06) 100%); animation:es-float 5s ease-in-out infinite; }
+@keyframes es-float { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-6px) rotate(3deg)} }
+
+.es-calendar-wrap { position:absolute; top:50%; left:50%; transform:translate(-50%,-52%); width:80px; background:var(--bg-card); border:1.5px solid var(--border); border-radius:14px; overflow:hidden; box-shadow:0 8px 24px rgba(0,0,0,.08); }
+.es-cal-header { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500)); }
+.es-cal-header span { display:inline-block; }
+.es-cal-header span:first-child { width:22px; height:7px; background:rgba(255,255,255,.9); border-radius:4px; }
+.es-cal-header span:nth-child(2) { width:7px; height:7px; background:rgba(255,255,255,.5); border-radius:50%; }
+.es-cal-header span:last-child { width:7px; height:7px; background:rgba(255,255,255,.5); border-radius:50%; }
+.es-cal-body { padding:10px 8px 10px; display:flex; flex-direction:column; gap:6px; }
+.es-cal-row { display:flex; justify-content:space-between; }
+.es-cal-dot { width:12px; height:12px; border-radius:4px; }
+.es-cal-dot.empty { background:var(--border); }
+
+.es-plus-badge { position:absolute; bottom:4px; right:4px; width:30px; height:30px; border-radius:50%; background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500)); color:white; display:flex; align-items:center; justify-content:center; font-size:.8rem; box-shadow:0 3px 10px rgba(79,70,229,.4); border:2px solid var(--bg-card); animation:es-pop .5s cubic-bezier(.34,1.56,.64,1) .3s both; }
+@keyframes es-pop { from{transform:scale(0) rotate(-45deg)} to{transform:scale(1) rotate(0)} }
+
+/* Text */
+.es-text-block { margin-bottom:24px; }
+.es-title { font-size:1.05rem; font-weight:800; color:var(--text-primary); margin:0 0 8px; letter-spacing:-.02em; }
+.es-sub   { font-size:.84rem; color:var(--text-muted); margin:0; max-width:340px; line-height:1.6; }
+
+/* Actions */
+.es-actions { display:flex; align-items:center; gap:10px; }
+.es-btn-create { padding:10px 22px; font-size:.85rem; font-weight:700; border-radius:10px; box-shadow:0 4px 14px rgba(79,70,229,.25); }
+.es-btn-create:hover { box-shadow:0 6px 18px rgba(79,70,229,.35); transform:translateY(-1px); }
+
+/* No result state */
+.es-no-result-icon { width:60px; height:60px; border-radius:18px; background:var(--bg-secondary); display:flex; align-items:center; justify-content:center; font-size:1.4rem; color:var(--text-muted); margin-bottom:16px; }
 
 .res-table { width:100%; border-collapse:collapse; }
 .res-table thead { border-bottom:1px solid var(--border); }

@@ -1,305 +1,380 @@
-<div>
+<div class="resa-page">
 
   <!-- ══ HEADER ══ -->
   <div class="page-header">
-    <div>
-      <div class="page-title">
-        <div class="title-icon"><i class="fas fa-calendar-check"></i></div>
-        Réservations
+    <div class="ph-left">
+      <div class="ph-icon"><i class="fas fa-calendar-check"></i></div>
+      <div>
+        <h1 class="ph-title">Réservations</h1>
+        <p class="ph-sub">
+          <span class="ph-badge">{{ reservations.length }} réservation{{ reservations.length > 1 ? 's' : '' }}</span>
+          <span class="ph-sep">·</span>
+          <span class="ph-live"><span class="ph-dot"></span> Votre entreprise</span>
+        </p>
       </div>
-      <div class="page-subtitle">{{ reservations.length }} réservation(s) dans votre entreprise</div>
     </div>
-    <div class="hdr-right">
+    <div class="ph-actions">
       <div class="search-box">
         <i class="fas fa-search"></i>
-        <input [(ngModel)]="searchQuery" placeholder="Client, service..." class="search-inp">
+        <input [(ngModel)]="searchQuery" placeholder="Client, service…" class="search-inp">
+        <button class="search-clear" *ngIf="searchQuery" (click)="searchQuery=''"><i class="fas fa-times"></i></button>
       </div>
-      <button class="btn btn-secondary" (click)="loadAll()">
-        <i class="fas fa-sync"></i> Actualiser
+      <button class="btn btn-ghost" (click)="loadAll()" title="Actualiser">
+        <i class="fas fa-sync-alt"></i>
       </button>
-      <button class="btn btn-primary" (click)="openCreate()">
+      <button class="btn btn-primary btn-create" (click)="openCreate()">
         <i class="fas fa-plus"></i> Nouvelle réservation
       </button>
     </div>
   </div>
 
-  <!-- ══ STATS ══ -->
-  <div class="stat-grid">
-    <div class="stat-card">
-      <div class="stat-icon blue"><i class="fas fa-calendar-alt"></i></div>
-      <div><div class="stat-value">{{ reservations.length }}</div><div class="stat-label">Total</div></div>
+  <!-- ══ STATS STRIP ══ -->
+  <div class="stats-strip">
+    <div class="stats-item stats-total" [class.stats-active]="filtreStatut === ''" (click)="filtreStatut = ''">
+      <div class="si-icon"><i class="fas fa-calendar-alt"></i></div>
+      <div class="si-data"><span class="si-value">{{ reservations.length }}</span><span class="si-label">Total</span></div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon amber"><i class="fas fa-clock"></i></div>
-      <div><div class="stat-value">{{ countByStatut('EN_ATTENTE') }}</div><div class="stat-label">En attente</div></div>
+    <div class="stats-divider"></div>
+    <div class="stats-item si-attente" [class.stats-active]="filtreStatut === 'EN_ATTENTE'" (click)="filtreStatut = 'EN_ATTENTE'">
+      <div class="si-icon"><i class="fas fa-hourglass-half"></i></div>
+      <div class="si-data"><span class="si-value">{{ countByStatut('EN_ATTENTE') }}</span><span class="si-label">En attente</span></div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon blue2"><i class="fas fa-check"></i></div>
-      <div><div class="stat-value">{{ countByStatut('CONFIRMEE') }}</div><div class="stat-label">Confirmées</div></div>
+    <div class="stats-item si-confirmee" [class.stats-active]="filtreStatut === 'CONFIRMEE'" (click)="filtreStatut = 'CONFIRMEE'">
+      <div class="si-icon"><i class="fas fa-check-circle"></i></div>
+      <div class="si-data"><span class="si-value">{{ countByStatut('CONFIRMEE') }}</span><span class="si-label">Confirmées</span></div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon indigo"><i class="fas fa-play-circle"></i></div>
-      <div><div class="stat-value">{{ countByStatut('EN_COURS') }}</div><div class="stat-label">En cours</div></div>
+    <div class="stats-item si-encours" [class.stats-active]="filtreStatut === 'EN_COURS'" (click)="filtreStatut = 'EN_COURS'">
+      <div class="si-icon"><i class="fas fa-play-circle"></i></div>
+      <div class="si-data"><span class="si-value">{{ countByStatut('EN_COURS') }}</span><span class="si-label">En cours</span></div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
-      <div><div class="stat-value">{{ countByStatut('TERMINEE') }}</div><div class="stat-label">Terminées</div></div>
+    <div class="stats-item si-terminee" [class.stats-active]="filtreStatut === 'TERMINEE'" (click)="filtreStatut = 'TERMINEE'">
+      <div class="si-icon"><i class="fas fa-flag-checkered"></i></div>
+      <div class="si-data"><span class="si-value">{{ countByStatut('TERMINEE') }}</span><span class="si-label">Terminées</span></div>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon red"><i class="fas fa-times-circle"></i></div>
-      <div><div class="stat-value">{{ countByStatut('ANNULEE') }}</div><div class="stat-label">Annulées</div></div>
+    <div class="stats-item si-annulee" [class.stats-active]="filtreStatut === 'ANNULEE'" (click)="filtreStatut = 'ANNULEE'">
+      <div class="si-icon"><i class="fas fa-times-circle"></i></div>
+      <div class="si-data"><span class="si-value">{{ countByStatut('ANNULEE') }}</span><span class="si-label">Annulées</span></div>
     </div>
   </div>
 
-  <!-- ══ FILTRES ══ -->
-  <div class="card filters-card">
-    <div class="filters-row">
-      <div class="filter-group">
-        <label class="filter-label"><i class="fas fa-filter"></i> Statut</label>
-        <select class="form-control" [(ngModel)]="filtreStatut">
-          <option value="">Tous</option>
-          <option *ngFor="let s of STATUTS" [value]="s">{{ statutLabel(s) }}</option>
-        </select>
+  <!-- ══ TOOLBAR ══ -->
+  <div class="toolbar-card">
+    <div class="toolbar-left">
+      <!-- Filtre Date -->
+      <div class="filter-pill" [class.active]="filtreDate">
+        <i class="fas fa-calendar"></i>
+        <input type="date" [(ngModel)]="filtreDate" class="filter-select">
       </div>
-      <div class="filter-group">
-        <label class="filter-label"><i class="fas fa-calendar"></i> Date</label>
-        <input type="date" class="form-control" [(ngModel)]="filtreDate">
-      </div>
-      <button class="btn btn-secondary btn-sm" (click)="resetFiltres()"
-        *ngIf="filtreStatut || filtreDate || searchQuery">
+
+      <!-- Bouton Aujourd'hui -->
+      <button class="today-quick-btn" [class.active]="isToday" (click)="setToday()">
+        <i class="fas fa-calendar-day"></i>
+        <span>Aujourd'hui</span>
+        <span class="today-dot" *ngIf="isToday"></span>
+      </button>
+
+      <!-- Reset -->
+      <button class="filter-reset" *ngIf="filtreStatut || filtreDate || searchQuery" (click)="resetFiltres()">
         <i class="fas fa-times"></i> Réinitialiser
       </button>
-      <span class="filter-count" *ngIf="filtered.length !== reservations.length">
-        {{ filtered.length }} résultat(s)
+    </div>
+    <div class="toolbar-right">
+      <span class="result-count" *ngIf="filtreStatut || filtreDate || searchQuery">
+        <i class="fas fa-filter"></i> {{ filtered.length }} résultat{{ filtered.length > 1 ? 's' : '' }}
       </span>
     </div>
   </div>
 
   <!-- ══ TABLE ══ -->
-  <div class="card">
-    <div class="table-container">
-      <div class="loading-state" *ngIf="loading">
-        <i class="fas fa-spinner fa-spin"></i> Chargement...
-      </div>
-      <table *ngIf="!loading">
-        <thead>
-          <tr>
-            <th>#</th><th>Client</th><th>Service</th><th>Créneau</th><th>Prix</th><th>Statut</th>
-            <th style="width:110px">Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let r of filtered"
-              class="row-clickable"
-              [class.row-annulee]="r.statut === 'ANNULEE'"
-              [class.row-terminee]="r.statut === 'TERMINEE'"
-              [class.row-selected]="selectedDetail?.id === r.id"
-              (click)="openDetail(r)">
-            <td class="id-cell">#{{ r.id }}</td>
-            <td>
-              <div class="person-cell">
-                <div class="avatar" [style.background]="'hsl(' + ((r.clientId ?? 0) * 47 % 360) + ',55%,52%)'">
-                  {{ r.clientNom?.charAt(0) }}{{ r.clientPrenom?.charAt(0) }}
-                </div>
-                <div>
-                  <div class="person-name">{{ r.clientNom }} {{ r.clientPrenom }}</div>
-                  <div class="person-sub">#{{ r.clientId }}</div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="svc-cell">
-                <div class="svc-dot" [style.background]="typeColor(getConfig(r.serviceId)?.typeService)"></div>
-                <div>
-                  <div class="service-name">{{ r.serviceNom }}</div>
-                  <div class="person-sub" *ngIf="r.nombrePersonnes && r.nombrePersonnes > 1">
-                    <i class="fas fa-users"></i> {{ r.nombrePersonnes }} pers.
-                  </div>
-                </div>
-              </div>
-            </td>
-            <td>
-              <div class="creneau-date"><i class="fas fa-calendar"></i> {{ r.heureDebut | date:'dd/MM/yyyy' }}</div>
-              <div class="creneau-time"><i class="fas fa-clock"></i> {{ r.heureDebut | date:'HH:mm' }} – {{ r.heureFin | date:'HH:mm' }}</div>
-            </td>
-            <td>
-              <span class="prix"    *ngIf="r.prixTotal != null">{{ r.prixTotal | number:'1.2-2' }} DT</span>
-              <span class="gratuit" *ngIf="r.prixTotal == null">Gratuit</span>
-            </td>
-            <td>
-              <span class="statut-badge" [ngClass]="'statut-' + r.statut.toLowerCase()">
-                {{ statutLabel(r.statut) }}
-              </span>
-            </td>
-            <td>
-              <div class="row-actions" (click)="$event.stopPropagation()">
-                <button class="btn btn-info btn-sm btn-icon"
-                  *ngIf="r.statut !== 'ANNULEE' && r.statut !== 'TERMINEE'"
-                  (click)="openEdit(r)" title="Modifier">
-                  <i class="fas fa-pen"></i>
-                </button>
-                <button class="btn btn-danger btn-sm btn-icon"
-                  *ngIf="r.statut !== 'ANNULEE' && r.statut !== 'TERMINEE'"
-                  (click)="annuler(r)" title="Annuler">
-                  <i class="fas fa-ban"></i>
-                </button>
-                <button class="btn btn-danger btn-sm btn-icon"
-                  *ngIf="r.statut === 'ANNULEE'"
-                  (click)="supprimer(r)" title="Supprimer">
-                  <i class="fas fa-trash"></i>
-                </button>
-              </div>
-            </td>
-          </tr>
-          <tr *ngIf="filtered.length === 0 && !loading">
-            <td colspan="7">
-              <div class="empty-state">
-                <i class="fas fa-calendar-times"></i>
-                <h3>{{ searchQuery || filtreStatut || filtreDate ? 'Aucun résultat' : 'Aucune réservation' }}</h3>
-                <p>{{ searchQuery || filtreStatut || filtreDate ? 'Modifiez vos filtres' : 'Cliquez sur « Nouvelle réservation » pour commencer' }}</p>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
+  <div class="table-card">
+    <div class="loading-overlay" *ngIf="loading">
+      <div class="loader-ring"></div>
+      <span>Chargement des réservations…</span>
     </div>
+
+    <!-- Empty state — aucune réservation -->
+    <div class="empty-state" *ngIf="!loading && filtered.length === 0">
+      <ng-container *ngIf="!(filtreStatut || filtreDate || searchQuery)">
+        <div class="es-illustration">
+          <div class="es-blob"></div>
+          <div class="es-calendar-wrap">
+            <div class="es-cal-header"><span></span><span></span><span></span></div>
+            <div class="es-cal-body">
+              <div class="es-cal-row"><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span></div>
+              <div class="es-cal-row"><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span></div>
+              <div class="es-cal-row"><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span></div>
+            </div>
+          </div>
+          <div class="es-plus-badge"><i class="fas fa-plus"></i></div>
+        </div>
+        <div class="es-text-block">
+          <h3 class="es-title">Aucune réservation pour l'instant</h3>
+          <p class="es-sub">Commencez par créer votre première réservation. Elle apparaîtra ici avec tous ses détails.</p>
+        </div>
+        <div class="es-actions">
+          <button class="btn btn-primary es-btn-create" (click)="openCreate()">
+            <i class="fas fa-plus"></i> Nouvelle réservation
+          </button>
+          <button class="btn btn-ghost" (click)="loadAll()">
+            <i class="fas fa-sync-alt"></i>
+          </button>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="filtreStatut || filtreDate || searchQuery">
+        <div class="es-no-result-icon"><i class="fas fa-search"></i></div>
+        <h3 class="es-title">Aucun résultat trouvé</h3>
+        <p class="es-sub">Aucune réservation ne correspond à vos critères. Essayez de modifier vos filtres.</p>
+        <button class="filter-reset" (click)="resetFiltres()"><i class="fas fa-times"></i> Réinitialiser les filtres</button>
+      </ng-container>
+    </div>
+
+    <table class="res-table" *ngIf="!loading && filtered.length > 0">
+      <thead>
+        <tr>
+          <th class="th-id">#</th>
+          <th>Client</th>
+          <th>Service</th>
+          <th>Créneau</th>
+          <th>Assignation</th>
+          <th>Prix</th>
+          <th>Statut</th>
+          <th class="th-actions">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let r of filtered"
+            class="res-row"
+            [class.row-annulee]="r.statut === 'ANNULEE'"
+            [class.row-terminee]="r.statut === 'TERMINEE'"
+            [class.row-selected]="selectedDetail?.id === r.id"
+            (click)="openDetail(r)">
+
+          <td class="td-id"><span class="id-badge">#{{ r.id }}</span></td>
+
+          <td>
+            <div class="person-cell">
+              <div class="avatar" [style.background]="'hsl(' + ((r.clientId ?? 0) * 47 % 360) + ',55%,52%)'">
+                {{ r.clientNom?.charAt(0) }}{{ r.clientPrenom?.charAt(0) }}
+              </div>
+              <div class="person-info">
+                <span class="person-name">{{ r.clientNom }} {{ r.clientPrenom }}</span>
+                <span class="person-id">#{{ r.clientId }}</span>
+              </div>
+            </div>
+          </td>
+
+          <td>
+            <div class="svc-cell">
+              <div class="svc-icon" [style.background]="typeColor(getConfig(r.serviceId)?.typeService) + '18'" [style.color]="typeColor(getConfig(r.serviceId)?.typeService)">
+                <i [class]="typeIcon(getConfig(r.serviceId)?.typeService)"></i>
+              </div>
+              <div>
+                <span class="svc-name">{{ r.serviceNom }}</span>
+                <span class="svc-type" [style.color]="typeColor(getConfig(r.serviceId)?.typeService)" *ngIf="getConfig(r.serviceId)?.typeService">
+                  {{ typeLabel(getConfig(r.serviceId)?.typeService) }}
+                </span>
+              </div>
+            </div>
+          </td>
+
+          <td>
+            <div class="creneau-cell">
+              <span class="cr-date"><i class="fas fa-calendar-day"></i>{{ r.heureDebut | date:'dd/MM/yyyy' }}</span>
+              <span class="cr-time"><i class="fas fa-clock"></i>{{ r.heureDebut | date:'HH:mm' }} – {{ r.heureFin | date:'HH:mm' }}</span>
+            </div>
+          </td>
+
+          <td>
+            <div class="assign-cell" *ngIf="r.employeNom || r.ressourceNom; else noAssign">
+              <span class="assign-chip" *ngIf="r.employeNom"><i class="fas fa-user-tie"></i> {{ r.employeNom }}</span>
+              <span class="assign-chip assign-res" *ngIf="r.ressourceNom"><i class="fas fa-layer-group"></i> {{ r.ressourceNom }}</span>
+            </div>
+            <ng-template #noAssign><span class="assign-empty">—</span></ng-template>
+          </td>
+
+          <td>
+            <span class="prix-chip" *ngIf="r.prixTotal != null">{{ r.prixTotal | number:'1.2-2' }} DT</span>
+            <span class="gratuit-chip" *ngIf="r.prixTotal == null"><i class="fas fa-gift"></i> Gratuit</span>
+          </td>
+
+          <td>
+            <div class="statut-wrap">
+              <span class="statut-badge" [ngClass]="'sb-' + r.statut.toLowerCase()">
+                <span class="sb-dot"></span>{{ statutLabel(r.statut) }}
+              </span>
+              <span class="np-badge" *ngIf="r.nombrePersonnes && r.nombrePersonnes > 1">
+                <i class="fas fa-users"></i> {{ r.nombrePersonnes }}
+              </span>
+            </div>
+          </td>
+
+          <td class="td-actions" (click)="$event.stopPropagation()">
+            <div class="action-group">
+              <button class="act-btn act-info" (click)="openDetail(r)" title="Détails"><i class="fas fa-eye"></i></button>
+              <div class="act-dropdown" *ngIf="r.statut !== 'ANNULEE' && r.statut !== 'TERMINEE'">
+                <button class="act-btn act-status" title="Changer statut"><i class="fas fa-exchange-alt"></i></button>
+                <div class="act-dropdown-menu">
+                  <div class="adm-header">Changer le statut</div>
+                  <button *ngFor="let s of STATUTS" class="adm-item"
+                    [class.adm-active]="r.statut === s" [ngClass]="'adm-' + s.toLowerCase()"
+                    [disabled]="r.statut === s" (click)="changerStatut(r, s)">
+                    <span class="adm-dot"></span>{{ statutLabel(s) }}
+                    <i class="fas fa-check adm-check" *ngIf="r.statut === s"></i>
+                  </button>
+                </div>
+              </div>
+              <button class="act-btn act-edit" *ngIf="r.statut !== 'ANNULEE' && r.statut !== 'TERMINEE'" (click)="openEdit(r)" title="Modifier"><i class="fas fa-pen"></i></button>
+              <button class="act-btn act-cancel" *ngIf="r.statut !== 'ANNULEE' && r.statut !== 'TERMINEE'" (click)="annuler(r)" title="Annuler"><i class="fas fa-ban"></i></button>
+              <button class="act-btn act-delete" *ngIf="r.statut === 'ANNULEE'" (click)="supprimer(r)" title="Supprimer"><i class="fas fa-trash-alt"></i></button>
+            </div>
+          </td>
+        </tr>
+      </tbody>
+    </table>
   </div>
 
   <!-- ══ MODALE DÉTAIL ══ -->
   @if (selectedDetail) {
     <div class="modal-overlay" (click)="closeDetail()">
       <div class="modal modal-detail" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title">
-            <i class="fas fa-calendar-check"></i>
-            Réservation #{{ selectedDetail.id }}
-            <span class="statut-badge ml" [ngClass]="'statut-' + selectedDetail.statut.toLowerCase()">
-              {{ statutLabel(selectedDetail.statut) }}
-            </span>
-          </div>
-          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body">
-          <div class="detail-section">
-            <div class="detail-section-title"><i class="fas fa-user"></i> Client</div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <div class="detail-label">Nom complet</div>
-                <div class="detail-value">{{ selectedDetail.clientNom }} {{ selectedDetail.clientPrenom }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">ID</div>
-                <div class="detail-value">#{{ selectedDetail.clientId }}</div>
-              </div>
+        <div class="detail-header">
+          <div class="dh-left">
+            <div class="dh-icon"><i class="fas fa-calendar-check"></i></div>
+            <div>
+              <div class="dh-title">Réservation <span class="dh-id">#{{ selectedDetail.id }}</span></div>
+              <span class="statut-badge" [ngClass]="'sb-' + selectedDetail.statut.toLowerCase()">
+                <span class="sb-dot"></span>{{ statutLabel(selectedDetail.statut) }}
+              </span>
             </div>
           </div>
-          <div class="detail-section">
-            <div class="detail-section-title"><i class="fas fa-concierge-bell"></i> Service</div>
-            <div class="svc-detail-card" *ngIf="getConfig(selectedDetail.serviceId) as cfg">
-              <div class="sdc-bar" [style.background]="typeColor(cfg.typeService)"></div>
-              <div class="sdc-body">
-                <div class="sdc-top">
-                  <div class="sdc-icon" [style.background]="typeColor(cfg.typeService) + '22'" [style.color]="typeColor(cfg.typeService)">
-                    <i [class]="typeIcon(cfg.typeService)"></i>
+          <button class="modal-close dh-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+        </div>
+
+        <div class="detail-action-bar" *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'">
+          <button class="dab-btn dab-edit" (click)="openEdit(selectedDetail); closeDetail()"><i class="fas fa-pen"></i> Modifier</button>
+          <button class="dab-btn dab-cancel" (click)="annuler(selectedDetail)"><i class="fas fa-ban"></i> Annuler</button>
+        </div>
+        <div class="detail-action-bar" *ngIf="selectedDetail.statut === 'ANNULEE'">
+          <button class="dab-btn dab-delete" (click)="supprimer(selectedDetail)"><i class="fas fa-trash-alt"></i> Supprimer définitivement</button>
+        </div>
+
+        <div class="modal-body detail-body">
+          <div class="detail-grid">
+            <div class="detail-col">
+              <div class="detail-section">
+                <div class="ds-label"><i class="fas fa-user"></i> Client</div>
+                <div class="ds-client-card">
+                  <div class="dsc-av" [style.background]="'hsl(' + ((selectedDetail.clientId ?? 0) * 47 % 360) + ',55%,52%)'">
+                    {{ selectedDetail.clientNom?.charAt(0) }}{{ selectedDetail.clientPrenom?.charAt(0) }}
                   </div>
                   <div>
-                    <div class="sdc-name">{{ selectedDetail.serviceNom }}</div>
-                    <span class="sdc-type" [style.background]="typeColor(cfg.typeService) + '1a'" [style.color]="typeColor(cfg.typeService)" [style.border-color]="typeColor(cfg.typeService) + '44'">
-                      {{ typeLabel(cfg.typeService) }}
+                    <span class="dsc-name">{{ selectedDetail.clientNom }} {{ selectedDetail.clientPrenom }}</span>
+                    <span class="dsc-sub">ID · #{{ selectedDetail.clientId }}</span>
+                  </div>
+                </div>
+              </div>
+              <div class="detail-section">
+                <div class="ds-label"><i class="fas fa-concierge-bell"></i> Service</div>
+                <div class="ds-service-card" *ngIf="getConfig(selectedDetail.serviceId) as cfg">
+                  <div class="dsvc-top">
+                    <div class="dsvc-icon" [style.background]="typeColor(cfg.typeService)+'18'" [style.color]="typeColor(cfg.typeService)">
+                      <i [class]="typeIcon(cfg.typeService)"></i>
+                    </div>
+                    <div>
+                      <span class="dsvc-name">{{ selectedDetail.serviceNom }}</span>
+                      <span class="dsvc-type" [style.color]="typeColor(cfg.typeService)">{{ typeLabel(cfg.typeService) }}</span>
+                    </div>
+                  </div>
+                  <div class="dsvc-chips">
+                    <span class="dsvc-chip" *ngIf="cfg.dureeMinutes"><i class="fas fa-clock"></i> {{ cfg.dureeMinutes }} min</span>
+                    <span class="dsvc-chip chip-warn" *ngIf="cfg.fileAttenteActive"><i class="fas fa-list-ol"></i> File active</span>
+                    <span class="dsvc-chip" *ngIf="selectedDetail.nombrePersonnes && selectedDetail.nombrePersonnes > 1">
+                      <i class="fas fa-users"></i> {{ selectedDetail.nombrePersonnes }} pers.
                     </span>
                   </div>
                 </div>
-                <div class="sdc-chips">
-                  <span class="sdc-chip" *ngIf="cfg.dureeMinutes"><i class="fas fa-clock"></i> {{ cfg.dureeMinutes }} min</span>
-                  <span class="sdc-chip" *ngIf="selectedDetail.nombrePersonnes && selectedDetail.nombrePersonnes > 1"><i class="fas fa-users"></i> {{ selectedDetail.nombrePersonnes }} pers.</span>
-                  <span class="sdc-chip active" *ngIf="cfg.fileAttenteActive"><i class="fas fa-list-ol"></i> File active</span>
+              </div>
+              <div class="detail-section" *ngIf="selectedDetail.employeNom || selectedDetail.ressourceNom">
+                <div class="ds-label"><i class="fas fa-user-tie"></i> Assignation</div>
+                <div class="ds-assign" *ngIf="selectedDetail.employeNom">
+                  <i class="fas fa-user-tie ds-assign-ico emp"></i>
+                  <div>
+                    <span class="ds-assign-name">{{ selectedDetail.employeNom }} {{ selectedDetail.employePrenom }}</span>
+                    <span class="ds-assign-role">Employé assigné</span>
+                  </div>
+                </div>
+                <div class="ds-assign" *ngIf="selectedDetail.ressourceNom">
+                  <i class="fas fa-layer-group ds-assign-ico res"></i>
+                  <div>
+                    <span class="ds-assign-name">{{ selectedDetail.ressourceNom }}</span>
+                    <span class="ds-assign-role">Ressource assignée</span>
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-title"><i class="fas fa-clock"></i> Créneau</div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <div class="detail-label">Date</div>
-                <div class="detail-value">{{ selectedDetail.heureDebut | date:'dd/MM/yyyy' }}</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label">Horaire</div>
-                <div class="detail-value">{{ selectedDetail.heureDebut | date:'HH:mm' }} → {{ selectedDetail.heureFin | date:'HH:mm' }}</div>
-              </div>
-            </div>
-          </div>
-          <div class="detail-section">
-            <div class="detail-section-title"><i class="fas fa-receipt"></i> Facturation</div>
-            <div class="detail-row">
-              <div class="detail-item">
-                <div class="detail-label">Prix total</div>
-                <div class="detail-value prix-big">
-                  {{ selectedDetail.prixTotal != null ? (selectedDetail.prixTotal | number:'1.2-2') + ' DT' : 'Gratuit' }}
+            <div class="detail-col">
+              <div class="detail-section">
+                <div class="ds-label"><i class="fas fa-clock"></i> Créneau</div>
+                <div class="ds-creneau">
+                  <div class="dsc-date"><i class="fas fa-calendar-day"></i> {{ selectedDetail.heureDebut | date:'EEEE d MMMM yyyy':'':'fr' }}</div>
+                  <div class="dsc-time-row">
+                    <div class="dsc-time-blk"><span class="dsc-time-lbl">Début</span><span class="dsc-time-val">{{ selectedDetail.heureDebut | date:'HH:mm' }}</span></div>
+                    <i class="fas fa-long-arrow-alt-right dsc-arrow"></i>
+                    <div class="dsc-time-blk"><span class="dsc-time-lbl">Fin</span><span class="dsc-time-val">{{ selectedDetail.heureFin | date:'HH:mm' }}</span></div>
+                  </div>
                 </div>
               </div>
-            </div>
-            <div class="notes-block" *ngIf="selectedDetail.notes">
-              <div class="detail-label" style="margin-bottom:5px"><i class="fas fa-sticky-note"></i> Notes</div>
-              <div class="notes-text">{{ selectedDetail.notes }}</div>
-            </div>
-          </div>
-          <div class="detail-section" *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'">
-            <div class="detail-section-title"><i class="fas fa-exchange-alt"></i> Changer le statut</div>
-            <div class="statut-btns">
-              <button *ngFor="let s of STATUTS"
-                class="btn btn-sm statut-btn"
-                [class.active]="selectedDetail.statut === s"
-                [ngClass]="'statut-btn-' + s.toLowerCase()"
-                [disabled]="selectedDetail.statut === s"
-                (click)="changerStatut(selectedDetail, s)">
-                {{ statutLabel(s) }}
-              </button>
+              <div class="detail-section">
+                <div class="ds-label"><i class="fas fa-receipt"></i> Facturation</div>
+                <div class="ds-price" [class.ds-price-gratuit]="selectedDetail.prixTotal == null">
+                  <span class="dsp-label">Montant total</span>
+                  <span class="dsp-val" *ngIf="selectedDetail.prixTotal != null">{{ selectedDetail.prixTotal | number:'1.2-2' }} <small>DT</small></span>
+                  <span class="dsp-gratuit" *ngIf="selectedDetail.prixTotal == null"><i class="fas fa-gift"></i> Gratuit</span>
+                </div>
+              </div>
+              <div class="detail-section" *ngIf="selectedDetail.notes">
+                <div class="ds-label"><i class="fas fa-sticky-note"></i> Notes</div>
+                <p class="ds-notes">{{ selectedDetail.notes }}</p>
+              </div>
+              <div class="detail-section" *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'">
+                <div class="ds-label"><i class="fas fa-exchange-alt"></i> Changer le statut</div>
+                <div class="statut-grid">
+                  <button *ngFor="let s of STATUTS" class="sg-btn"
+                    [class.sg-active]="selectedDetail.statut === s" [ngClass]="'sg-' + s.toLowerCase()"
+                    [disabled]="selectedDetail.statut === s" (click)="changerStatut(selectedDetail, s)">
+                    <span class="sg-dot"></span><span>{{ statutLabel(s) }}</span>
+                    <i class="fas fa-check sg-check" *ngIf="selectedDetail.statut === s"></i>
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
-          <button class="btn btn-secondary" (click)="closeDetail()">Fermer</button>
-          <button class="btn btn-info"
-            *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'"
-            (click)="openEdit(selectedDetail)">
-            <i class="fas fa-pen"></i> Modifier
-          </button>
-          <button class="btn btn-warning"
-            *ngIf="selectedDetail.statut !== 'ANNULEE' && selectedDetail.statut !== 'TERMINEE'"
-            (click)="annuler(selectedDetail)">
-            <i class="fas fa-ban"></i> Annuler
-          </button>
-          <button class="btn btn-danger"
-            (click)="supprimer(selectedDetail)">
-            <i class="fas fa-trash"></i> Supprimer
-          </button>
+          <button class="btn btn-secondary" (click)="closeDetail()"><i class="fas fa-times"></i> Fermer</button>
         </div>
       </div>
     </div>
   }
 
-  <!-- ══ MODALE CRÉATION / ÉDITION ══ -->
+  <!-- ══ MODALE FORMULAIRE ══ -->
   <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
     <div class="modal modal-resa" (click)="$event.stopPropagation()">
-
-      <div class="resa-header">
-        <div class="resa-header-icon"><i class="fas fa-calendar-plus"></i></div>
-        <div>
-          <div class="resa-title">{{ modalMode === 'create' ? 'Nouvelle réservation' : 'Modifier #' + editing?.id }}</div>
-          <div class="resa-subtitle">{{ modalMode === 'create' ? 'Renseignez les informations de la réservation' : 'Modifiez les informations' }}</div>
+      <div class="insc-header">
+        <div class="insc-header-icon">
+          <i class="fas fa-calendar-plus" *ngIf="modalMode === 'create'"></i>
+          <i class="fas fa-pen" *ngIf="modalMode === 'edit'"></i>
         </div>
-        <button class="resa-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+        <div>
+          <div class="insc-title">{{ modalMode === 'create' ? 'Nouvelle réservation' : 'Modifier #' + editing?.id }}</div>
+          <div class="insc-subtitle">{{ modalMode === 'create' ? 'Renseignez les informations de la réservation' : 'Modifiez les informations' }}</div>
+        </div>
+        <button class="insc-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
       </div>
 
-      <!-- Stepper simplifié : Service → Client & Créneau -->
-      <div class="resa-stepper">
+      <div class="insc-stepper">
         <div class="step-item" [class.step-done]="form.get('serviceId')?.value" [class.step-active]="!form.get('serviceId')?.value">
-          <div class="step-circle">
-            <i class="fas fa-check" *ngIf="form.get('serviceId')?.value"></i>
-            <span *ngIf="!form.get('serviceId')?.value">1</span>
-          </div>
+          <div class="step-circle"><i class="fas fa-check" *ngIf="form.get('serviceId')?.value"></i><span *ngIf="!form.get('serviceId')?.value">1</span></div>
           <span class="step-label">Service</span>
         </div>
         <div class="step-line" [class.step-line-done]="form.get('serviceId')?.value"></div>
@@ -307,41 +382,30 @@
           [class.step-done]="form.get('clientId')?.value && form.get('heureDebut')?.value"
           [class.step-active]="form.get('serviceId')?.value && !(form.get('clientId')?.value && form.get('heureDebut')?.value)"
           [class.step-disabled]="!form.get('serviceId')?.value">
-          <div class="step-circle">
-            <i class="fas fa-check" *ngIf="form.get('clientId')?.value && form.get('heureDebut')?.value"></i>
-            <span *ngIf="!(form.get('clientId')?.value && form.get('heureDebut')?.value)">2</span>
-          </div>
+          <div class="step-circle"><i class="fas fa-check" *ngIf="form.get('clientId')?.value && form.get('heureDebut')?.value"></i><span *ngIf="!(form.get('clientId')?.value && form.get('heureDebut')?.value)">2</span></div>
           <span class="step-label">Client & Créneau</span>
         </div>
       </div>
 
       <form [formGroup]="form" (ngSubmit)="save()">
-        <div class="resa-body">
+        <div class="insc-body">
 
-          <!-- Service -->
-          <div class="resa-field">
-            <label class="resa-label"><i class="fas fa-concierge-bell"></i> Service</label>
-            <div class="resa-select-wrap">
-              <select class="resa-select" formControlName="serviceId" (change)="onServiceChange()">
-                <option [ngValue]="null">Sélectionner un service...</option>
+          <div class="insc-field">
+            <label class="insc-label"><i class="fas fa-concierge-bell"></i> Service *</label>
+            <div class="insc-select-wrap">
+              <select class="insc-select" formControlName="serviceId" (change)="onServiceChange()">
+                <option [ngValue]="null">— Sélectionner un service —</option>
                 <option *ngFor="let s of services" [ngValue]="s.id">{{ s.nom }}</option>
               </select>
-              <i class="fas fa-chevron-down resa-select-icon"></i>
+              <i class="fas fa-chevron-down insc-select-icon"></i>
             </div>
-            <div class="resa-empty" *ngIf="services.length === 0">
-              <i class="fas fa-info-circle"></i> Aucun service disponible
-            </div>
-            <!-- Preview config -->
+            <div class="insc-empty" *ngIf="services.length === 0"><i class="fas fa-info-circle"></i> Aucun service disponible</div>
             <div class="svc-preview-card" *ngIf="selectedConfig" style="margin-top:10px">
               <div class="spc-bar" [style.background]="typeColor(selectedConfig.typeService)"></div>
               <div class="spc-body">
                 <div class="spc-left">
-                  <div class="spc-icon" [style.background]="typeColor(selectedConfig.typeService) + '22'" [style.color]="typeColor(selectedConfig.typeService)">
-                    <i [class]="typeIcon(selectedConfig.typeService)"></i>
-                  </div>
-                  <span class="spc-type" [style.background]="typeColor(selectedConfig.typeService) + '1a'" [style.color]="typeColor(selectedConfig.typeService)" [style.border-color]="typeColor(selectedConfig.typeService) + '44'">
-                    {{ typeLabel(selectedConfig.typeService) }}
-                  </span>
+                  <div class="spc-icon" [style.background]="typeColor(selectedConfig.typeService) + '22'" [style.color]="typeColor(selectedConfig.typeService)"><i [class]="typeIcon(selectedConfig.typeService)"></i></div>
+                  <span class="spc-type" [style.background]="typeColor(selectedConfig.typeService) + '1a'" [style.color]="typeColor(selectedConfig.typeService)" [style.border-color]="typeColor(selectedConfig.typeService) + '44'">{{ typeLabel(selectedConfig.typeService) }}</span>
                 </div>
                 <div class="spc-chips">
                   <span class="spc-chip" *ngIf="selectedConfig.dureeMinutes"><i class="fas fa-clock"></i> {{ selectedConfig.dureeMinutes }} min</span>
@@ -352,69 +416,52 @@
             </div>
           </div>
 
-          <!-- Client -->
-          <div class="resa-field" [class.resa-field-disabled]="!form.get('serviceId')?.value">
-            <label class="resa-label"><i class="fas fa-user"></i> Client</label>
-            <div class="resa-select-wrap">
-              <select class="resa-select" formControlName="clientId"
-                [attr.disabled]="!form.get('serviceId')?.value ? '' : null">
-                <option [ngValue]="null">Sélectionner un client...</option>
+          <div class="insc-field" [class.insc-field-disabled]="!form.get('serviceId')?.value">
+            <label class="insc-label"><i class="fas fa-user"></i> Client *</label>
+            <div class="insc-select-wrap">
+              <select class="insc-select" formControlName="clientId" [attr.disabled]="!form.get('serviceId')?.value ? '' : null">
+                <option [ngValue]="null">— Sélectionner un client —</option>
                 <option *ngFor="let c of clients" [ngValue]="c.id">{{ c.nom }} {{ c.prenom }}</option>
               </select>
-              <i class="fas fa-chevron-down resa-select-icon"></i>
+              <i class="fas fa-chevron-down insc-select-icon"></i>
             </div>
-            <div class="resa-empty" *ngIf="form.get('serviceId')?.value && clients.length === 0">
-              <i class="fas fa-info-circle"></i> Aucun client associé à votre entreprise
-            </div>
+            <div class="insc-empty" *ngIf="form.get('serviceId')?.value && clients.length === 0"><i class="fas fa-info-circle"></i> Aucun client dans votre entreprise</div>
           </div>
 
-          <!-- Date & heure -->
-          <div class="resa-field" [class.resa-field-disabled]="!form.get('serviceId')?.value">
-            <label class="resa-label"><i class="fas fa-calendar"></i> Date & heure</label>
-            <input type="datetime-local" formControlName="heureDebut" class="resa-input"
-              [class.resa-invalid]="form.get('heureDebut')?.invalid && form.get('heureDebut')?.touched">
+          <div class="insc-field" [class.insc-field-disabled]="!form.get('serviceId')?.value">
+            <label class="insc-label"><i class="fas fa-calendar"></i> Date & heure *</label>
+            <input type="datetime-local" formControlName="heureDebut" class="insc-input" [class.insc-invalid]="form.get('heureDebut')?.invalid && form.get('heureDebut')?.touched">
           </div>
 
-          <!-- Nb personnes (RESSOURCE_PARTAGEE) -->
-          <div class="resa-field" *ngIf="selectedConfig?.typeService === 'RESSOURCE_PARTAGEE'"
-            [class.resa-field-disabled]="!form.get('serviceId')?.value">
-            <label class="resa-label"><i class="fas fa-users"></i> Nombre de personnes</label>
-            <input type="number" formControlName="nombrePersonnes" class="resa-input" min="1"
+          <div class="insc-field" *ngIf="selectedConfig?.typeService === 'RESSOURCE_PARTAGEE'" [class.insc-field-disabled]="!form.get('serviceId')?.value">
+            <label class="insc-label"><i class="fas fa-users"></i> Nombre de personnes</label>
+            <input type="number" formControlName="nombrePersonnes" class="insc-input" min="1"
               [placeholder]="'Min ' + (selectedConfig?.capaciteMinPersonnes ?? 1) + ' — Max ' + (selectedConfig?.capaciteMaxPersonnes ?? 'N/A')">
-            <small class="resa-hint" *ngIf="selectedConfig?.capaciteMinPersonnes || selectedConfig?.capaciteMaxPersonnes">
-              <i class="fas fa-info-circle"></i>
-              Capacité : {{ selectedConfig?.capaciteMinPersonnes }} – {{ selectedConfig?.capaciteMaxPersonnes }} personnes
+            <small class="insc-hint" *ngIf="selectedConfig?.capaciteMinPersonnes || selectedConfig?.capaciteMaxPersonnes">
+              <i class="fas fa-info-circle"></i> Capacité : {{ selectedConfig?.capaciteMinPersonnes }} – {{ selectedConfig?.capaciteMaxPersonnes }} personnes
             </small>
           </div>
 
-          <!-- Notes -->
-          <div class="resa-field">
-            <label class="resa-label">
-              <i class="fas fa-sticky-note"></i> Notes
-              <span style="font-weight:400;opacity:.6;margin-left:4px">(optionnel)</span>
-            </label>
-            <textarea formControlName="notes" class="resa-textarea" rows="2" placeholder="Remarques..."></textarea>
+          <div class="insc-field">
+            <label class="insc-label"><i class="fas fa-sticky-note"></i> Notes <span style="font-weight:400;opacity:.6;margin-left:4px">(optionnel)</span></label>
+            <textarea formControlName="notes" class="insc-textarea" rows="2" placeholder="Remarques..."></textarea>
           </div>
 
-          <!-- Résumé -->
-          <div class="resa-summary" *ngIf="form.get('clientId')?.value && form.get('serviceId')?.value && form.get('heureDebut')?.value">
-            <div class="resa-summary-title"><i class="fas fa-info-circle"></i> Récapitulatif</div>
-            <div class="resa-summary-body">
+          <div class="insc-summary" *ngIf="form.get('clientId')?.value && form.get('serviceId')?.value && form.get('heureDebut')?.value">
+            <div class="insc-summary-title"><i class="fas fa-info-circle"></i> Récapitulatif</div>
+            <div class="insc-summary-body">
               <span *ngIf="selectedConfig"><i class="fas fa-concierge-bell"></i> {{ selectedConfig.serviceNom }}</span>
               <span><i class="fas fa-calendar"></i> {{ form.get('heureDebut')?.value | date:'dd/MM HH:mm' }}</span>
             </div>
           </div>
-
         </div>
 
-        <div class="resa-footer">
-          <button type="button" class="resa-btn-cancel" (click)="closeModal()">
-            <i class="fas fa-times"></i> Annuler
-          </button>
-          <button type="submit" class="resa-btn-submit" [disabled]="loadingModal">
+        <div class="insc-footer">
+          <button type="button" class="insc-btn-cancel" (click)="closeModal()"><i class="fas fa-times"></i> Annuler</button>
+          <button type="submit" class="insc-btn-submit" [disabled]="loadingModal">
             <i class="fas fa-spinner fa-spin" *ngIf="loadingModal"></i>
             <i class="fas fa-calendar-check" *ngIf="!loadingModal"></i>
-            {{ loadingModal ? 'Enregistrement...' : (modalMode === 'create' ? 'Créer la réservation' : 'Enregistrer') }}
+            {{ loadingModal ? 'Enregistrement…' : (modalMode === 'create' ? 'Créer la réservation' : 'Enregistrer') }}
           </button>
         </div>
       </form>

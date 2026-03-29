@@ -373,3 +373,70 @@
 .pos-cours  { background:rgba(16,185,129,.15);  color:#34d399; border-color:rgba(16,185,129,.3); }
 .pos-done   { background:rgba(156,163,175,.08); color:#9ca3af; border-color:rgba(156,163,175,.2); }
 .btn-active { border-color:var(--primary) !important; color:var(--primary) !important; background:var(--blue-50,#eff6ff) !important; }
+/* ══════════════════════════════════════════════════════════
+   AJOUTS — FILTRES DATE & STATUT AMÉLIORÉS
+══════════════════════════════════════════════════════════ */
+
+/* Filters card layout */
+.filters-card { display:flex; flex-direction:column; gap:0; padding:0; overflow:hidden; }
+.filters-row  { display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding:12px 16px; border-bottom:1px solid var(--border); }
+
+/* Statut tabs (pill style) */
+.statut-tabs { display:flex; gap:5px; flex-wrap:wrap; align-items:center; }
+.statut-tab  { display:inline-flex; align-items:center; gap:5px; padding:5px 13px; border-radius:20px; font-size:.78rem; font-weight:600; border:1.5px solid var(--border); background:var(--bg-elevated); color:var(--text-muted); cursor:pointer; transition:all .15s; white-space:nowrap; font-family:inherit; }
+.statut-tab:hover { border-color:var(--border-md); color:var(--text-primary); background:var(--bg-hover); }
+.stab-dot { width:6px; height:6px; border-radius:50%; background:currentColor; flex-shrink:0; opacity:.7; }
+.statut-tab.active         { background:var(--primary); border-color:var(--primary); color:white; box-shadow:0 2px 8px rgba(99,102,241,.28); }
+.statut-tab-attente:hover  { border-color:#9ca3af; color:#9ca3af; }
+.statut-tab-attente.active { background:rgba(156,163,175,.18); border-color:rgba(156,163,175,.4); color:#9ca3af; box-shadow:none; }
+.statut-tab-appele:hover   { border-color:#fbbf24; color:#fbbf24; }
+.statut-tab-appele.active  { background:rgba(245,158,11,.16); border-color:rgba(245,158,11,.4); color:#fbbf24; box-shadow:0 2px 8px rgba(245,158,11,.2); }
+.statut-tab-encours:hover  { border-color:#818cf8; color:#818cf8; }
+.statut-tab-encours.active { background:rgba(99,102,241,.16); border-color:rgba(99,102,241,.4); color:#818cf8; box-shadow:0 2px 8px rgba(99,102,241,.2); }
+.statut-tab-termine:hover  { border-color:#34d399; color:#34d399; }
+.statut-tab-termine.active { background:rgba(16,185,129,.16); border-color:rgba(16,185,129,.4); color:#34d399; box-shadow:0 2px 8px rgba(16,185,129,.18); }
+.statut-tab-annule:hover   { border-color:#f87171; color:#f87171; }
+.statut-tab-annule.active  { background:rgba(239,68,68,.14); border-color:rgba(239,68,68,.35); color:#f87171; box-shadow:0 2px 8px rgba(239,68,68,.15); }
+
+/* Toggle terminés */
+.toggle-termine-btn { display:inline-flex; align-items:center; gap:7px; padding:6px 13px; border-radius:9px; border:1.5px solid var(--border-md); background:var(--bg-card); color:var(--text-secondary); font-size:.78rem; font-weight:600; cursor:pointer; transition:all .18s; font-family:inherit; }
+.toggle-termine-btn:hover { border-color:var(--primary-border); background:var(--indigo-glow); color:var(--primary); }
+.toggle-termine-btn.active { border-color:var(--primary); background:var(--primary); color:white; }
+
+/* Date filter row */
+.filters-date-row { display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:10px 16px; background:var(--bg-secondary); }
+.date-filter-group { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+
+/* Aujourd'hui button */
+.today-btn { display:inline-flex; align-items:center; gap:7px; padding:7px 15px; border:1.5px solid var(--border); border-radius:10px; background:var(--bg-card); font-size:.82rem; font-weight:700; color:var(--text-secondary); cursor:pointer; transition:all .18s; font-family:inherit; position:relative; white-space:nowrap; }
+.today-btn i { font-size:.78rem; }
+.today-btn:hover { border-color:var(--primary-border); color:var(--primary); background:var(--indigo-glow); transform:translateY(-1px); box-shadow:0 3px 10px rgba(99,102,241,.15); }
+.today-btn.today-active { border-color:var(--primary); background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500)); color:white; box-shadow:0 3px 12px rgba(79,70,229,.3); }
+.today-badge { display:inline-flex; align-items:center; justify-content:center; width:16px; height:16px; border-radius:50%; background:rgba(255,255,255,.25); font-size:.6rem; font-weight:900; }
+
+/* Séparateur */
+.date-sep { width:1px; height:22px; background:var(--border-md); flex-shrink:0; }
+
+/* Date picker pill */
+.date-filter-pill { display:inline-flex; align-items:center; gap:7px; padding:7px 12px; border-radius:10px; border:1.5px solid var(--border-md); background:var(--bg-card); color:var(--text-secondary); font-size:.8rem; font-weight:600; cursor:pointer; position:relative; transition:all .18s; white-space:nowrap; }
+.date-filter-pill i { font-size:.76rem; color:var(--text-muted); }
+.date-filter-pill:hover { border-color:var(--primary-border); background:var(--indigo-glow); color:var(--primary); }
+.date-filter-pill.active { border-color:var(--indigo-400,#818cf8); background:var(--indigo-glow); color:var(--primary); }
+.date-pill-label { pointer-events:none; }
+.date-native { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; z-index:2; border:none; }
+
+/* Résultat badge */
+.date-result-badge { display:inline-flex; align-items:center; gap:5px; padding:5px 11px; border-radius:20px; background:var(--indigo-glow); color:var(--primary); font-size:.74rem; font-weight:700; border:1px solid var(--primary-border); white-space:nowrap; }
+.date-result-badge i { font-size:.66rem; }
+
+/* Clear date pill button */
+.date-clear-btn-pill { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:8px; border:1px solid var(--danger-border); background:var(--danger-bg); color:var(--danger); font-size:.76rem; font-weight:600; cursor:pointer; font-family:inherit; transition:all .18s; white-space:nowrap; }
+.date-clear-btn-pill:hover { background:var(--danger); color:white; }
+
+
+/* ── Page header ── */
+.page-header { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; margin-bottom:4px; }
+.page-title  { display:flex; align-items:center; gap:10px; font-size:1.1rem; font-weight:800; color:var(--text-primary); }
+.title-icon  { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500)); display:flex; align-items:center; justify-content:center; color:white; font-size:.9rem; flex-shrink:0; }
+.page-subtitle { font-size:.78rem; color:var(--text-muted); margin-top:4px; }
+.hdr-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }

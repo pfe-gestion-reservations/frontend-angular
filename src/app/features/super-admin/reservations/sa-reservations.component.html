@@ -119,12 +119,38 @@
     </div>
 
     <div class="empty-state" *ngIf="!loading && filtered.length === 0">
-      <div class="es-icon"><i class="fas fa-calendar-times"></i></div>
-      <h3 class="es-title">{{ hasActiveFilters ? 'Aucun résultat' : 'Aucune réservation' }}</h3>
-      <p class="es-sub">{{ hasActiveFilters ? 'Modifiez vos filtres.' : 'Créez votre première réservation.' }}</p>
-      <button class="btn btn-primary" *ngIf="!hasActiveFilters" (click)="openCreate()">
-        <i class="fas fa-plus"></i> Nouvelle réservation
-      </button>
+      <ng-container *ngIf="!hasActiveFilters">
+        <div class="es-illustration">
+          <div class="es-blob"></div>
+          <div class="es-calendar-wrap">
+            <div class="es-cal-header"><span></span><span></span><span></span></div>
+            <div class="es-cal-body">
+              <div class="es-cal-row"><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span></div>
+              <div class="es-cal-row"><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span></div>
+              <div class="es-cal-row"><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span><span class="es-cal-dot empty"></span></div>
+            </div>
+          </div>
+          <div class="es-plus-badge"><i class="fas fa-plus"></i></div>
+        </div>
+        <div class="es-text-block">
+          <h3 class="es-title">Aucune réservation pour l'instant</h3>
+          <p class="es-sub">Commencez par créer votre première réservation. Elle apparaîtra ici avec tous ses détails.</p>
+        </div>
+        <div class="es-actions">
+          <button class="btn btn-primary es-btn-create" (click)="openCreate()">
+            <i class="fas fa-plus"></i> Nouvelle réservation
+          </button>
+          <button class="btn btn-ghost" (click)="loadAll()">
+            <i class="fas fa-sync-alt"></i> Actualiser
+          </button>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="hasActiveFilters">
+        <div class="es-no-result-icon"><i class="fas fa-search"></i></div>
+        <h3 class="es-title">Aucun résultat trouvé</h3>
+        <p class="es-sub">Aucune réservation ne correspond à vos critères de recherche. Essayez de modifier vos filtres.</p>
+        <button class="filter-reset" (click)="resetFiltres()"><i class="fas fa-times"></i> Réinitialiser les filtres</button>
+      </ng-container>
     </div>
 
     <table class="res-table" *ngIf="!loading && filtered.length > 0">

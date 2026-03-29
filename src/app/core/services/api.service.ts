@@ -21,12 +21,11 @@ import {
 @Injectable({ providedIn: 'root' })
 export class ApiService {
   private api = environment.apiUrl;
+  private baseUrl = environment.apiUrl;
 
   constructor(private http: HttpClient) {}
 
   private getHeaders(): HttpHeaders {
-    // Le token est injecté automatiquement par authInterceptor.
-    // On retourne des headers vides pour éviter un double Authorization.
     return new HttpHeaders();
   }
 
@@ -61,6 +60,8 @@ export class ApiService {
   supprimerEmploye(id: number): Observable<any> { return this.http.delete(`${this.api}/employes/${id}/supprimer`, { headers: this.getHeaders(), responseType: 'text' }); }
   desarchiverEtRattacherEmploye(id: number): Observable<any> { return this.http.patch(`${this.api}/employes/${id}/desarchiver-rattacher`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
   desarchiverEmploye(id: number): Observable<any> { return this.http.patch(`${this.api}/employes/${id}/desarchiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
+  rattacherEmployeAEntreprise(employeId: number, entrepriseId: number) {
+  return this.http.put(`${this.baseUrl}/employes/${employeId}/rattacher/${entrepriseId}`, {});}
 
   // ── CLIENTS ───────────────────────────────────────────────
   getClientMe(): Observable<ClientResponse> { return this.http.get<ClientResponse>(`${this.api}/clients/me`, { headers: this.getHeaders() }); }
@@ -159,4 +160,12 @@ export class ApiService {
   desarchiverGerant(id: number): Observable<any> { return this.http.patch(`${this.api}/gerants/${id}/desarchiver`, {}, { headers: this.getHeaders(), responseType: 'text' }); }
   supprimerGerant(id: number): Observable<any> { return this.http.delete(`${this.api}/gerants/${id}/supprimer`, { headers: this.getHeaders(), responseType: 'text' }); }
   checkGerantEmail(email: string): Observable<any> { return this.http.get<any>(`${this.api}/gerants/check-email?email=${encodeURIComponent(email)}`, { headers: this.getHeaders() }); }
+
+getMonProfil() {
+  return this.http.get<any>(`${this.baseUrl}/auth/me`);
+}
+getEntrepriseById(id: number) {
+  return this.http.get<EntrepriseResponse>(`${this.baseUrl}/entreprises/${id}`);
+}
+
 }

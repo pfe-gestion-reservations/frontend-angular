@@ -35,6 +35,18 @@ export class GerantReservationsComponent implements OnInit {
   searchQuery  = '';
   filtreStatut = '';
   filtreDate   = '';
+  sortAsc      = false;
+
+  get hasActiveFilters(): boolean { return !!(this.filtreStatut || this.filtreDate || this.searchQuery); }
+
+  get isToday(): boolean {
+    return this.filtreDate === new Date().toISOString().slice(0, 10);
+  }
+
+  setToday(): void {
+    this.filtreDate = new Date().toISOString().slice(0, 10);
+  }
+
 
   showModal  = false;
   modalMode: ModalMode = 'create';
@@ -278,5 +290,5 @@ export class GerantReservationsComponent implements OnInit {
   }
 
   closeModal(): void { this.showModal = false; this.editing = null; this.form.reset(); this.selectedConfig = null; }
-  resetFiltres(): void { this.searchQuery = ''; this.filtreStatut = ''; this.filtreDate = ''; }
+  resetFiltres(): void { this.searchQuery = ''; this.filtreStatut = ''; this.filtreDate = ''; this.sortAsc = false; }
 }

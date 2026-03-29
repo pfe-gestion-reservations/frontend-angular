@@ -1,323 +1,434 @@
+<div>
 
-  <div>
-    <div class="page-header">
-      <div>
-        <div class="page-title"><div class="title-icon"><i class="fas fa-concierge-bell"></i></div>Services</div>
-        <div class="page-subtitle">Catalogue des prestations de votre entreprise</div>
+  <!-- HEADER -->
+  <div class="page-header">
+    <div>
+      <div class="page-title">
+        <div class="title-icon"><i class="fas fa-concierge-bell"></i></div>
+        Services
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        <button class="btn btn-primary" (click)="openCreate()">
-          <i class="fas fa-plus"></i> Nouveau service
-        </button>
-
+      <div class="page-subtitle">
+        <span class="ent-header-badge" *ngIf="entreprise">
+          <i class="fas fa-building"></i> {{ entreprise.nom }}
+        </span>
+        <span class="subtitle-sep" *ngIf="entreprise">·</span>
+        {{ filteredServices.length }} service(s)
       </div>
     </div>
+    <div class="hdr-right">
+      <div class="search-box">
+        <i class="fas fa-search"></i>
+        <input [(ngModel)]="searchQuery" placeholder="Rechercher un service..." class="search-inp">
+        <button class="search-clear" *ngIf="searchQuery" (click)="searchQuery=''"><i class="fas fa-times"></i></button>
+      </div>
+      <button class="btn btn-primary" (click)="openCreate()">
+        <i class="fas fa-plus"></i> Nouveau service
+      </button>
+    </div>
+  </div>
 
-    <!-- GRID -->
-    <div class="services-grid">
-      <div class="service-card" *ngFor="let s of displayedServices"
-           (click)="openDetail(s)" style="cursor:pointer">
-        <div class="service-header">
+  <!-- STATS -->
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-icon blue"><i class="fas fa-concierge-bell"></i></div>
+      <div><div class="stat-value">{{ filteredServices.length }}</div><div class="stat-label">Services</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon purple"><i class="fas fa-user-tie"></i></div>
+      <div><div class="stat-value">{{ countByType('EMPLOYE_DEDIE') }}</div><div class="stat-label">Employé dédié</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon green"><i class="fas fa-layer-group"></i></div>
+      <div><div class="stat-value">{{ countByType('RESSOURCE_PARTAGEE') }}</div><div class="stat-label">Ressource partagée</div></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber"><i class="fas fa-list-ol"></i></div>
+      <div><div class="stat-value">{{ countByType('FILE_ATTENTE_PURE') + countByType('HYBRIDE') }}</div><div class="stat-label">File / Hybride</div></div>
+    </div>
+  </div>
+
+  <!-- GRID -->
+  <div class="services-grid">
+    <div class="service-card" *ngFor="let s of filteredServices" (click)="openDetail(s)">
+      <div class="service-header">
+        <div class="service-header-top">
           <div class="type-badge" [ngClass]="'type-' + getConfig(s.id)?.typeService?.toLowerCase()">
             <i [class]="typeIcon(getConfig(s.id)?.typeService)"></i>
             {{ typeLabel(getConfig(s.id)?.typeService) }}
           </div>
           <div class="service-actions" (click)="$event.stopPropagation()">
-            <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(s)" title="Modifier"><i class="fas fa-pen"></i></button>
-            <button class="btn btn-secondary btn-sm ressource-btn" (click)="openRessourcePanel(s)"
-              *ngIf="getConfig(s.id)?.ressourceObligatoire" title="Gérer les ressources">
+            <button class="btn btn-info btn-sm btn-icon" (click)="openEdit(s)" title="Modifier">
+              <i class="fas fa-pen"></i>
+            </button>
+            <button class="btn btn-secondary btn-sm ressource-btn"
+              *ngIf="getConfig(s.id)?.ressourceObligatoire"
+              (click)="openRessourcePanel(s)" title="Gérer les ressources">
               <i class="fas fa-cubes"></i> Ressources
             </button>
-            <button class="btn btn-danger btn-sm btn-icon" (click)="confirmerSuppression(s)" title="Supprimer"><i class="fas fa-trash"></i></button>
+            <button class="btn btn-delete btn-sm btn-icon" (click)="confirmerSuppression(s)" title="Supprimer">
+              <i class="fas fa-trash-alt"></i>
+            </button>
           </div>
         </div>
-        <h3 class="service-name">{{ s.nom }}</h3>
-        <p class="service-desc">{{ s.description || 'Aucune description' }}</p>
-        <div class="service-meta">
-          <span><i class="fas fa-clock"></i> {{ s.dureeMinutes }} min</span>
-          <span class="service-price">{{ s.tarif != null ? (s.tarif | number:'1.2-2') + ' DT' : 'Gratuit' }}</span>
-        </div>
-        <div class="config-summary" *ngIf="getConfig(s.id) as c">
-          <span *ngIf="c.employeObligatoire" class="badge-flag"><i class="fas fa-user-tie"></i> Employé requis</span>
-          <span *ngIf="c.ressourceObligatoire" class="badge-flag"><i class="fas fa-layer-group"></i> Ressource requise</span>
-          <span *ngIf="c.reservationEnGroupe" class="badge-flag"><i class="fas fa-users"></i> {{ c.capaciteMinPersonnes }}-{{ c.capaciteMaxPersonnes }} pers.</span>
-          <span *ngIf="c.fileAttenteActive" class="badge-flag"><i class="fas fa-list-ol"></i> File active</span>
-        </div>
-        <div class="no-config" *ngIf="!getConfig(s.id)">
-          <i class="fas fa-exclamation-triangle"></i> Configuration manquante
-        </div>
       </div>
-      <div class="empty-state" *ngIf="displayedServices.length === 0">
-        <i class="fas fa-concierge-bell"></i>
-        <h3>Aucun service</h3>
-        <p>Cliquez sur "Nouveau service" pour commencer</p>
+
+      <h3 class="service-name">{{ s.nom }}</h3>
+      <p class="service-desc">{{ s.description || 'Aucune description' }}</p>
+
+      <div class="service-meta">
+        <span><i class="fas fa-clock"></i> {{ s.dureeMinutes }} min</span>
+        <span class="service-price">
+          {{ s.tarif != null ? (s.tarif | number:'1.2-2') + ' DT' : 'Gratuit' }}
+          <span *ngIf="s.tarif != null && getConfig(s.id)?.tarifParPersonne" class="per-person">× pers.</span>
+        </span>
+      </div>
+
+      <div class="config-summary" *ngIf="getConfig(s.id) as c">
+        <span *ngIf="c.employeObligatoire"   class="badge-flag"><i class="fas fa-user-tie"></i> Employé requis</span>
+        <span *ngIf="c.ressourceObligatoire" class="badge-flag"><i class="fas fa-layer-group"></i> Ressource requise</span>
+        <span *ngIf="c.reservationEnGroupe"  class="badge-flag"><i class="fas fa-users"></i> {{ c.capaciteMinPersonnes }}-{{ c.capaciteMaxPersonnes }} pers.</span>
+        <span *ngIf="c.fileAttenteActive"    class="badge-flag"><i class="fas fa-list-ol"></i> File active</span>
+      </div>
+      <div class="no-config" *ngIf="!getConfig(s.id)">
+        <i class="fas fa-exclamation-triangle"></i> Configuration manquante
       </div>
     </div>
 
-    <!-- ═══ MODAL DÉTAIL SERVICE ═══ -->
-    <div class="modal-overlay" *ngIf="showDetail" (click)="closeDetail()">
-      <div class="modal modal-detail" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title">
-            <div class="type-pill" *ngIf="getConfig(detailService!.id) as c"
-                 [ngClass]="'type-' + c.typeService?.toLowerCase()">
-              <i [class]="typeIcon(c.typeService)"></i> {{ typeLabel(c.typeService) }}
-            </div>
-            {{ detailService?.nom }}
-          </div>
-          <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
-        </div>
-        <div class="modal-body" *ngIf="detailService as s">
+    <div class="empty-services" *ngIf="filteredServices.length === 0">
+      <div class="empty-icon"><i class="fas fa-concierge-bell"></i></div>
+      <div class="empty-title">{{ searchQuery ? 'Aucun service trouvé' : 'Aucun service' }}</div>
+      <div class="empty-sub" *ngIf="!searchQuery">Créez votre premier service en cliquant sur « Nouveau service »</div>
+      <button *ngIf="!searchQuery" class="btn btn-primary" (click)="openCreate()" style="margin-top:16px">
+        <i class="fas fa-plus"></i> Créer le premier service
+      </button>
+    </div>
+  </div>
 
-          <!-- Infos générales -->
+  <!-- MODAL DÉTAIL -->
+  <div class="modal-overlay" *ngIf="showDetail" (click)="closeDetail()">
+    <div class="modal modal-detail-svc" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="svc-detail-header">
+          <div class="svc-detail-icon" [ngClass]="'type-bg-' + getConfig(detailService!.id)?.typeService?.toLowerCase()">
+            <i [class]="typeIcon(getConfig(detailService!.id)?.typeService)"></i>
+          </div>
+          <div class="svc-detail-info">
+            <div class="svc-detail-name">{{ detailService?.nom }}</div>
+            <div class="svc-detail-type" *ngIf="getConfig(detailService!.id) as c">
+              <span class="type-badge" [ngClass]="'type-' + c.typeService?.toLowerCase()">
+                <i [class]="typeIcon(c.typeService)"></i> {{ typeLabel(c.typeService) }}
+              </span>
+            </div>
+          </div>
+        </div>
+        <button class="modal-close" (click)="closeDetail()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="modal-body" *ngIf="detailService as s">
+        <p *ngIf="s.description" class="svc-detail-desc">{{ s.description }}</p>
+        <div class="detail-info-grid">
+          <div class="detail-info-item">
+            <div class="dii-icon blue"><i class="fas fa-clock"></i></div>
+            <div><div class="dii-label">Durée</div><div class="dii-value">{{ s.dureeMinutes }} min</div></div>
+          </div>
+          <div class="detail-info-item">
+            <div class="dii-icon amber"><i class="fas fa-tag"></i></div>
+            <div>
+              <div class="dii-label">Tarif</div>
+              <div class="dii-value accent">
+                {{ s.tarif != null ? (s.tarif | number:'1.2-2') + ' DT' : 'Gratuit' }}
+                <span *ngIf="s.tarif != null && getConfig(s.id)?.tarifParPersonne" class="per-person">× pers.</span>
+              </div>
+            </div>
+          </div>
+        </div>
+        <ng-container *ngIf="getConfig(s.id) as c">
+          <div class="detail-section" *ngIf="c.reservationEnGroupe || c.annulationHeures || c.avanceReservationJours">
+            <div class="detail-section-title"><i class="fas fa-sliders-h"></i> Règles de réservation</div>
+            <div class="detail-info-grid">
+              <div class="detail-info-item" *ngIf="c.reservationEnGroupe">
+                <div class="dii-icon green"><i class="fas fa-users"></i></div>
+                <div><div class="dii-label">Groupe</div><div class="dii-value">{{ c.capaciteMinPersonnes }} – {{ c.capaciteMaxPersonnes }} pers.</div></div>
+              </div>
+              <div class="detail-info-item" *ngIf="c.annulationHeures">
+                <div class="dii-icon red"><i class="fas fa-ban"></i></div>
+                <div><div class="dii-label">Annulation avant</div><div class="dii-value">{{ c.annulationHeures }}h</div></div>
+              </div>
+              <div class="detail-info-item" *ngIf="c.avanceReservationJours">
+                <div class="dii-icon purple"><i class="fas fa-calendar-alt"></i></div>
+                <div><div class="dii-label">Réservation max</div><div class="dii-value">{{ c.avanceReservationJours }} jours à l'avance</div></div>
+              </div>
+            </div>
+          </div>
           <div class="detail-section">
-            <p *ngIf="s.description" class="detail-desc">{{ s.description }}</p>
-            <div class="detail-row">
-              <div class="detail-item">
-                <div class="detail-label"><i class="fas fa-clock"></i> Durée</div>
-                <div class="detail-value">{{ s.dureeMinutes }} min</div>
-              </div>
-              <div class="detail-item">
-                <div class="detail-label"><i class="fas fa-tag"></i> Tarif</div>
-                <div class="detail-value" style="color:var(--accent);font-weight:700">
-                  {{ s.tarif != null ? (s.tarif | number:'1.2-2') + ' DT' : 'Gratuit' }}
-                  <span *ngIf="s.tarif != null && getConfig(s.id)?.tarifParPersonne"
-                        style="font-size:.75rem;color:var(--text-muted);font-weight:400"> × pers.</span>
+            <div class="detail-section-title"><i class="fas fa-magic"></i> Configuration</div>
+            <div class="config-flags-row">
+              <div class="config-flag" [class.active]="c.employeObligatoire"><i class="fas fa-user-tie"></i> Employé requis</div>
+              <div class="config-flag" [class.active]="c.ressourceObligatoire"><i class="fas fa-layer-group"></i> Ressource requise</div>
+              <div class="config-flag" [class.active]="c.reservationEnGroupe"><i class="fas fa-users"></i> Groupe</div>
+              <div class="config-flag" [class.active]="c.fileAttenteActive"><i class="fas fa-list-ol"></i> File d'attente</div>
+            </div>
+          </div>
+          <div class="detail-section" *ngIf="c.ressourceObligatoire">
+            <div class="detail-section-title">
+              <i class="fas fa-layer-group"></i> Ressources
+              <span class="ressource-count">{{ detailRessources.length }}</span>
+            </div>
+            <div class="ressource-blocs">
+              <div class="ressource-bloc" *ngFor="let r of detailRessources">
+                <div class="ressource-bloc-icon"><i class="fas fa-cube"></i></div>
+                <div class="ressource-bloc-info">
+                  <div class="ressource-bloc-nom">{{ r.nom }}</div>
+                  <div class="ressource-bloc-desc" *ngIf="r.description">{{ r.description }}</div>
                 </div>
+              </div>
+              <div class="ressource-empty" *ngIf="detailRessources.length === 0">
+                <i class="fas fa-layer-group"></i> Aucune ressource configurée
               </div>
             </div>
           </div>
-
-          <!-- Config -->
-          <ng-container *ngIf="getConfig(s.id) as c">
-            <div class="detail-section" *ngIf="c.reservationEnGroupe || c.annulationHeures || c.avanceReservationJours">
-              <div class="detail-section-title">Règles</div>
-              <div class="detail-row">
-                <div class="detail-item" *ngIf="c.reservationEnGroupe">
-                  <div class="detail-label"><i class="fas fa-users"></i> Groupe</div>
-                  <div class="detail-value">{{ c.capaciteMinPersonnes }} – {{ c.capaciteMaxPersonnes }} pers.</div>
-                </div>
-                <div class="detail-item" *ngIf="c.annulationHeures">
-                  <div class="detail-label"><i class="fas fa-ban"></i> Annulation</div>
-                  <div class="detail-value">Avant {{ c.annulationHeures }}h</div>
-                </div>
-                <div class="detail-item" *ngIf="c.avanceReservationJours">
-                  <div class="detail-label"><i class="fas fa-calendar-alt"></i> Avance max</div>
-                  <div class="detail-value">{{ c.avanceReservationJours }} jours</div>
-                </div>
-              </div>
-            </div>
-
-            <!-- Ressources (RESSOURCE_PARTAGEE / HYBRIDE) -->
-            <div class="detail-section" *ngIf="c.ressourceObligatoire">
-              <div class="detail-section-title">
-                <i class="fas fa-layer-group" style="color:var(--accent);margin-right:6px"></i>
-                Ressources disponibles
-                <span class="ressource-count">{{ detailRessources.length }}</span>
-              </div>
-              <div class="ressource-blocs">
-                <div class="ressource-bloc" *ngFor="let r of detailRessources">
-                  <div class="ressource-bloc-icon"><i class="fas fa-cube"></i></div>
-                  <div class="ressource-bloc-info">
-                    <div class="ressource-bloc-nom">{{ r.nom }}</div>
-                    <div class="ressource-bloc-meta">
-                      <span *ngIf="r.description" class="ressource-bloc-desc">{{ r.description }}</span>
-                    </div>
-                  </div>
-                </div>
-                <div *ngIf="detailRessources.length === 0" style="color:var(--text-muted);font-size:.85rem;padding:12px 0">
-                  Aucune ressource configurée
-                </div>
-              </div>
-            </div>
-          </ng-container>
-
+        </ng-container>
+        <div class="no-config-banner" *ngIf="!getConfig(s.id)">
+          <i class="fas fa-exclamation-triangle"></i>
+          Configuration manquante — ce service n'est pas encore opérationnel.
         </div>
-        <div class="modal-footer">
+      </div>
+      <div class="modal-footer">
+        <span style="font-size:.72rem;color:var(--text-faint);font-family:var(--font-mono)">#{{ detailService?.id }}</span>
+        <div style="display:flex;gap:8px;margin-left:auto">
           <button class="btn btn-secondary" (click)="closeDetail()">Fermer</button>
-          <button class="btn btn-info" (click)="closeDetail(); openEdit(detailService!)">
-            <i class="fas fa-pen"></i> Modifier
-          </button>
         </div>
       </div>
     </div>
+  </div>
 
-    <!-- ═══ MODAL CRÉATION — ÉTAPE 1 : TYPE ═══ -->
-    <div class="modal-overlay" *ngIf="showModal && step === 'type'" (click)="closeModal()">
-      <div class="modal modal-type" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-magic"></i> Quel type de service ?</div>
-          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+  <!-- MODAL CRÉATION/ÉDITION -->
+  <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
+    <div class="modal modal-lg" (click)="$event.stopPropagation()">
+
+      <div class="modal-header">
+        <div class="modal-title">
+          <button class="back-btn" *ngIf="step === 'form' && !editingService" (click)="step = 'type'">
+            <i class="fas fa-arrow-left"></i>
+          </button>
+          <i class="fas fa-concierge-bell" *ngIf="step === 'type'"></i>
+          <ng-container *ngIf="step === 'form'">
+            <span class="type-pill" [ngClass]="'type-' + selectedType?.toLowerCase()">
+              <i [class]="typeIcon(selectedType)"></i> {{ typeLabel(selectedType) }}
+            </span>
+          </ng-container>
+          {{ editingService ? 'Modifier le service' : 'Nouveau service' }}
         </div>
+        <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
+      </div>
+
+      <div class="modal-steps">
+        <div class="ms-step" [class.active]="step === 'type'" [class.done]="step === 'form'">
+          <div class="ms-dot">
+            <i class="fas fa-check" *ngIf="step === 'form'"></i>
+            <span *ngIf="step !== 'form'">1</span>
+          </div>
+          Type de service
+        </div>
+        <div class="ms-sep"></div>
+        <div class="ms-step" [class.active]="step === 'form'">
+          <div class="ms-dot">2</div>
+          Détails & configuration
+        </div>
+      </div>
+
+      <!-- ÉTAPE 1 : TYPE -->
+      <ng-container *ngIf="step === 'type'">
         <div class="modal-body">
+          <div class="step-intro">
+            <div class="step-num">1</div>
+            <div>
+              <div class="step-title">Choisissez le type de service</div>
+              <div class="step-desc">Le type détermine comment les clients réservent et comment le service est configuré automatiquement.</div>
+            </div>
+          </div>
           <div class="type-grid">
             <button class="type-card" (click)="selectType('EMPLOYE_DEDIE')">
               <div class="type-card-icon type-employe"><i class="fas fa-user-tie"></i></div>
               <div class="type-card-label">Employé dédié</div>
               <div class="type-card-desc">Le client choisit un praticien spécifique</div>
               <div class="type-card-examples">Coiffure · Médecin · Esthétique</div>
+              <div class="type-card-arrow"><i class="fas fa-arrow-right"></i></div>
             </button>
             <button class="type-card" (click)="selectType('RESSOURCE_PARTAGEE')">
               <div class="type-card-icon type-ressource"><i class="fas fa-layer-group"></i></div>
               <div class="type-card-label">Ressource partagée</div>
               <div class="type-card-desc">Le client réserve un espace ou équipement</div>
               <div class="type-card-examples">Padel · Tennis · Salle de sport</div>
+              <div class="type-card-arrow"><i class="fas fa-arrow-right"></i></div>
             </button>
             <button class="type-card" (click)="selectType('FILE_ATTENTE_PURE')">
               <div class="type-card-icon type-file"><i class="fas fa-list-ol"></i></div>
               <div class="type-card-label">File d'attente pure</div>
               <div class="type-card-desc">Le client arrive et prend un numéro</div>
               <div class="type-card-examples">Pharmacie · Administration · Banque</div>
+              <div class="type-card-arrow"><i class="fas fa-arrow-right"></i></div>
             </button>
             <button class="type-card" (click)="selectType('HYBRIDE')">
               <div class="type-card-icon type-hybride"><i class="fas fa-random"></i></div>
               <div class="type-card-label">Hybride</div>
               <div class="type-card-desc">Créneau + ressource + file d'attente</div>
               <div class="type-card-examples">Garage · Clinique · Laboratoire</div>
+              <div class="type-card-arrow"><i class="fas fa-arrow-right"></i></div>
             </button>
           </div>
         </div>
-      </div>
-    </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary" (click)="closeModal()">Annuler</button>
+        </div>
+      </ng-container>
 
-    <!-- ═══ ÉTAPE 2 : FORMULAIRE ═══ -->
-    <div class="modal-overlay" *ngIf="showModal && step === 'form'" (click)="closeModal()">
-      <div class="modal modal-lg" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title">
-            <button class="back-btn" *ngIf="!editingService" (click)="step = 'type'" title="Retour">
-              <i class="fas fa-arrow-left"></i>
-            </button>
-            <div class="type-pill" [ngClass]="'type-' + selectedType?.toLowerCase()">
-              <i [class]="typeIcon(selectedType)"></i> {{ typeLabel(selectedType) }}
-            </div>
-            {{ editingService ? 'Modifier' : 'Nouveau' }} service
-          </div>
-          <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
-        </div>
+      <!-- ÉTAPE 2 : FORMULAIRE -->
+      <ng-container *ngIf="step === 'form'">
         <form [formGroup]="form" (ngSubmit)="save()">
           <div class="modal-body">
-            <div class="section-title">Informations générales</div>
+
+            <div class="step-intro">
+              <div class="step-num">2</div>
+              <div>
+                <div class="step-title">Informations du service</div>
+                <div class="step-desc">Type : <strong>{{ typeLabel(selectedType) }}</strong>.</div>
+              </div>
+            </div>
+
+            <div class="section-title"><i class="fas fa-info-circle"></i> Informations générales</div>
+
             <div class="form-group">
               <label class="form-label">Nom du service *</label>
-              <input formControlName="nom" class="form-control" [placeholder]="nomPlaceholder"
-                [class.is-invalid]="form.get('nom')?.invalid && form.get('nom')?.touched">
+              <div class="input-icon-wrap">
+                <i class="fas fa-concierge-bell iw-icon"></i>
+                <input formControlName="nom" class="form-control iw-input" [placeholder]="nomPlaceholder"
+                  [class.is-invalid]="form.get('nom')?.invalid && form.get('nom')?.touched">
+              </div>
+              <div class="field-error" *ngIf="form.get('nom')?.errors?.['required'] && form.get('nom')?.touched"><i class="fas fa-exclamation-circle"></i> Le nom est obligatoire</div>
+              <div class="field-error" *ngIf="form.get('nom')?.errors?.['minlength'] && form.get('nom')?.touched"><i class="fas fa-exclamation-circle"></i> Minimum 2 caractères</div>
             </div>
+
             <div class="form-group">
-              <label class="form-label">Description</label>
-              <textarea formControlName="description" class="form-control" rows="2" placeholder="Description optionnelle..."></textarea>
+              <label class="form-label">Description <span class="opt-label">(optionnel)</span></label>
+              <textarea formControlName="description" class="form-control" rows="2" placeholder="Décrivez ce service en quelques mots..."></textarea>
             </div>
+
             <div class="form-row">
               <div class="form-group" *ngIf="selectedType !== 'FILE_ATTENTE_PURE'">
                 <label class="form-label">Durée d'un créneau (min) *</label>
-                <input formControlName="dureeMinutes" type="number" class="form-control" [placeholder]="dureePlaceholder"
-                  [class.is-invalid]="form.get('dureeMinutes')?.invalid && form.get('dureeMinutes')?.touched">
+                <div class="input-icon-wrap">
+                  <i class="fas fa-clock iw-icon"></i>
+                  <input formControlName="dureeMinutes" type="number" min="1" class="form-control iw-input" [placeholder]="dureePlaceholder"
+                    [class.is-invalid]="form.get('dureeMinutes')?.invalid && form.get('dureeMinutes')?.touched">
+                </div>
+                <div class="field-error" *ngIf="form.get('dureeMinutes')?.errors?.['required'] && form.get('dureeMinutes')?.touched"><i class="fas fa-exclamation-circle"></i> La durée est obligatoire</div>
               </div>
               <div class="form-group">
-                <label class="form-label">Tarif (DT) <span class="optional">optionnel</span></label>
-                <input formControlName="tarif" type="number" step="0.01" class="form-control" placeholder="Laisser vide si gratuit">
-              </div>
-              <div class="form-group" *ngIf="form.get('tarif')?.value != null && selectedType === 'RESSOURCE_PARTAGEE'">
-                <label class="form-label">Mode de tarification</label>
-                <div style="display:flex;gap:8px;margin-top:4px">
-                  <button type="button"
-                    [class]="!form.get('tarifParPersonne')?.value ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
-                    (click)="form.get('tarifParPersonne')?.setValue(false)">
-                    <i class="fas fa-tag"></i> Tarif fixe
-                  </button>
-                  <button type="button"
-                    [class]="form.get('tarifParPersonne')?.value ? 'btn btn-primary btn-sm' : 'btn btn-secondary btn-sm'"
-                    (click)="form.get('tarifParPersonne')?.setValue(true)">
-                    <i class="fas fa-users"></i> Tarif × personnes
-                  </button>
+                <label class="form-label">Tarif (DT) <span class="opt-label">(vide = gratuit)</span></label>
+                <div class="input-icon-wrap">
+                  <i class="fas fa-tag iw-icon"></i>
+                  <input formControlName="tarif" type="number" step="0.01" min="0" class="form-control iw-input" placeholder="Ex : 25.00"
+                    [class.is-invalid]="form.get('tarif')?.invalid && form.get('tarif')?.touched">
                 </div>
-                <small style="color:var(--text-muted);font-size:.75rem;margin-top:4px;display:block">
-                  {{ form.get('tarifParPersonne')?.value
-                    ? 'Prix = ' + (form.get('tarif')?.value || 0) + ' DT × nombre de personnes'
-                    : 'Prix fixe = ' + (form.get('tarif')?.value || 0) + ' DT par réservation' }}
-                </small>
+              </div>
+            </div>
+
+            <div class="tarif-mode-row" *ngIf="form.get('tarif')?.value != null && selectedType === 'RESSOURCE_PARTAGEE'">
+              <label class="form-label">Mode de tarification</label>
+              <div class="tarif-toggle">
+                <button type="button" [class]="!form.get('tarifParPersonne')?.value ? 'tarif-btn active' : 'tarif-btn'" (click)="form.get('tarifParPersonne')?.setValue(false)"><i class="fas fa-tag"></i> Tarif fixe</button>
+                <button type="button" [class]="form.get('tarifParPersonne')?.value ? 'tarif-btn active' : 'tarif-btn'" (click)="form.get('tarifParPersonne')?.setValue(true)"><i class="fas fa-users"></i> Tarif × personnes</button>
+              </div>
+              <div class="tarif-preview">
+                <i class="fas fa-calculator"></i>
+                {{ form.get('tarifParPersonne')?.value ? 'Prix = ' + (form.get('tarif')?.value || 0) + ' DT × nombre de personnes' : 'Prix fixe = ' + (form.get('tarif')?.value || 0) + ' DT par réservation' }}
               </div>
             </div>
 
             <ng-container *ngIf="selectedType === 'RESSOURCE_PARTAGEE'">
-              <div class="section-title">Capacité par réservation</div>
+              <div class="section-title"><i class="fas fa-users"></i> Capacité par réservation</div>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Personnes minimum *</label>
-                  <input formControlName="capaciteMinPersonnes" type="number" class="form-control" placeholder="Ex: 2"
-                    [class.is-invalid]="form.get('capaciteMinPersonnes')?.invalid && form.get('capaciteMinPersonnes')?.touched">
+                  <div class="input-icon-wrap">
+                    <i class="fas fa-user iw-icon"></i>
+                    <input formControlName="capaciteMinPersonnes" type="number" min="1" class="form-control iw-input" placeholder="Ex: 2"
+                      [class.is-invalid]="form.get('capaciteMinPersonnes')?.invalid && form.get('capaciteMinPersonnes')?.touched">
+                  </div>
+                  <div class="field-error" *ngIf="form.get('capaciteMinPersonnes')?.invalid && form.get('capaciteMinPersonnes')?.touched"><i class="fas fa-exclamation-circle"></i> Champ obligatoire (min. 1)</div>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Personnes maximum *</label>
-                  <input formControlName="capaciteMaxPersonnes" type="number" class="form-control" placeholder="Ex: 4"
-                    [class.is-invalid]="form.get('capaciteMaxPersonnes')?.invalid && form.get('capaciteMaxPersonnes')?.touched">
+                  <div class="input-icon-wrap">
+                    <i class="fas fa-users iw-icon"></i>
+                    <input formControlName="capaciteMaxPersonnes" type="number" min="1" class="form-control iw-input" placeholder="Ex: 4"
+                      [class.is-invalid]="form.get('capaciteMaxPersonnes')?.invalid && form.get('capaciteMaxPersonnes')?.touched">
+                  </div>
+                  <div class="field-error" *ngIf="form.get('capaciteMaxPersonnes')?.invalid && form.get('capaciteMaxPersonnes')?.touched"><i class="fas fa-exclamation-circle"></i> Champ obligatoire (min. 1)</div>
                 </div>
               </div>
+
               <ng-container *ngIf="!editingService">
                 <div class="section-title" style="margin-top:18px">
-                  <i class="fas fa-layer-group" style="margin-right:6px;color:var(--accent)"></i>
-                  Ressources (terrains, salles…)
-                  <span style="margin-left:6px;font-size:.75rem;color:var(--danger);font-weight:600;text-transform:none;letter-spacing:0">* obligatoire — au moins 1</span>
+                  <i class="fas fa-layer-group"></i> Ressources
+                  <span class="opt-label" style="text-transform:none;letter-spacing:0;margin-left:6px">Vous pourrez en ajouter d'autres plus tard</span>
                 </div>
                 <div class="inline-ressources-list" *ngIf="inlineRessources.length > 0">
                   <div class="inline-ressource-item" *ngFor="let r of inlineRessources; let i = index">
                     <div class="inline-ressource-info">
-                      <span class="inline-ressource-name"><i class="fas fa-cube"></i> {{ r.nom }}</span>
-                      <span *ngIf="r.description" class="inline-ressource-desc">{{ r.description }}</span>
+                      <div class="ir-icon"><i class="fas fa-cube"></i></div>
+                      <div><div class="ir-nom">{{ r.nom }}</div><div class="ir-desc" *ngIf="r.description">{{ r.description }}</div></div>
                     </div>
-                    <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeInlineRessource(i)">
-                      <i class="fas fa-times"></i>
-                    </button>
+                    <button type="button" class="btn btn-danger btn-sm btn-icon" (click)="removeInlineRessource(i)"><i class="fas fa-times"></i></button>
                   </div>
                 </div>
-                <div *ngIf="inlineRessources.length === 0"
-                  style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.35);border-radius:10px;margin-bottom:10px;font-size:.82rem;color:#f87171">
-                  <i class="fas fa-exclamation-circle" style="font-size:1rem;flex-shrink:0"></i>
+                <div class="info-box red" *ngIf="inlineRessources.length === 0" style="margin-bottom:10px">
+                  <i class="fas fa-exclamation-circle"></i>
                   <span><strong>Au moins une ressource est obligatoire</strong> pour ce type de service</span>
                 </div>
-                <div class="inline-add-ressource">
-                  <ng-container *ngIf="!showInlineRessourceForm">
-                    <button type="button" class="btn btn-secondary btn-add-ressource" (click)="showInlineRessourceForm=true">
-                      <i class="fas fa-plus"></i> Ajouter une ressource
-                    </button>
-                  </ng-container>
-                  <ng-container *ngIf="showInlineRessourceForm">
-                    <div class="inline-ressource-form" [formGroup]="inlineRessourceForm">
-                      <div class="form-row" style="align-items:flex-end;gap:8px">
-                        <div class="form-group" style="flex:2;margin-bottom:0">
-                          <label class="form-label">Nom *</label>
-                          <input formControlName="nom" class="form-control" placeholder="Ex: Terrain 1, Salle A…"
-                            [class.is-invalid]="inlineRessourceForm.get('nom')?.invalid && inlineRessourceForm.get('nom')?.touched">
-                        </div>
-
-                        <div class="form-group" style="flex:2;margin-bottom:0">
-                          <label class="form-label">Description</label>
-                          <input formControlName="description" class="form-control" placeholder="Optionnel">
-                        </div>
-                      </div>
-                      <div class="inline-ressource-actions">
-                        <button type="button" class="btn btn-secondary btn-sm" (click)="cancelInlineRessource()">Annuler</button>
-                        <button type="button" class="btn btn-primary btn-sm" (click)="addInlineRessource()">
-                          <i class="fas fa-check"></i> Ajouter
-                        </button>
-                      </div>
+                <ng-container *ngIf="!showInlineRessourceForm">
+                  <button type="button" class="btn btn-secondary btn-add-ressource" (click)="showInlineRessourceForm=true">
+                    <i class="fas fa-plus"></i> Ajouter une ressource
+                  </button>
+                </ng-container>
+                <div class="inline-ressource-form" *ngIf="showInlineRessourceForm" [formGroup]="inlineRessourceForm">
+                  <div class="form-row">
+                    <div class="form-group" style="flex:2;margin-bottom:0">
+                      <label class="form-label">Nom *</label>
+                      <input formControlName="nom" class="form-control" placeholder="Ex: Terrain 1, Salle A…"
+                        [class.is-invalid]="inlineRessourceForm.get('nom')?.invalid && inlineRessourceForm.get('nom')?.touched">
                     </div>
-                  </ng-container>
+                    <div class="form-group" style="flex:2;margin-bottom:0">
+                      <label class="form-label">Description</label>
+                      <input formControlName="description" class="form-control" placeholder="Optionnel">
+                    </div>
+                  </div>
+                  <div class="inline-ressource-actions">
+                    <button type="button" class="btn btn-secondary btn-sm" (click)="cancelInlineRessource()">Annuler</button>
+                    <button type="button" class="btn btn-primary btn-sm" (click)="addInlineRessource()"><i class="fas fa-check"></i> Ajouter</button>
+                  </div>
                 </div>
               </ng-container>
             </ng-container>
 
             <ng-container *ngIf="selectedType !== 'FILE_ATTENTE_PURE'">
-              <div class="section-title">Règles de réservation</div>
+              <div class="section-title"><i class="fas fa-sliders-h"></i> Règles de réservation</div>
               <div class="form-row">
                 <div class="form-group">
                   <label class="form-label">Annulation avant (heures)</label>
-                  <input formControlName="annulationHeures" type="number" class="form-control" placeholder="Ex: 2">
+                  <div class="input-icon-wrap">
+                    <i class="fas fa-ban iw-icon"></i>
+                    <input formControlName="annulationHeures" type="number" min="0" class="form-control iw-input" placeholder="Ex: 2">
+                  </div>
                   <small class="form-hint">Laisser vide = annulation libre</small>
                 </div>
                 <div class="form-group">
                   <label class="form-label">Réservation max à l'avance (jours)</label>
-                  <input formControlName="avanceReservationJours" type="number" class="form-control" placeholder="Ex: 30">
+                  <div class="input-icon-wrap">
+                    <i class="fas fa-calendar-alt iw-icon"></i>
+                    <input formControlName="avanceReservationJours" type="number" min="1" class="form-control iw-input" placeholder="Ex: 30">
+                  </div>
                   <small class="form-hint">Laisser vide = pas de limite</small>
                 </div>
               </div>
@@ -332,50 +443,80 @@
                 <div class="auto-flag" [class.active]="autoFlags.fileAttenteActive"><i class="fas fa-list-ol"></i> File d'attente active</div>
               </div>
             </div>
+
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
-            <button type="submit" class="btn btn-primary"
-              [disabled]="loading || (selectedType === 'RESSOURCE_PARTAGEE' && !editingService && inlineRessources.length === 0)">
-              <span *ngIf="loading"><i class="fas fa-spinner fa-spin"></i> Enregistrement...</span>
-              <span *ngIf="!loading"><i class="fas fa-save"></i> {{ editingService ? 'Modifier' : 'Créer le service' }}</span>
+            <button type="submit" class="btn btn-primary" [disabled]="loading">
+              <i class="fas fa-spinner fa-spin" *ngIf="loading"></i>
+              <i class="fas fa-save" *ngIf="!loading"></i>
+              {{ loading ? 'Enregistrement...' : (editingService ? 'Modifier le service' : 'Créer le service') }}
             </button>
           </div>
         </form>
-      </div>
+      </ng-container>
+
     </div>
+  </div>
 
-    <!-- ═══ PANEL RESSOURCES ═══ -->
-    <div class="modal-overlay" *ngIf="showRessourcePanel" (click)="closeRessourcePanel()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-header">
-          <div class="modal-title"><i class="fas fa-layer-group"></i> Ressources — {{ selectedService?.nom }}</div>
-          <button class="modal-close" (click)="closeRessourcePanel()"><i class="fas fa-times"></i></button>
+  <!-- PANEL RESSOURCES -->
+  <div class="modal-overlay" *ngIf="showRessourcePanel" (click)="closeRessourcePanel()">
+    <div class="modal" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <div class="modal-title"><i class="fas fa-layer-group"></i> Ressources — {{ selectedService?.nom }}</div>
+        <button class="modal-close" (click)="closeRessourcePanel()"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <div class="step-intro" style="margin-bottom:16px">
+          <div class="step-num" style="background:rgba(16,185,129,.8)"><i class="fas fa-cube"></i></div>
+          <div>
+            <div class="step-title">Gérer les ressources</div>
+            <div class="step-desc">Ajoutez, archivez ou réactivez les ressources liées à <strong>{{ selectedService?.nom }}</strong>.</div>
+          </div>
         </div>
-        <div class="modal-body">
-          <form [formGroup]="ressourceForm" (ngSubmit)="saveRessource()" class="ressource-add-form">
-            <div class="form-row">
-              <div class="form-group" style="flex:2"><input formControlName="nom" class="form-control" placeholder="Nom (ex: Terrain 1)"></div>
-
-              <div class="form-group" style="flex:1"><input formControlName="description" class="form-control" placeholder="Description"></div>
-              <button type="submit" class="btn btn-primary" [disabled]="loadingRessource"><i class="fas fa-plus"></i></button>
-            </div>
-          </form>
-          <div class="ressources-list">
-            <div class="ressource-item" *ngFor="let r of ressources">
-              <div class="ressource-info">
-                <strong>{{ r.nom }}</strong>
-                <span *ngIf="r.description" class="ressource-desc">{{ r.description }}</span>
+        <form [formGroup]="ressourceForm" (ngSubmit)="saveRessource()">
+          <div class="ressource-add-form">
+            <div class="form-row" style="align-items:flex-end;gap:8px">
+              <div class="form-group" style="flex:2;margin-bottom:0">
+                <label class="form-label">Nom *</label>
+                <input formControlName="nom" class="form-control" placeholder="Ex: Terrain 1, Salle A…"
+                  [class.is-invalid]="ressourceForm.get('nom')?.invalid && ressourceForm.get('nom')?.touched">
+                <div class="field-error" *ngIf="ressourceForm.get('nom')?.invalid && ressourceForm.get('nom')?.touched"><i class="fas fa-exclamation-circle"></i> Nom obligatoire (min. 2 caractères)</div>
               </div>
-              <div class="ressource-actions">
-                <button *ngIf="!r.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiverRessource(r)"><i class="fas fa-archive"></i></button>
-                <button *ngIf="r.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiverRessource(r)"><i class="fas fa-undo"></i></button>
+              <div class="form-group" style="flex:2;margin-bottom:0">
+                <label class="form-label">Description</label>
+                <input formControlName="description" class="form-control" placeholder="Optionnel">
               </div>
+              <button type="submit" class="btn btn-primary" [disabled]="loadingRessource" style="height:42px">
+                <i class="fas fa-spinner fa-spin" *ngIf="loadingRessource"></i>
+                <i class="fas fa-plus" *ngIf="!loadingRessource"></i>
+              </button>
             </div>
-            <div class="empty-state" *ngIf="ressources.length === 0"><i class="fas fa-layer-group"></i><p>Aucune ressource</p></div>
+          </div>
+        </form>
+        <div class="ressources-list">
+          <div class="ressource-item" *ngFor="let r of ressources" [class.archived]="r.archived">
+            <div class="ressource-info">
+              <div class="ressource-icon" [class.archived]="r.archived"><i class="fas fa-cube"></i></div>
+              <div>
+                <div class="ressource-nom">{{ r.nom }}</div>
+                <div class="ressource-desc" *ngIf="r.description">{{ r.description }}</div>
+              </div>
+              <span class="badge badge-warning" *ngIf="r.archived" style="margin-left:8px;font-size:.68rem"><i class="fas fa-archive" style="font-size:.5rem"></i> Archivé</span>
+            </div>
+            <div class="ressource-actions">
+              <button *ngIf="!r.archived" class="btn btn-danger btn-sm btn-icon" (click)="archiverRessource(r)" title="Archiver"><i class="fas fa-archive"></i></button>
+              <button *ngIf="r.archived" class="btn btn-success btn-sm btn-icon" (click)="desarchiverRessource(r)" title="Réactiver"><i class="fas fa-undo"></i></button>
+            </div>
+          </div>
+          <div class="empty-state" *ngIf="ressources.length === 0">
+            <i class="fas fa-layer-group"></i>
+            <h3>Aucune ressource</h3>
+            <p>Ajoutez une ressource via le formulaire ci-dessus</p>
           </div>
         </div>
       </div>
     </div>
-
   </div>
+
+</div>
