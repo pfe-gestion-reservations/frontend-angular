@@ -1,4 +1,4 @@
-/* ── HEADER ── */
+
 .hdr-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
 
 .search-box {
@@ -20,7 +20,7 @@
 .search-inp::placeholder { color: var(--text-faint); }
 .btn-active { border-color: var(--primary) !important; color: var(--primary) !important; background: var(--primary-light) !important; }
 
-/* ── ENTREPRISE DROPDOWN (header) ── */
+
 .ent-dropdown { position: relative; }
 .ent-trigger {
   display: flex; align-items: center; gap: 8px;
@@ -61,7 +61,7 @@
 .ed-opt i { font-size: .72rem; width: 14px; }
 .ed-empty { padding: 10px 14px; font-size: .78rem; color: var(--text-faint); text-align: center; }
 
-/* ── TABLE ── */
+
 .person-cell { display:flex; align-items:center; gap:10px; }
 .avatar {
   width: 34px; height: 34px; border-radius: var(--radius-md);
@@ -92,11 +92,10 @@
 }
 .ent-count-badge i { font-size: .6rem; }
 
-/* ── STATS ── */
 .stat-value { font-size: 1.6rem; font-weight: 800; color: var(--text-primary); letter-spacing: -0.03em; }
 .stat-label { font-size: .68rem; color: var(--text-faint); text-transform: uppercase; letter-spacing: .05em; margin-top: 2px; }
 
-/* ── MODAL FORMS ── */
+
 .form-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
 .opt-label { font-weight:400; color:var(--text-faint); font-size:.72rem; margin-left:4px; }
 .is-invalid { border-color:var(--danger) !important; box-shadow:0 0 0 3px var(--danger-bg) !important; }
@@ -126,7 +125,7 @@
 .iw-icon { position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--text-faint); font-size:.78rem; pointer-events:none; }
 .iw-input { padding-left: 34px !important; }
 
-/* ── RESULT CARDS ── */
+
 .result-card {
   display:flex; align-items:center; gap:14px;
   border-radius: var(--radius-xl); padding:16px;
@@ -157,7 +156,7 @@
 .rc-badge.amber { background:rgba(245,158,11,.15); color:var(--warning); border-color:var(--warning-border); }
 .rc-badge.red   { background:rgba(239,68,68,.15);  color:var(--danger);  border-color:var(--danger-border); }
 
-/* ── INFO BOX ── */
+
 .info-box {
   display:flex; align-items:flex-start; gap:10px;
   border-radius:var(--radius-lg); padding:12px 14px;
@@ -191,7 +190,7 @@
 .ep-name  { font-weight:700; font-size:.9rem; color:var(--text-primary); }
 .ep-email { font-size:.75rem; color:var(--text-faint); margin-top:2px; }
 
-/* ── DETAIL CLIENT (modal) ── */
+
 .modal-detail { max-width:520px; }
 .detail-header-left { display:flex; align-items:center; gap:14px; flex:1; min-width:0; }
 .detail-avatar {
@@ -245,7 +244,6 @@
 
 .detail-assoc-section { border-top:1px solid var(--border); padding-top:16px; }
 
-/* ── ASSOCIATION DROPDOWN ── */
 .assoc-dropdown { position:relative; }
 .assoc-trigger {
   display:flex; align-items:center; gap:9px;
@@ -293,14 +291,12 @@
 .assoc-check { color:var(--primary); font-size:.75rem; flex-shrink:0; }
 .assoc-empty { padding:14px; text-align:center; color:var(--text-faint); font-size:.78rem; }
 
-/* ── DELETE BTN ── */
 .btn-delete {
   background:var(--danger-bg); color:var(--danger);
   border:1px solid var(--danger-border);
 }
 .btn-delete:hover { background:var(--danger); color:#fff; }
 
-/* ── STEP INDICATOR ── */
 .step-intro {
   display: flex; align-items: flex-start; gap: 14px;
   padding: 16px;
@@ -321,7 +317,6 @@
 .step-title { font-weight: 700; font-size: .9rem; color: var(--text-primary); letter-spacing: -0.01em; }
 .step-desc  { font-size: .78rem; color: var(--text-muted); margin-top: 3px; line-height: 1.5; }
 
-/* ── TEL INPUT ROW ── */
 .tel-input-row { display: flex; gap: 8px; align-items: stretch; }
 .tel-flag {
   width: 44px; min-width: 44px;
@@ -333,7 +328,6 @@
 }
 .tel-input-row .form-control { flex: 1; font-family: var(--font-mono); letter-spacing: 0.04em; }
 
-/* ── PROGRESS STEPS (top of modal) ── */
 .modal-steps {
   display: flex; align-items: center; gap: 0;
   padding: 12px 22px;
@@ -359,7 +353,6 @@
 .ms-step.done .ms-dot   { background: var(--success-bg); border-color: var(--success-border); color: var(--success); }
 .ms-sep { flex: 1; height: 1px; background: var(--border-md); margin: 0 6px; }
 
-/* ── NEW ACCOUNT HINT (amélioré) ── */
 .new-account-hint {
   display: flex; align-items: center; gap: 12px;
   background: var(--indigo-glow);
@@ -379,7 +372,6 @@
 }
 [data-theme="light"] .new-account-hint { color: #4338ca; }
 
-/* ── READONLY FIELD ── */
 .form-control[readonly] {
   background: var(--bg-hover);
   color: var(--text-muted);
@@ -387,7 +379,6 @@
   border-style: dashed;
 }
 
-/* ── MODAL STEPS ── */
 .modal-steps {
   display: flex; align-items: center;
   padding: 10px 22px;
@@ -425,7 +416,6 @@
   margin: 0 8px; min-width: 20px;
 }
 
-/* ── DRAWER FOOTER ── */
 .drawer-footer {
   display: flex; align-items: center; gap: 8px;
   padding: 14px 22px;

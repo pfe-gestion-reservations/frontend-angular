@@ -55,7 +55,7 @@ export class EmployeReservationsComponent implements OnInit {
 
   selectedConfig: ConfigServiceResponse | null = null;
 
-  readonly STATUTS = ['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS', 'ANNULEE', 'TERMINEE'];
+  readonly STATUTS = ['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS', 'ANNULEE', 'TERMINEE', 'NO_SHOW'];
 
   form = this.fb.group({
     clientId:        [null as number | null, Validators.required],
@@ -81,7 +81,7 @@ export class EmployeReservationsComponent implements OnInit {
   statutLabel(s: string): string {
     const l: Record<string, string> = {
       EN_ATTENTE: 'En attente', CONFIRMEE: 'Confirmée',
-      EN_COURS: 'En cours', ANNULEE: 'Annulée', TERMINEE: 'Terminée'
+      EN_COURS: 'En cours', ANNULEE: 'Annulée', TERMINEE: 'Terminée', NO_SHOW: 'No-show'
     };
     return l[s] ?? s;
   }

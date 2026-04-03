@@ -55,19 +55,17 @@ export class EntreprisesComponent implements OnInit {
   @ViewChild('secteurTrigger') secteurTrigger!: ElementRef;
   @ViewChild('gerantTrigger')  gerantTrigger!:  ElementRef;
 
-  // Détail
   showDetail        = false;
   detailEntreprise: EntrepriseResponse | null = null;
   detailEmployes:   EmployeResponse[] = [];
   loadingEmployes   = false;
 
-  // Ajout employé
+
   showAddEmploye = false;
   addStep: 'email' | 'nouveau' | 'libre' | 'occupe' | 'archived' | 'other-role' = 'email';
   checkEmailVal  = '';
   checkLoading   = false;
   checkResult: any = null;
-  specialiteRattach = '';
   addLoading = false;
   addEmailError = '';
 
@@ -77,7 +75,6 @@ export class EntreprisesComponent implements OnInit {
     prenom:     ['', Validators.required],
     email:      ['', [Validators.required, Validators.email]],
     password:   ['', [Validators.required, Validators.minLength(6)]],
-    specialite: ['']
   });
 
   form = this.fb.group({
@@ -88,7 +85,7 @@ export class EntreprisesComponent implements OnInit {
     gerantId:  ['', Validators.required]
   });
 
-  // ── Computed ──────────────────────────────────────────────────────────────
+  
   get totalEmployes() {
     return this.entreprises.reduce((acc, e) => acc + (e.nombreEmployes ?? 0), 0);
   }
@@ -96,7 +93,7 @@ export class EntreprisesComponent implements OnInit {
     return new Set(this.entreprises.map(e => e.secteurId)).size;
   }
 
-  // ── Helpers avatar ────────────────────────────────────────────────────────
+  
   entInitials(e: EntrepriseResponse): string {
     return e.nom?.substring(0, 2).toUpperCase() ?? '??';
   }
@@ -182,7 +179,7 @@ export class EntreprisesComponent implements OnInit {
   }
   closeDetail(): void { this.showDetail = false; this.detailEntreprise = null; this.detailEmployes = []; }
 
-  // ── AJOUTER EMPLOYÉ ──────────────────────────────────────────────────────
+  
   openAddEmploye(): void { this.showAddEmploye = true; this.resetAddEmploye(); }
   closeAddEmploye(): void { this.showAddEmploye = false; this.addEmailError = ''; }
 
@@ -190,7 +187,6 @@ export class EntreprisesComponent implements OnInit {
     this.addStep = 'email';
     this.checkEmailVal = '';
     this.checkResult = null;
-    this.specialiteRattach = '';
     this.addEmailError = '';
     this.addForm.reset();
   }
@@ -231,7 +227,7 @@ export class EntreprisesComponent implements OnInit {
   doRattacher(): void {
     if (!this.checkResult?.email || !this.detailEntreprise) return;
     this.addLoading = true;
-    const req: RattachementRequest = { email: this.checkResult.email, entrepriseId: this.detailEntreprise.id, specialite: this.specialiteRattach || undefined };
+    const req: RattachementRequest = { email: this.checkResult.email, entrepriseId: this.detailEntreprise.id};
     this.api.rattacherEmploye(req).subscribe({
       next: () => { this.toast.success('Employé rattaché !'); this.addLoading = false; this.closeAddEmploye(); this.openDetail(this.detailEntreprise!); },
       error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.addLoading = false; }
@@ -241,7 +237,7 @@ export class EntreprisesComponent implements OnInit {
   doDesarchiverEtAssocier(): void {
     if (!this.checkResult?.email || !this.detailEntreprise) return;
     this.addLoading = true;
-    const req: RattachementRequest = { email: this.checkResult.email, entrepriseId: this.detailEntreprise.id, specialite: this.specialiteRattach || undefined };
+    const req: RattachementRequest = { email: this.checkResult.email, entrepriseId: this.detailEntreprise.id };
     this.api.rattacherEmploye(req).subscribe({
       next: () => { this.toast.success('Employé désarchivé et associé !'); this.addLoading = false; this.closeAddEmploye(); this.openDetail(this.detailEntreprise!); },
       error: (e: any) => { this.toast.error(e?.error?.message || 'Erreur'); this.addLoading = false; }

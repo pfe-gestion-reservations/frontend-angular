@@ -52,7 +52,6 @@ export class SaDisponibilitesComponent implements OnInit {
   entreprises: EntrepriseResponse[]     = [];
   configs      = new Map<number, ConfigServiceResponse>();
 
-  // ── Filtres header ──────────────────────────────────────────────────────
   selectedEntrepriseId: number | null  = null;
   entFilterOpen   = false;
   entSearch       = '';
@@ -63,14 +62,13 @@ export class SaDisponibilitesComponent implements OnInit {
   selectedFilterService: ServiceResponse | null = null;
   filteredServicesList:  ServiceResponse[] = [];
 
-  // ── Modal état ──────────────────────────────────────────────────────────
   showModal = false;
   editing:  DisponibiliteResponse | null = null;
-  editingHasActiveRes = false; // true si le créneau en édition a des résa actives
+  editingHasActiveRes = false; 
   loading   = false;
   formStep: FormStep = 'service';
 
-  // Step 1 : service
+  //etape1: service
   entModalOpen    = false;
   entModalSearch  = '';
   filteredEntreprisesModal: EntrepriseResponse[] = [];
@@ -80,14 +78,13 @@ export class SaDisponibilitesComponent implements OnInit {
   filteredModalServices: ServiceResponse[] = [];
   detailRessources: RessourceResponse[] = [];
 
-  // Step 2 : jour
+  //etape2: choisir jour
   selectedJour: JourSemaine | null = null;
 
-  // Step 3 : horaires
+  //etape3: choisir heure
   focusDebut = false;
   focusFin   = false;
 
-  // ── Détail ──────────────────────────────────────────────────────────────
   showDetail  = false;
   detailDispo: DisponibiliteResponse | null = null;
   detailDispoRessources: RessourceResponse[] = [];
@@ -99,7 +96,6 @@ export class SaDisponibilitesComponent implements OnInit {
     heureFin:   ['', Validators.required]
   });
 
-  // ── Lifecycle ────────────────────────────────────────────────────────────
   ngOnInit(): void {
     document.addEventListener('click', () => {
       this.filterOpen = false;
@@ -114,7 +110,6 @@ export class SaDisponibilitesComponent implements OnInit {
     this.loadServices();
   }
 
-  // ── Helpers ──────────────────────────────────────────────────────────────
   getConfig(sid?: number) { return sid ? this.configs.get(sid) : undefined; }
   getService(sid: number) { return this.services.find(s => s.id === sid); }
   typeColor(t?: string)   { return t ? (TYPE_COLOR[t] || 'var(--accent)') : 'var(--accent)'; }
@@ -137,7 +132,6 @@ export class SaDisponibilitesComponent implements OnInit {
     return this.services.filter(s => s.entrepriseId === this.selectedEntrepriseId);
   }
 
-  // ── Chargement ───────────────────────────────────────────────────────────
   loadServices(): void {
     this.api.getServices().subscribe((s: ServiceResponse[]) => {
       this.services = s;
@@ -162,7 +156,6 @@ export class SaDisponibilitesComponent implements OnInit {
     });
   }
 
-  // ── Filtres header ───────────────────────────────────────────────────────
   filterEntreprisesList(): void {
     const q = this.entSearch.toLowerCase();
     this.filteredEntreprisesList = this.entreprises.filter(e => e.nom.toLowerCase().includes(q));
@@ -208,7 +201,6 @@ export class SaDisponibilitesComponent implements OnInit {
     this.filterOpen = false; this.applyFilter();
   }
 
-  // ── Détail ───────────────────────────────────────────────────────────────
   openDetail(d: DisponibiliteResponse): void {
     this.detailDispo = d; this.detailDispoRessources = []; this.showDetail = true; document.body.classList.add('no-scroll');
     if (this.getConfig(d.serviceId)?.typeService === 'RESSOURCE_PARTAGEE') {
@@ -220,7 +212,6 @@ export class SaDisponibilitesComponent implements OnInit {
   }
   closeDetail(): void { this.showDetail = false; this.detailDispo = null; this.detailDispoRessources = []; document.body.classList.remove('no-scroll');}
 
-  // ── Modal stepper ────────────────────────────────────────────────────────
   openModal(d?: DisponibiliteResponse): void {
     this.editing = d ?? null;
     this.editingHasActiveRes = false;
@@ -249,7 +240,6 @@ export class SaDisponibilitesComponent implements OnInit {
       this.form.get('heureFin')?.setValue(d.heureFin);
       this.formStep = 'horaire';
 
-      // Charger les réservations actives liées à ce créneau
       const ACTIVE = new Set(['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS']);
       const JS_JOUR: Record<number,string> = {0:'DIMANCHE',1:'LUNDI',2:'MARDI',3:'MERCREDI',4:'JEUDI',5:'VENDREDI',6:'SAMEDI'};
       const toMin = (hhmm: string) => { const [h,m] = hhmm.split(':').map(Number); return h*60+(m||0); };
@@ -281,7 +271,6 @@ export class SaDisponibilitesComponent implements OnInit {
     this.clearModalSelect(); this.form.reset();
   }
 
-  // Step navigation
   goToJour(): void {
     if (!this.modalSelectedService) {
       this._showValidationPopup('Sélectionnez un service', 'Veuillez choisir un service avant de continuer.');
@@ -304,7 +293,7 @@ export class SaDisponibilitesComponent implements OnInit {
     this.form.get('jour')?.setValue(j);
   }
 
-  // ── Dropdown service dans modal ──────────────────────────────────────────
+
   filterEntreprisesModal(): void {
     const q = this.entModalSearch.toLowerCase();
     this.filteredEntreprisesModal = this.entreprises.filter(e => e.nom.toLowerCase().includes(q));
@@ -343,7 +332,7 @@ export class SaDisponibilitesComponent implements OnInit {
     this.detailRessources = [];
   }
 
-  // ── Validation helpers ───────────────────────────────────────────────────
+ 
   get modalDurText(): string {
     const d = this.form.get('heureDebut')?.value;
     const f = this.form.get('heureFin')?.value;
@@ -396,7 +385,6 @@ export class SaDisponibilitesComponent implements OnInit {
     return doublon ? `Chevauchement avec ${this.fmt(doublon.heureDebut)}–${this.fmt(doublon.heureFin)}` : null;
   }
 
-  // ── Save ─────────────────────────────────────────────────────────────────
   save(): void {
     if (this.form.invalid) {
       this._showValidationPopup('Formulaire incomplet', 'Veuillez remplir tous les champs obligatoires.');
@@ -441,7 +429,7 @@ export class SaDisponibilitesComponent implements OnInit {
     });
   }
 
-  // ── Suppression ──────────────────────────────────────────────────────────
+
   delete(d: DisponibiliteResponse): void {
     const ACTIVE_RES  = new Set(['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS']);
     const ACTIVE_FILE = new Set(['EN_ATTENTE', 'APPELE', 'EN_COURS']);
@@ -475,8 +463,6 @@ export class SaDisponibilitesComponent implements OnInit {
         }
       },
       error: (err: any) => {
-        // Si le pré-check échoue (ex: 401, réseau), on affiche l'erreur
-        // sans tenter la suppression
         const raw = err?.error;
         let msg = '';
         if (typeof raw === 'string') {
@@ -491,7 +477,6 @@ export class SaDisponibilitesComponent implements OnInit {
     });
   }
 
-  // ── Popup helpers ─────────────────────────────────────────────────────────
   private _showValidationPopup(title: string, message: string): void {
     const isDark = document.documentElement.getAttribute('data-theme') !== 'light';
     const bg     = isDark ? '#16161f' : '#ffffff';
@@ -654,7 +639,6 @@ export class SaDisponibilitesComponent implements OnInit {
 
     const close = () => this.renderer.removeChild(document.body, overlay);
 
-    // Construire les badges de comptage
     const badgesHtml: string[] = [];
 
     if (nbRes > 0) {
@@ -699,7 +683,6 @@ export class SaDisponibilitesComponent implements OnInit {
         </div>`);
     }
 
-    // Résumé du créneau concerné
     const creneauInfo = `
       <div style="display:flex;align-items:center;gap:10px;
         background:${isDark ? 'rgba(255,255,255,.04)' : '#f8f8fc'};

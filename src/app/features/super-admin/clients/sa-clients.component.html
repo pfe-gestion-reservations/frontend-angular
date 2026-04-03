@@ -1,6 +1,6 @@
 <div>
 
-  <!-- ══ HEADER ══ -->
+  <!-- header -->
   <div class="page-header">
     <div>
       <div class="page-title">
@@ -23,7 +23,7 @@
     </div>
   </div>
 
-  <!-- ══ STATS ══ -->
+  <!--stats-->
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-icon blue"><i class="fas fa-users"></i></div>
@@ -39,7 +39,7 @@
     </div>
   </div>
 
-  <!-- ══ TABLE ══ -->
+  <!--table-->
   <div class="card">
     <div class="table-container">
       <table>
@@ -107,7 +107,7 @@
     </div>
   </div>
 
-  <!-- ══ DETAIL CLIENT ══ -->
+  <!--details client-->
   @if (selectedClient) {
     <div class="modal-overlay" (click)="closeDetail()">
       <div class="modal modal-detail" (click)="$event.stopPropagation()">
@@ -198,11 +198,11 @@
     </div>
   }
 
-  <!-- ══ MODAL CRÉATION ══ -->
+  <!--ajouter client-->
   <div class="modal-overlay" *ngIf="showModal && !editing" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
 
-      <!-- STEP 1 : téléphone -->
+      <!--etape1: numtel-->
       <ng-container *ngIf="step === 'tel-check'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-plus"></i> Nouveau client</div>
@@ -237,7 +237,6 @@
                 (keyup.enter)="checkTelephone()"
                 [disabled]="checking">
 
-              <!-- erreur -->
               <div *ngIf="telError" class="error-text">
                 {{ telError }}
               </div>
@@ -259,7 +258,7 @@
         </div>
       </ng-container>
 
-      <!-- tel-taken -->
+      <!--si numtel deja utilisé-->
       <ng-container *ngIf="step === 'tel-taken'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-phone-slash"></i> Numéro déjà utilisé</div>
@@ -285,7 +284,7 @@
         </div>
       </ng-container>
 
-      <!-- tel-archived -->
+      <!--si numtel archivé-->
       <ng-container *ngIf="step === 'tel-archived'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-clock"></i> Client archivé trouvé</div>
@@ -316,7 +315,7 @@
         </div>
       </ng-container>
 
-      <!-- STEP 2 : email -->
+      <!--etape2: email-->
       <ng-container *ngIf="step === 'email-check'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-envelope"></i> Adresse email</div>
@@ -352,7 +351,6 @@
                   (keyup.enter)="checkEmail()"
                   [disabled]="checking">
 
-                <!-- erreur -->
                 <div *ngIf="emailError" class="error-text">
                   {{ emailError }}
                 </div>
@@ -370,7 +368,7 @@
         </div>
       </ng-container>
 
-      <!-- email-client -->
+      <!--si mail deja existant-->
       <ng-container *ngIf="step === 'email-client'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-lock"></i> Email déjà utilisé</div>
@@ -396,7 +394,7 @@
         </div>
       </ng-container>
 
-      <!-- email-archived -->
+      <!--si mail archivé -->
       <ng-container *ngIf="step === 'email-archived'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-clock"></i> Client archivé trouvé</div>
@@ -426,7 +424,7 @@
         </div>
       </ng-container>
 
-      <!-- email-other-role -->
+      <!--si mail d un autre role -->
       <ng-container *ngIf="step === 'email-other-role'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-ban"></i> Email non disponible</div>
@@ -452,7 +450,7 @@
         </div>
       </ng-container>
 
-      <!-- STEP 3 : new-form -->
+      <!--etape3: formulaire d ajout-->
       <ng-container *ngIf="step === 'new-form'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-plus"></i> Créer le client</div>
@@ -519,7 +517,7 @@
     </div>
   </div>
 
-  <!-- ══ MODAL ÉDITION ══ -->
+  <!--maj-->
   <div class="modal-overlay" *ngIf="showModal && editing" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <div class="modal-header">

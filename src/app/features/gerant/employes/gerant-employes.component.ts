@@ -51,15 +51,13 @@ export class GerantEmployesComponent implements OnInit, OnDestroy {
     prenom:     ['', Validators.required],
     email:      ['', [Validators.required, Validators.email]],
     password:   ['', [Validators.required, Validators.minLength(6)]],
-    specialite: ['']
   });
 
   editForm = this.fb.group({
     nom:        ['', Validators.required],
     prenom:     ['', Validators.required],
     email:      ['', [Validators.required, Validators.email]],
-    password:   [''],
-    specialite: ['']
+    password:   ['']
   });
 
   get entrepriseId(): number | null { return this.auth.getEntrepriseId(); }
@@ -90,7 +88,7 @@ export class GerantEmployesComponent implements OnInit, OnDestroy {
   applyFilter(): void {
     const q = this.searchQuery.toLowerCase();
     this.filtered = this.employes.filter(e => {
-      const ms = !q || `${e.nom} ${e.prenom} ${e.email} ${e.specialite ?? ''}`.toLowerCase().includes(q);
+      const ms = !q || `${e.nom} ${e.prenom} ${e.email}`.toLowerCase().includes(q);
       return ms && (this.showArchived ? true : !e.archived);
     });
   }
@@ -113,7 +111,7 @@ export class GerantEmployesComponent implements OnInit, OnDestroy {
 
   openEdit(e: EmployeResponse): void {
     this.editing = e;
-    this.editForm.patchValue({ nom: e.nom, prenom: e.prenom, email: e.email, specialite: e.specialite });
+    this.editForm.patchValue({ nom: e.nom, prenom: e.prenom, email: e.email });
     this.showModal = true;
   }
 

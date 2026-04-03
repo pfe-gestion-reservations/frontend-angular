@@ -41,20 +41,20 @@ export class SaClientsComponent implements OnInit {
   emailError = '';
   telError = '';
 
-  // Association depuis la modale détail
-  assocDropOpen      = false; //liste deroulante initialement fermé
+
+  assocDropOpen      = false; 
   assocSearch        = '';    
   assocSelectedEnt:  EntrepriseResponse | null = null;
   filteredAssocEnts: EntrepriseResponse[] = [];
   assocLoading       = false;
 
-  //flux du création
+  
   step: ClientStep = 'tel-check';
   telToCheck       = '';
   emailToCheck     = '';
   checking         = false;
 
-  // Client archivé trouvé (pour désarchivage)
+  
   archivedClientId: number | null = null;
   archivedClientNom    = '';
   archivedClientPrenom = '';
@@ -107,7 +107,7 @@ export class SaClientsComponent implements OnInit {
   initials(c: any): string { return `${c?.nom?.charAt(0) ?? ''}${c?.prenom?.charAt(0) ?? ''}`.toUpperCase(); }
   avColor(c: any): string  { return AV_COLORS[(c?.id || 0) % AV_COLORS.length]; }
 
-  // ── Modale détail ────────────────────────────────────────────────────
+
   openDetail(c: ClientResponse): void {
     this.selectedClient    = c;
     this.assocDropOpen     = false;
@@ -123,7 +123,7 @@ export class SaClientsComponent implements OnInit {
     this.assocSelectedEnt = null;
   }
 
-  // ── Dropdown association ─────────────────────────────────────────────
+
   toggleAssocDrop(event: Event): void {
     event.stopPropagation();
     this.assocDropOpen = !this.assocDropOpen;
@@ -185,7 +185,7 @@ export class SaClientsComponent implements OnInit {
     });
   }
 
-  // ── Création ─────────────────────────────────────────────────────────
+
   openCreate(): void {
     this.editing              = null;
     this.step                 = 'tel-check';
@@ -212,10 +212,9 @@ export class SaClientsComponent implements OnInit {
     this.editForm.reset();
   }
 
-  // ÉTAPE 1 : vérifier le numéro de téléphone
+  //etape1: verifier num tel
   checkTelephone(): void {
   this.telError = '';
-
   const tel = this.telToCheck.trim();
   if (!tel) return;
 
@@ -253,14 +252,13 @@ export class SaClientsComponent implements OnInit {
   });
 }
 
-  // ÉTAPE 2 : vérifier l'email
+  //etape2: verifier mail
   checkEmail(): void {
   this.emailError = '';
 
   const email = this.emailToCheck.trim();
   if (!email) return;
 
-  // Regex (comme ton exemple)
   const emailRegex = /^[a-zA-Z0-9._%+\-]{4,}@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
 
   if (!emailRegex.test(email)) {
@@ -302,8 +300,7 @@ export class SaClientsComponent implements OnInit {
   });
 }
   
-
-  // Désarchiver le client trouvé (depuis tel-archived ou email-archived)
+//desarchiver client 
   desarchiverClientArchive(): void {
     if (!this.archivedClientId) return;
     this.desarchiverLoading = true;
@@ -318,7 +315,7 @@ export class SaClientsComponent implements OnInit {
     });
   }
 
-  // ÉTAPE 3 : créer le client
+  //etape3: creer client 
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading = true;
@@ -332,7 +329,8 @@ export class SaClientsComponent implements OnInit {
     });
   }
 
-  // ── Édition ───────────────────────────────────────────────────────────
+
+//maj
   openEdit(c: ClientResponse): void {
     this.editing = c;
     this.editForm.patchValue({ nom: c.nom, prenom: c.prenom, email: c.email, password: '', numtel: c.numtel });
@@ -482,7 +480,7 @@ export class SaClientsComponent implements OnInit {
     const close = () => this.renderer.removeChild(document.body, overlay);
     const items: string[] = [];
 
-    // ── Entreprises ────────────────────────────────────────────────────
+//entreprises
     if (c.entreprises && c.entreprises.length > 0) {
       const noms = c.entreprises.map(e => e.nom).join(', ');
       items.push(`
@@ -502,7 +500,7 @@ export class SaClientsComponent implements OnInit {
         </div>`);
     }
 
-    // ── Réservations ───────────────────────────────────────────────────
+    //reservations
     if (reservations.length > 0) {
       const nbActives   = reservations.filter(r => ['EN_ATTENTE','CONFIRMEE','EN_COURS'].includes(r.statut)).length;
       const nbTerminees = reservations.filter(r => r.statut === 'TERMINEE').length;
@@ -529,7 +527,7 @@ export class SaClientsComponent implements OnInit {
         </div>`);
     }
 
-    // ── File d'attente ─────────────────────────────────────────────────
+    //file d attente 
     if (fileAttente.length > 0) {
       const nbEnCours  = fileAttente.filter(f => ['EN_ATTENTE','APPELE','EN_COURS'].includes(String(f.statut))).length;
       const nbTermines = fileAttente.filter(f => String(f.statut) === 'TERMINE').length;
@@ -591,7 +589,7 @@ export class SaClientsComponent implements OnInit {
   }
 
 
-  // ── Remplace archiver() par cette version corrigée ──────────────────────
+
 archiver(c: ClientResponse): void {
   forkJoin({
     reservations: this.api.getReservations(),
@@ -625,7 +623,6 @@ archiver(c: ClientResponse): void {
       });
     },
     error: () => {
-      // fallback si l'API échoue : on archive quand même après confirmation simple
       if (!confirm(`Archiver "${c.nom} ${c.prenom}" ?`)) return;
       this.api.archiverClient(c.id).subscribe({
         next: () => { this.toast.success('Client archivé'); this.load(); },
@@ -634,8 +631,6 @@ archiver(c: ClientResponse): void {
     }
   });
 }
-
-// ── SUPPRIME complètement archiverClient() ── (efface ces lignes)
 
   desarchiver(c: ClientResponse): void {
     this.api.desarchiverClient(c.id).subscribe({

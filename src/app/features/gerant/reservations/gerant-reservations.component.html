@@ -146,6 +146,7 @@
             class="res-row"
             [class.row-annulee]="r.statut === 'ANNULEE'"
             [class.row-terminee]="r.statut === 'TERMINEE'"
+            [class.row-noshow]="r.statut === 'NO_SHOW'"
             [class.row-selected]="selectedDetail?.id === r.id"
             (click)="openDetail(r)">
 

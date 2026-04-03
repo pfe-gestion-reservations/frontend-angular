@@ -292,4 +292,52 @@ export class EmployeFileComponent implements OnInit {
   }
 
   resetFiltres(): void { this._filtreStatut = ''; this._filtreDate = ''; this.buildGroups(); }
+
+  dureeAttenteEstimee(fa: FileAttenteResponse, entries: FileAttenteResponse[]): string {
+    if (fa.statut !== 'EN_ATTENTE') return '';
+
+    // 1. Durée unitaire : config officielle du service en priorité, sinon 30 min par défaut
+    const dureeMoyenne = fa.dureeMinutes ?? 30;
+
+    // 2. Position dans la file (EN_ATTENTE du même groupe, triées par arrivée)
+    const enAttente = entries
+      .filter(f => f.statut === 'EN_ATTENTE')
+      .sort((a, b) => new Date(a.heureArrivee).getTime() - new Date(b.heureArrivee).getTime());
+    const pos = enAttente.findIndex(f => f.id === fa.id);
+    if (pos < 0) return '';
+
+    // 3. Temps restant pour les EN_COURS (basé sur heureDebut réelle, pas une estimation fixe)
+    const now = Date.now();
+    const enCoursEntries = entries.filter(f => f.statut === 'EN_COURS' && f.heureDebut);
+    let tempsRestantEnCours = 0;
+    if (enCoursEntries.length > 0) {
+      const restants = enCoursEntries.map(f => {
+        const dejaEcoule = (now - new Date(f.heureDebut!).getTime()) / 60000;
+        return Math.max(0, dureeMoyenne - dejaEcoule);
+      });
+      tempsRestantEnCours = Math.min(...restants);
+    }
+
+    const minutes = Math.round(pos * dureeMoyenne + tempsRestantEnCours);
+
+    if (minutes < 1) return 'Immédiat';
+    if (minutes < 60) return `~${minutes} min`;
+    const h = Math.floor(minutes / 60);
+    const m = minutes % 60;
+    return m > 0 ? `~${h}h${m.toString().padStart(2, '0')}` : `~${h}h`;
+  }
+
+  dureeAttenteReelle(fa: FileAttenteResponse): string {
+    if (!fa.heureArrivee || !fa.heureDebut) return '—';
+    const diff = Math.round(
+      (new Date(fa.heureDebut).getTime() - new Date(fa.heureArrivee).getTime()) / 60000
+    );
+    if (diff <= 0) return '< 1 min';
+    if (diff < 60) return `${diff} min`;
+    const h = Math.floor(diff / 60);
+    const m = diff % 60;
+    return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`;
+  }
+
+
 }

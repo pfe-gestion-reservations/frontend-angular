@@ -220,6 +220,7 @@
 .res-row:hover { background:var(--bg-hover); }
 .res-row.row-selected { background:var(--bg-active) !important; }
 .res-row.row-annulee td { opacity:.5; }
+.res-row.row-noshow  td { opacity:.6; }
 .res-row.row-terminee td { opacity:.75; }
 .res-table td { padding:12px 14px; vertical-align:middle; }
 .td-id { width:60px; }
@@ -251,6 +252,8 @@
 .sb-en_cours   .sb-dot { background:var(--purple); }
 .sb-annulee    { background:var(--danger-bg); color:var(--danger); }
 .sb-annulee    .sb-dot { background:var(--danger); }
+.sb-no_show    { background:#f5f3ff; color:#7c3aed; }
+.sb-no_show    .sb-dot { background:#8b5cf6; }
 .sb-terminee   { background:var(--success-bg); color:var(--success); }
 .sb-terminee   .sb-dot { background:var(--success); }
 .np-badge { display:inline-flex; align-items:center; gap:4px; font-size:.68rem; color:var(--text-muted); }

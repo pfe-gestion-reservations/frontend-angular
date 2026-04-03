@@ -1,6 +1,6 @@
 <div>
 
-  <!-- ══ HEADER ══ -->
+  <!--header-->
   <div class="page-header">
     <div>
       <div class="page-title">
@@ -20,7 +20,7 @@
     </div>
   </div>
 
-  <!-- ══ STATS ══ -->
+  <!--stat cards-->
   <div class="stat-grid">
     <div class="stat-card">
       <div class="stat-icon blue"><i class="fas fa-building"></i></div>
@@ -29,7 +29,7 @@
     
   </div>
 
-  <!-- ══ TABLE ══ -->
+  <!--table-->
   <div class="card">
     <div class="table-container">
       <table>
@@ -93,7 +93,7 @@
     </div>
   </div>
 
-  <!-- ══ DÉTAIL ENTREPRISE ══ -->
+  <!--details entrep-->
   <div class="modal-overlay" *ngIf="showDetail && detailEntreprise" (click)="closeDetail()">
     <div class="modal modal-lg" (click)="$event.stopPropagation()">
       <ng-container *ngIf="detailEntreprise as e">
@@ -115,7 +115,6 @@
 
         <div class="modal-body">
 
-          <!-- Infos générales -->
           <div class="drawer-section-title"><i class="fas fa-id-card"></i> Informations</div>
           <div class="drawer-body">
             <div class="drawer-info-row">
@@ -141,7 +140,7 @@
             </div>
           </div>
 
-          <!-- Employés -->
+          <!-- emps-->
           <div class="drawer-section-title" style="margin-top:12px">
             <i class="fas fa-users"></i> Employés
             <span class="count-pill">{{ detailEmployes.length }}</span>
@@ -159,7 +158,6 @@
               <div class="avatar sm" [style.background]="empColor(emp)">{{ emp.nom[0] }}{{ emp.prenom[0] }}</div>
               <div class="emp-info">
                 <div class="emp-name">{{ emp.nom }} {{ emp.prenom }}</div>
-                <div class="emp-spec">{{ emp.specialite || 'Sans spécialité' }} · {{ emp.email }}</div>
               </div>
               <span class="badge" [class.badge-success]="!emp.archived" [class.badge-warning]="emp.archived">
                 {{ emp.archived ? 'Archivé' : 'Actif' }}
@@ -194,11 +192,11 @@
     </div>
   </div>
 
-  <!-- ══ MODAL AJOUTER EMPLOYÉ ══ -->
+  <!--ajouter emp-->
   <div class="modal-overlay z-top" *ngIf="showAddEmploye" (click)="closeAddEmploye()">
     <div class="modal" (click)="$event.stopPropagation()">
 
-      <!-- ÉTAPE email -->
+      <!--ajouter mail-->
       <ng-container *ngIf="addStep === 'email'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-plus"></i> Ajouter un employé</div>
@@ -241,7 +239,7 @@
         </div>
       </ng-container>
 
-      <!-- ÉTAPE occupe -->
+      <!-- si emp occupe -->
       <ng-container *ngIf="addStep === 'occupe'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-lock"></i> Employé non disponible</div>
@@ -268,7 +266,7 @@
         </div>
       </ng-container>
 
-      <!-- ÉTAPE libre -->
+      <!-- si libre -->
       <ng-container *ngIf="addStep === 'libre'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-check"></i> Employé disponible</div>
@@ -287,10 +285,6 @@
             <i class="fas fa-info-circle"></i>
             Cet employé n'est rattaché à aucune entreprise. Voulez-vous l'ajouter à <strong>{{ detailEntreprise?.nom }}</strong> ?
           </div>
-          <div class="form-group" style="margin-top:14px">
-            <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
-            <input [(ngModel)]="specialiteRattach" class="form-control" placeholder="Ex: Coiffeur, Technicien...">
-          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="resetAddEmploye()"><i class="fas fa-arrow-left"></i> Retour</button>
@@ -302,7 +296,7 @@
         </div>
       </ng-container>
 
-      <!-- ÉTAPE archived -->
+      <!--si archived -->
       <ng-container *ngIf="addStep === 'archived'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-clock"></i> Employé archivé</div>
@@ -321,10 +315,6 @@
             <i class="fas fa-exclamation-triangle"></i>
             Cet employé est archivé. Voulez-vous le désarchiver et l'associer à <strong>{{ detailEntreprise?.nom }}</strong> ?
           </div>
-          <div class="form-group" style="margin-top:14px">
-            <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
-            <input [(ngModel)]="specialiteRattach" class="form-control" placeholder="Ex: Coiffeur, Technicien...">
-          </div>
         </div>
         <div class="modal-footer">
           <button class="btn btn-secondary" (click)="resetAddEmploye()"><i class="fas fa-arrow-left"></i> Retour</button>
@@ -336,7 +326,7 @@
         </div>
       </ng-container>
 
-      <!-- ÉTAPE other-role -->
+      <!--si emp other-role -->
       <ng-container *ngIf="addStep === 'other-role'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-ban"></i> Email non disponible</div>
@@ -362,7 +352,7 @@
         </div>
       </ng-container>
 
-      <!-- ÉTAPE nouveau -->
+      <!-- si emp nouveau -->
       <ng-container *ngIf="addStep === 'nouveau'">
         <div class="modal-header">
           <div class="modal-title"><i class="fas fa-user-plus"></i> Créer un nouvel employé</div>
@@ -396,10 +386,6 @@
                 <label class="form-label">Email</label>
                 <input formControlName="email" type="email" class="form-control" [readonly]="true">
               </div>
-              <div class="form-group">
-                <label class="form-label">Spécialité <span class="opt-label">(optionnel)</span></label>
-                <input formControlName="specialite" class="form-control" placeholder="Ex: Coiffeur...">
-              </div>
             </div>
             <div class="form-group">
               <label class="form-label">Mot de passe * <span class="opt-label">(min 6 caractères)</span></label>
@@ -427,12 +413,11 @@
     </div>
   </div>
 
-  <!-- ══ MODAL CRÉATION / ÉDITION ENTREPRISE ══ -->
   <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
     <div class="modal" (click)="$event.stopPropagation()">
       <form [formGroup]="form" (ngSubmit)="save()">
 
-        <!-- ═══ ÉTAPE 1 : Informations de base ═══ -->
+        
         <ng-container *ngIf="modalStep === 1">
           <div class="modal-header">
             <div class="modal-title">
@@ -518,7 +503,7 @@
           </div>
         </ng-container>
 
-        <!-- ═══ ÉTAPE 2 : Secteur & Gérant ═══ -->
+        
         <ng-container *ngIf="modalStep === 2">
           <div class="modal-header">
             <div class="modal-title">
@@ -555,7 +540,7 @@
               </div>
             </div>
 
-            <!-- Secteur dropdown -->
+            
             <div class="form-group">
               <label class="form-label">Secteur d'activité *</label>
               <div class="fs-dropdown" [class.open]="showSecteurDropdown" (click)="$event.stopPropagation()">
@@ -589,7 +574,7 @@
               </div>
             </div>
 
-            <!-- Gérant dropdown -->
+            
             <div class="form-group">
               <label class="form-label">Gérant responsable *</label>
               <div class="fs-dropdown" [class.open]="showGerantDropdown" (click)="$event.stopPropagation()">

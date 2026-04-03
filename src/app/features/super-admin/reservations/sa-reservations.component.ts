@@ -50,7 +50,7 @@ export class SaReservationsComponent implements OnInit {
   filteredClients:  ClientResponse[]  = [];
   selectedConfig:   ConfigServiceResponse | null = null;
 
-  readonly STATUTS = ['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS', 'ANNULEE', 'TERMINEE'];
+  readonly STATUTS = ['EN_ATTENTE', 'CONFIRMEE', 'EN_COURS', 'ANNULEE', 'TERMINEE', 'NO_SHOW'];
 
   private readonly AVATAR_COLORS = [
     '#4f46e5','#7c3aed','#db2777','#059669','#d97706',
@@ -102,7 +102,7 @@ export class SaReservationsComponent implements OnInit {
   statutLabel(s: string): string {
     const l: Record<string,string> = {
       EN_ATTENTE:'En attente', CONFIRMEE:'Confirmée',
-      EN_COURS:'En cours', ANNULEE:'Annulée', TERMINEE:'Terminée'
+      EN_COURS:'En cours', ANNULEE:'Annulée', TERMINEE:'Terminée', NO_SHOW:'No-show'
     };
     return l[s] ?? s;
   }

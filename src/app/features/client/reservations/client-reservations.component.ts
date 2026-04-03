@@ -284,7 +284,7 @@ export class ClientReservationsComponent implements OnInit {
   filtreStatut  = '';
   selectedDetail: ReservationResponse | null = null;
 
-  readonly STATUTS = ['EN_ATTENTE','CONFIRMEE','EN_COURS','ANNULEE','TERMINEE'];
+  readonly STATUTS = ['EN_ATTENTE','CONFIRMEE','EN_COURS','ANNULEE','TERMINEE','NO_SHOW'];
 
   readonly STATUT_MAP: Record<string, any> = {
     EN_ATTENTE: { label:'En attente',  icon:'fas fa-clock',         color:'#d97706', bg:'#f59e0b', bgLight:'#fffbeb', border:'rgba(245,158,11,.3)',  gradient:'linear-gradient(180deg,#f59e0b,#fbbf24)' },
@@ -292,6 +292,7 @@ export class ClientReservationsComponent implements OnInit {
     EN_COURS:   { label:'En cours',    icon:'fas fa-play-circle',   color:'#4f46e5', bg:'#6366f1', bgLight:'#eef2ff', border:'rgba(99,102,241,.3)',   gradient:'linear-gradient(180deg,#6366f1,#818cf8)'  },
     ANNULEE:    { label:'Annulée',     icon:'fas fa-times-circle',  color:'#dc2626', bg:'#ef4444', bgLight:'#fef2f2', border:'rgba(239,68,68,.3)',    gradient:'linear-gradient(180deg,#ef4444,#f87171)'  },
     TERMINEE:   { label:'Terminée',    icon:'fas fa-flag-checkered',color:'#059669', bg:'#10b981', bgLight:'#f0fdf4', border:'rgba(16,185,129,.3)',   gradient:'linear-gradient(180deg,#10b981,#34d399)'  },
+    NO_SHOW:    { label:'No-show',     icon:'fas fa-user-slash',    color:'#7c3aed', bg:'#8b5cf6', bgLight:'#f5f3ff', border:'rgba(139,92,246,.3)',   gradient:'linear-gradient(180deg,#8b5cf6,#a78bfa)'  },
   };
 
   statutCfg(s: string) { return this.STATUT_MAP[s] ?? this.STATUT_MAP['EN_ATTENTE']; }
@@ -299,6 +300,7 @@ export class ClientReservationsComponent implements OnInit {
   get totalActives():  number { return this.reservations.filter(r => !['ANNULEE','TERMINEE'].includes(r.statut)).length; }
   get totalTerminees(): number { return this.reservations.filter(r => r.statut === 'TERMINEE').length; }
   get totalAnnulees():  number { return this.reservations.filter(r => r.statut === 'ANNULEE').length; }
+  get totalNoShow():    number { return this.reservations.filter(r => r.statut === 'NO_SHOW').length; }
   get prixTotal(): number {
     return this.reservations.filter(r => r.statut === 'TERMINEE' && r.prixTotal != null)
       .reduce((s, r) => s + (r.prixTotal ?? 0), 0);

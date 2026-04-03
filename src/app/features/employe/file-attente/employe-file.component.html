@@ -129,6 +129,8 @@
                   <span *ngIf="fa.employeNom"><i class="fas fa-user-tie"></i> {{ fa.employeNom }}</span>
                   <span *ngIf="fa.dateHeureRdv"><i class="fas fa-calendar"></i> {{ fa.dateHeureRdv | date:'dd/MM HH:mm' }}</span>
                   <span><i class="fas fa-sign-in-alt"></i> {{ fa.heureArrivee | date:'HH:mm' }}</span>
+                  <span *ngIf="fa.statut === 'EN_ATTENTE'" class="wait-chip wait-chip-est"><i class="fas fa-hourglass-half"></i> {{ dureeAttenteEstimee(fa, rg.entries) }}</span>
+                  <span *ngIf="fa.statut === 'TERMINE' && fa.heureDebut" class="wait-chip wait-chip-real"><i class="fas fa-check"></i> {{ dureeAttenteReelle(fa) }}</span>
                 </div>
               </div>
               <span class="statut-badge" [ngClass]="'statut-' + fa.statut.toLowerCase()">{{ statutLabel(fa.statut) }}</span>
@@ -184,6 +186,14 @@
               <div class="detail-item" *ngIf="selectedDetail.dateHeureRdv">
                 <div class="detail-label">RDV</div>
                 <div class="detail-value">{{ selectedDetail.dateHeureRdv | date:'dd/MM HH:mm' }}</div>
+              </div>
+              <div class="detail-item" *ngIf="selectedDetail.statut === 'EN_ATTENTE'">
+                <div class="detail-label"><i class="fas fa-hourglass-half"></i> Attente estimée</div>
+                <div class="detail-value wait-value-est">{{ dureeAttenteEstimee(selectedDetail, filteredEntries) }}</div>
+              </div>
+              <div class="detail-item" *ngIf="selectedDetail.statut === 'TERMINE' && selectedDetail.heureDebut">
+                <div class="detail-label"><i class="fas fa-check"></i> Attente réelle</div>
+                <div class="detail-value wait-value-real">{{ dureeAttenteReelle(selectedDetail) }}</div>
               </div>
             </div>
           </div>

@@ -15,12 +15,12 @@ export interface EntrepriseResponse {
 
 export interface EmployeRequest {
   nom: string; prenom: string; email: string;
-  password?: string; specialite?: string;
+  password?: string; 
   entrepriseId?: number;
 }
 export interface EmployeResponse {
   id: number; nom: string; prenom: string; email: string;
-  specialite: string; archived: boolean;
+  archived: boolean;
   entrepriseId: number | null;
   entrepriseNom: string | null;
 }
@@ -31,7 +31,6 @@ export interface EmployeCheckResponse {
   nom: string | null;
   prenom: string | null;
   email: string;
-  specialite?: string;
   archived?: boolean;
   entrepriseNom?: string;
 }
@@ -39,7 +38,6 @@ export interface EmployeCheckResponse {
 export interface RattachementRequest {
   email: string;
   entrepriseId?: number;
-  specialite?: string;
 }
 
 export interface ClientRequest {
@@ -154,8 +152,10 @@ export interface FileAttenteResponse {
   ressourceNom: string | null;
   heureDebut: string | null;
   heureArrivee: string;
+  heureEstimee: string | null;
   dateHeureRdv: string | null;
   statut: StatutFileAttente;
+  dureeMinutes: number | null;
 }
 
 export interface DisponibiliteRequest {
@@ -215,6 +215,6 @@ export interface JwtResponse {
   entrepriseId: number | null;
 }
 
-export type StatutReservation = 'EN_ATTENTE' | 'CONFIRMEE' | 'EN_COURS' | 'ANNULEE' | 'TERMINEE';
+export type StatutReservation = 'EN_ATTENTE' | 'CONFIRMEE' | 'EN_COURS' | 'ANNULEE' | 'TERMINEE' | 'NO_SHOW';
 export type StatutFileAttente = 'EN_ATTENTE' | 'APPELE' | 'EN_COURS' | 'TERMINE' | 'ANNULE' | 'EXPIRE';
 export type JourSemaine = 'LUNDI' | 'MARDI' | 'MERCREDI' | 'JEUDI' | 'VENDREDI' | 'SAMEDI' | 'DIMANCHE';

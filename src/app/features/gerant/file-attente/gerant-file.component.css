@@ -440,3 +440,14 @@
 .title-icon  { width:36px; height:36px; border-radius:10px; background:linear-gradient(135deg,var(--indigo-600),var(--indigo-500)); display:flex; align-items:center; justify-content:center; color:white; font-size:.9rem; flex-shrink:0; }
 .page-subtitle { font-size:.78rem; color:var(--text-muted); margin-top:4px; }
 .hdr-right { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+/* Durée d'attente estimée / réelle */
+.wait-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 500;
+  padding: 2px 8px; border-radius: 20px;
+}
+.wait-chip-est  { background: #fef3c7; color: #92400e; }
+.wait-chip-real { background: #d1fae5; color: #065f46; }
+.wait-chip i    { font-size: 10px; }
+.wait-value-est  { color: #92400e; font-weight: 600; font-size: 1rem; }
+.wait-value-real { color: #065f46; font-weight: 600; font-size: 1rem; }

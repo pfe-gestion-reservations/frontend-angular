@@ -148,15 +148,6 @@
 .email-cell  { display: flex; align-items: center; gap: 6px; color: var(--text-muted); font-size: .8rem; }
 .email-cell i { color: var(--text-faint); font-size: .68rem; }
 
-.specialite-pill {
-  display: inline-flex; align-items: center; gap: 4px;
-  background: rgba(168,85,247,.12);
-  color: #c084fc;
-  border: 1px solid rgba(168,85,247,.2);
-  border-radius: var(--radius-full);
-  padding: 2px 9px; font-size: .7rem; font-weight: 600;
-}
-.specialite-pill i { font-size: .6rem; }
 
 .ent-pill {
   display: inline-flex; align-items: center; gap: 5px;

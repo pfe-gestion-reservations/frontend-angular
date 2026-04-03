@@ -181,3 +181,6 @@
   .cr-stats { grid-template-columns:repeat(2,1fr); }
   .cr-card-mid { gap:12px; }
 }
+/* NO_SHOW statut */
+.sb-no_show    { background:#f5f3ff; color:#7c3aed; }
+.sb-no_show    .sb-dot { background:#8b5cf6; }

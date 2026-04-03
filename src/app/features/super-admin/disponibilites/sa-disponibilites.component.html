@@ -1,6 +1,6 @@
 <div class="dispo-root">
 
-  <!-- ══ HEADER ══ -->
+  <!--header-->
   <div class="page-header">
     <div>
       <div class="page-title"><div class="title-icon"><i class="fas fa-calendar-week"></i></div>Disponibilités</div>
@@ -8,7 +8,7 @@
     </div>
     <div class="hdr-right">
 
-      <!-- Filtre entreprise -->
+      <!--filtre entrep -->
       <div class="ent-dropdown" [class.open]="entFilterOpen" (click)="$event.stopPropagation()">
         <button class="ent-trigger" (click)="entFilterOpen = !entFilterOpen">
           <i class="fas fa-building"></i>
@@ -30,7 +30,7 @@
         </div>
       </div>
 
-      <!-- Filtre service -->
+      <!--filtre service-->
       <div class="ent-dropdown" [class.open]="filterOpen" (click)="$event.stopPropagation()">
         <button class="ent-trigger" (click)="filterOpen = !filterOpen">
           <i class="fas fa-filter"></i>
@@ -58,7 +58,7 @@
     </div>
   </div>
 
-  <!-- ══ TABLE ══ -->
+  <!--table-->
   <div class="card">
     <div class="table-container">
       <table>
@@ -114,7 +114,7 @@
     </div>
   </div>
 
-  <!-- ══ DÉTAIL CRÉNEAU ══ -->
+  <!--details creneau-->
   @if (showDetail && detailDispo) {
     <div class="modal-overlay" (click)="closeDetail()">
       <div class="modal detail-modal" (click)="$event.stopPropagation()">
@@ -125,13 +125,13 @@
         </div>
         <div class="modal-body">
 
-          <!-- Entreprise -->
+      
           <div class="detail-ent-badge">
             <i class="fas fa-building"></i>
             {{ getEntNom(getService(detailDispo.serviceId)?.entrepriseId) }}
           </div>
 
-          <!-- Horaire visuel -->
+      
           <div class="detail-horaire-block">
             <div class="horaire-jour">
               <span class="jour-badge lg" [class.we]="detailDispo.jour==='SAMEDI'||detailDispo.jour==='DIMANCHE'">
@@ -155,7 +155,7 @@
             </div>
           </div>
 
-          <!-- Service info -->
+        
           <div class="detail-service-block" *ngIf="getConfig(detailDispo.serviceId) as cfg">
             <div class="dsb-header">
               <div class="dsb-icon" [style.background]="typeColor(cfg.typeService) + '22'" [style.color]="typeColor(cfg.typeService)">
@@ -204,11 +204,10 @@
     </div>
   }
 
-  <!-- ══ MODAL AJOUT / ÉDITION (stepper) ══ -->
   <div class="modal-overlay" *ngIf="showModal" (click)="closeModal()">
     <div class="modal form-modal" (click)="$event.stopPropagation()">
 
-      <!-- Header -->
+  
       <div class="modal-header">
         <div class="modal-title">
           <i class="fas fa-calendar-plus"></i>
@@ -217,7 +216,6 @@
         <button class="modal-close" (click)="closeModal()"><i class="fas fa-times"></i></button>
       </div>
 
-      <!-- Stepper (création uniquement) -->
       <div class="modal-steps" *ngIf="!editing">
         <div class="ms-step" [class.active]="formStep === 'service'" [class.done]="formStep === 'jour' || formStep === 'horaire'">
           <div class="ms-dot">
@@ -244,7 +242,7 @@
       <form [formGroup]="form" (ngSubmit)="save()">
         <div class="modal-body">
 
-          <!-- ══ ÉTAPE 1 : SERVICE ══ -->
+          <!--etape1: service -->
           <ng-container *ngIf="formStep === 'service'">
             <div class="step-intro">
               <div class="step-num">1</div>
@@ -254,7 +252,7 @@
               </div>
             </div>
 
-            <!-- Entreprise -->
+    
             <div class="form-group">
               <label class="form-label"><i class="fas fa-building"></i> Entreprise <span class="opt-label">(filtre)</span></label>
               <div class="ent-dropdown" [class.open]="entModalOpen" (click)="$event.stopPropagation()">
@@ -279,7 +277,7 @@
               </div>
             </div>
 
-            <!-- Service selector -->
+            
             <div class="form-group">
               <label class="form-label">Service *</label>
               <div class="svc-select" [class.open]="modalDropdownOpen" (click)="$event.stopPropagation()">
@@ -307,7 +305,7 @@
               <input type="hidden" formControlName="serviceId">
             </div>
 
-            <!-- Preview service -->
+           
             <div class="svc-preview" *ngIf="modalSelectedService">
               <div class="sp-bar" [style.background]="typeColor(getConfig(modalSelectedService.id)?.typeService)"></div>
               <div class="sp-body">
@@ -339,7 +337,7 @@
             </div>
           </ng-container>
 
-          <!-- ══ ÉTAPE 2 : JOUR ══ -->
+          <!--etape2: jour -->
           <ng-container *ngIf="formStep === 'jour'">
             <div class="step-intro">
               <div class="step-num">2</div>
@@ -364,7 +362,7 @@
             </div>
             <input type="hidden" formControlName="jour">
 
-            <!-- Créneaux existants pour ce service/jour -->
+            <!--creneaux existants pour ce service/jour -->
             <div class="existing-slots" *ngIf="selectedJour && modalSelectedService">
               <div class="existing-slots-title">
                 <i class="fas fa-calendar-alt"></i>
@@ -383,7 +381,7 @@
             </div>
           </ng-container>
 
-          <!-- ══ ÉTAPE 3 : HORAIRE ══ -->
+          <!--etape3: horraire -->
           <ng-container *ngIf="formStep === 'horaire'">
             <div class="step-intro">
               <div class="step-num">{{ editing ? '✎' : '3' }}</div>
@@ -400,7 +398,7 @@
               </div>
             </div>
 
-            <!-- Sélection du jour en mode édition -->
+  
             <div class="form-group" *ngIf="editing">
               <label class="form-label">Jour *</label>
               <div class="jour-pills">
@@ -435,14 +433,14 @@
               </div>
             </div>
 
-            <!-- Aperçu durée -->
+      
             <div class="dur-preview" *ngIf="form.get('heureDebut')?.value && form.get('heureFin')?.value">
               <i class="fas fa-hourglass-half"></i>
               Durée du créneau :
               <strong [style.color]="modalDurText.startsWith('⚠') ? 'var(--danger)' : 'var(--accent)'">{{ modalDurText }}</strong>
             </div>
 
-            <!-- Avertissement chevauchement -->
+  
             <div class="overlap-warn" *ngIf="chevauchement">
               <i class="fas fa-exclamation-triangle"></i>
               {{ chevauchement }}
@@ -451,16 +449,16 @@
 
         </div>
 
-        <!-- Footer -->
+
         <div class="modal-footer">
-          <!-- Étape 1 -->
+
           <ng-container *ngIf="formStep === 'service'">
             <button type="button" class="btn btn-secondary" (click)="closeModal()">Annuler</button>
             <button type="button" class="btn btn-primary" (click)="goToJour()" [disabled]="!modalSelectedService">
               <i class="fas fa-arrow-right"></i> Suivant
             </button>
           </ng-container>
-          <!-- Étape 2 -->
+     
           <ng-container *ngIf="formStep === 'jour'">
             <button type="button" class="btn btn-secondary" (click)="formStep = 'service'">
               <i class="fas fa-arrow-left"></i> Retour
@@ -469,7 +467,7 @@
               <i class="fas fa-arrow-right"></i> Suivant
             </button>
           </ng-container>
-          <!-- Étape 3 / édition -->
+      
           <ng-container *ngIf="formStep === 'horaire'">
             <button type="button" class="btn btn-secondary" (click)="editing ? closeModal() : (formStep = 'jour')">
               <i class="fas fa-arrow-left" *ngIf="!editing"></i>

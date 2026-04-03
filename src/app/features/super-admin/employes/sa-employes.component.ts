@@ -43,7 +43,6 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   entSearch   = '';
   
 
-  // ── Détail employé ──────────────────────────────────────────────────────
   selectedEmploye: EmployeResponse | null = null;
 
   step: ModalStep  = 'email-check';
@@ -51,7 +50,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   checking         = false;
   checkResult: any = null;
 
-  // Dropdown entreprise dans le modal new-form
+
   modalEntDropOpen  = false;
   modalEntSearch    = '';
   filteredModalEnts: EntrepriseResponse[] = [];
@@ -62,7 +61,6 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     prenom:       ['', Validators.required],
     email:        ['', [Validators.required, Validators.email]],
     password:     ['', [Validators.required, Validators.minLength(6)]],
-    specialite:   [''],
     entrepriseId: [null as number | null, Validators.required]
   });
 
@@ -70,8 +68,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     nom:        ['', Validators.required],
     prenom:     ['', Validators.required],
     email:      ['', [Validators.required, Validators.email]],
-    password:   [''],
-    specialite: ['']
+    password:   ['']
   });
 
   get totalActifs()   { return this.employes.filter(e => !e.archived).length; }
@@ -101,7 +98,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // Recharge la liste PUIS exécute le callback (évite le refresh manuel)
+  //recharge de la liste puis execution de callback pour eviter le refresh manuel 
   private reloadThen(cb: () => void): void {
     const obs = this.selectedEntrepriseId
       ? this.api.getEmployesByEntreprise(this.selectedEntrepriseId)
@@ -112,7 +109,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   applyFilter(): void {
     const q = this.searchQuery.toLowerCase();
     this.filtered = this.employes.filter(e => {
-      const ms = !q || `${e.nom} ${e.prenom} ${e.email} ${e.specialite}`.toLowerCase().includes(q);
+      const ms = !q || `${e.nom} ${e.prenom} ${e.email}`.toLowerCase().includes(q);
       return ms && (this.showArchived ? true : !e.archived);
     });
   }
@@ -129,7 +126,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   initials(e: EmployeResponse) { return `${e.nom?.charAt(0)??''}${e.prenom?.charAt(0)??''}`.toUpperCase(); }
   avColor(e: EmployeResponse)  { return AV_COLORS[(e.id || 0) % AV_COLORS.length]; }
 
-  // ── Détail ──────────────────────────────────────────────────────────────
+  //details
   openDetail(e: EmployeResponse): void {
     this.selectedEmploye = e;
   }
@@ -152,7 +149,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
 
   openEdit(e: EmployeResponse): void {
     this.editing = e;
-    this.editForm.patchValue({ nom: e.nom, prenom: e.prenom, email: e.email, specialite: e.specialite });
+    this.editForm.patchValue({ nom: e.nom, prenom: e.prenom, email: e.email });
     this.showModal = true;
   }
 
@@ -168,7 +165,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     this.modalEntDropOpen = false;
   }
 
-  // ── Vérification email ──────────────────────────────────────────────────
+ 
   checkEmail(): void {
   this.emailError = '';
   const email = this.emailToCheck.trim();
@@ -205,7 +202,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   });
 }
 
-  // ── Désarchiver depuis modal ────────────────────────────────────────────
+
   desarchiverDepuisModal(): void {
     const id = this.checkResult?.id ?? this.checkResult?.userId;
     if (!id) { this.toast.error('ID employé introuvable'); return; }
@@ -222,7 +219,6 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     });
   }
 
-  // ── Dropdown entreprise dans le modal ──────────────────────────────────
   filterModalEnts(): void {
     const q = this.modalEntSearch.toLowerCase();
     this.filteredModalEnts = this.entreprises.filter(e => e.nom.toLowerCase().includes(q));
@@ -239,7 +235,7 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
     this.filteredModalEnts = [...this.entreprises];
   }
 
-  // ── Créer nouveau employé ───────────────────────────────────────────────
+  //creer nouveau emp
   save(): void {
     if (this.form.invalid) { this.form.markAllAsTouched(); return; }
     this.loading = true;
@@ -259,7 +255,6 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
   }
 
   supprimer(e: EmployeResponse): void {
-    // On charge d'abord les données réelles avant d'afficher quoi que ce soit
     forkJoin({
       reservations: this.api.getReservations(),
       fileAttente:  this.api.getFileAttente()
@@ -270,15 +265,13 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
         const hasLinks  = e.entrepriseId != null || resLiees.length > 0 || fileLiees.length > 0;
 
         if (hasLinks) {
-          // Relations détectées → pop-up de blocage directement
+       
           this._openLinkedDialog(e, resLiees, fileLiees);
         } else {
-          // Rien de lié → pop-up de confirmation
           this._showDeleteConfirm(e);
         }
       },
       error: () => {
-        // En cas d'erreur de vérification, on affiche quand même la confirmation
         this._showDeleteConfirm(e);
       }
     });
@@ -392,7 +385,6 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
 
     const items: string[] = [];
 
-    // ── Entreprise ────────────────────────────────────────────────────
     if (e.entrepriseId != null) {
       const entNom = e.entrepriseNom || this.entreprises.find(ent => ent.id === e.entrepriseId)?.nom || '';
       items.push(`
@@ -407,7 +399,6 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
         </div>`);
     }
 
-    // ── Réservations ──────────────────────────────────────────────────
     if (reservations.length > 0) {
       const nbActives   = reservations.filter(r => r.statut === 'EN_ATTENTE' || r.statut === 'CONFIRMEE' || r.statut === 'EN_COURS').length;
       const nbTerminees = reservations.filter(r => r.statut === 'TERMINEE').length;
@@ -431,7 +422,6 @@ export class SaEmployesComponent implements OnInit, OnDestroy {
         </div>`);
     }
 
-    // ── File d'attente ────────────────────────────────────────────────
     if (fileAttente.length > 0) {
       const nbEnCours  = fileAttente.filter(f => String(f.statut) === 'EN_ATTENTE' || String(f.statut) === 'APPELE' || String(f.statut) === 'EN_COURS').length;
       const nbTermines = fileAttente.filter(f => String(f.statut) === 'TERMINE').length;
