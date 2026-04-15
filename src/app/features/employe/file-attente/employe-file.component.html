@@ -138,7 +138,7 @@
                 <button class="btn-action btn-call"   *ngIf="fa.statut === 'EN_ATTENTE'" (click)="appeler(fa, $event)"  title="Appeler"><i class="fas fa-bell"></i></button>
                 <button class="btn-action btn-start"  *ngIf="fa.statut === 'APPELE'"     (click)="demarrer(fa, $event)" title="Démarrer"><i class="fas fa-play"></i></button>
                 <button class="btn-action btn-done"   *ngIf="fa.statut === 'EN_COURS'"   (click)="terminer(fa, $event)" title="Terminer"><i class="fas fa-check"></i></button>
-                <button class="btn-action btn-cancel" *ngIf="fa.statut !== 'TERMINE' && fa.statut !== 'ANNULE'" (click)="annulerAdmin(fa, $event)" title="Annuler"><i class="fas fa-times"></i></button>
+                <button class="btn-action btn-cancel" *ngIf="fa.statut !== 'TERMINE' && fa.statut !== 'ANNULE'" (click)="annulerEntry(fa, $event)" title="Annuler"><i class="fas fa-times"></i></button>
               </div>
             </div>
           </div>
@@ -203,7 +203,7 @@
               <button class="btn btn-warning" *ngIf="selectedDetail.statut === 'EN_ATTENTE'" (click)="appeler(selectedDetail)"><i class="fas fa-bell"></i> Appeler</button>
               <button class="btn btn-indigo"  *ngIf="selectedDetail.statut === 'APPELE'"     (click)="demarrer(selectedDetail)"><i class="fas fa-play"></i> Démarrer</button>
               <button class="btn btn-success" *ngIf="selectedDetail.statut === 'EN_COURS'"   (click)="terminer(selectedDetail)"><i class="fas fa-check"></i> Terminer</button>
-              <button class="btn btn-danger"  (click)="annulerAdmin(selectedDetail)"><i class="fas fa-times"></i> Annuler</button>
+              <button class="btn btn-danger"  (click)="annulerEntry(selectedDetail)"><i class="fas fa-times"></i> Annuler</button>
             </div>
           </div>
         </div>

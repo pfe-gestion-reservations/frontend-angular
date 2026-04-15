@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { ApiService } from '../../../core/services/api.service';
 import { ToastService } from '../../../core/services/toast.service';
+import { AuthService } from '../../../core/services/auth.service';
 import {
   FileAttenteResponse, ClientResponse, ReservationResponse
 } from '../../../core/models/api.models';
@@ -39,10 +40,18 @@ interface ServiceGroup {
 export class EmployeFileComponent implements OnInit {
   private api   = inject(ApiService);
   private toast = inject(ToastService);
+  private auth  = inject(AuthService);
 
   fileAttente:  FileAttenteResponse[] = [];
+  /** Uniquement les clients liés à l'entreprise de l'employé */
   clients:      ClientResponse[]      = [];
+  /** Uniquement les réservations des clients de cette entreprise */
   reservations: ReservationResponse[] = [];
+
+  /** entrepriseId de l'employé connecté */
+  entrepriseId!: number;
+  /** userId de l'employé connecté (pour filtrer sa propre file) */
+  currentUserId!: number;
 
   loading      = false;
   loadingModal = false;
@@ -57,20 +66,10 @@ export class EmployeFileComponent implements OnInit {
   set filtreDate(v: string) { this._filtreDate = v; this.buildGroups(); }
 
   get hasDateFilter(): boolean { return !!this._filtreDate; }
+  get isAujourdhui(): boolean  { return this._filtreDate === new Date().toISOString().slice(0, 10); }
 
-  get isAujourdhui(): boolean {
-    return this._filtreDate === new Date().toISOString().slice(0, 10);
-  }
-
-  setAujourdhui(): void {
-    this._filtreDate = new Date().toISOString().slice(0, 10);
-    this.buildGroups();
-  }
-
-  clearDate(): void {
-    this._filtreDate = '';
-    this.buildGroups();
-  }
+  setAujourdhui(): void { this._filtreDate = new Date().toISOString().slice(0, 10); this.buildGroups(); }
+  clearDate(): void     { this._filtreDate = ''; this.buildGroups(); }
 
   get formattedFilterDate(): string {
     if (!this._filtreDate) return '';
@@ -82,15 +81,55 @@ export class EmployeFileComponent implements OnInit {
   formClientId: number | null = null;
   filteredReservations: ReservationResponse[] = [];
   selectedReservation:  ReservationResponse | null = null;
-
   selectedDetail: FileAttenteResponse | null = null;
+  showTermine = false;
+
+  /**
+   * ✅ L'employé peut voir :
+   *  - Toutes les entrées qui lui sont assignées (fa.employeId correspond à son id)
+   *  - Toutes les entrées sans employé assigné (fa.employeId == null) de son entreprise
+   *    (pour les services FILE_ATTENTE_PURE / RESSOURCE_PARTAGEE)
+   * On stocke l'employeId (id de l'entité Employe, pas userId) via le premier chargement
+   */
+  private myEmployeId: number | null = null;
 
   readonly STATUTS_LABEL: Record<string, string> = {
     EN_ATTENTE: 'En attente', APPELE: 'Appelé', EN_COURS: 'En cours',
     TERMINE: 'Terminé', ANNULE: 'Annulé', EXPIRE: 'Expiré'
   };
+  readonly PRIORITE: Record<string, number> = {
+    EN_ATTENTE: 1, APPELE: 2, EN_COURS: 3, EXPIRE: 4, TERMINE: 5, ANNULE: 6
+  };
 
   serviceGroups: ServiceGroup[] = [];
+
+  countByStatut(s: string): number { return this.fileAttente.filter(fa => fa.statut === s).length; }
+  statutLabel(s: string): string   { return this.STATUTS_LABEL[s] ?? s; }
+
+  countActiveInServiceGroup(sg: ServiceGroup): number {
+    return sg.ressourceGroups.flatMap(rg => rg.entries)
+      .filter(fa => ['EN_ATTENTE','APPELE','EN_COURS'].includes(fa.statut)).length;
+  }
+  totalEntriesInService(sg: ServiceGroup): number {
+    return sg.ressourceGroups.reduce((sum, rg) => sum + rg.entries.length, 0);
+  }
+  countActiveInGroup(entries: FileAttenteResponse[]): number {
+    return entries.filter(fa => ['EN_ATTENTE','APPELE','EN_COURS'].includes(fa.statut)).length;
+  }
+
+  get filteredEntries(): FileAttenteResponse[] {
+    return this.fileAttente.filter(fa => {
+      const matchStatut  = !this._filtreStatut || fa.statut === this._filtreStatut;
+      const matchTermine = this.showTermine ? true : fa.statut !== 'TERMINE' && fa.statut !== 'ANNULE';
+      let matchDate = true;
+      if (this._filtreDate) {
+        const arr = fa.heureArrivee ? new Date(fa.heureArrivee).toISOString().slice(0, 10) : '';
+        const rdv = fa.dateHeureRdv ? new Date(fa.dateHeureRdv).toISOString().slice(0, 10) : '';
+        matchDate = arr === this._filtreDate || rdv === this._filtreDate;
+      }
+      return matchStatut && matchTermine && matchDate;
+    });
+  }
 
   buildGroups(): void {
     const svcMap = new Map<number, ServiceGroup>();
@@ -117,67 +156,32 @@ export class EmployeFileComponent implements OnInit {
           expanded: oldExpanded.get('rg_' + fa.serviceId + '_' + rKey) ?? true };
         svcGroup.ressourceGroups.push(rGroup);
       }
-      rGroup.entries.push(fa); // sorted after
+      rGroup.entries.push(fa);
     }
-    svcMap.forEach(sg => sg.ressourceGroups.sort((a, b) =>
-      (a.ressourceNom ?? '').localeCompare(b.ressourceNom ?? '')));
-    // Trier les entrées dans chaque groupe par priorité puis heure
-    svcMap.forEach(sg => sg.ressourceGroups.forEach(rg => {
-      rg.entries = this.sortEntries(rg.entries);
-    }));
-    this.serviceGroups = Array.from(svcMap.values()).sort((a, b) => a.serviceNom.localeCompare(b.serviceNom));
-  }
-
-  countByStatut(s: string): number { return this.fileAttente.filter(fa => fa.statut === s).length; }
-  statutLabel(s: string): string   { return this.STATUTS_LABEL[s] ?? s; }
-
-  countActiveInServiceGroup(sg: ServiceGroup): number {
-    return sg.ressourceGroups.flatMap(rg => rg.entries)
-      .filter(fa => ['EN_ATTENTE','APPELE','EN_COURS'].includes(fa.statut)).length;
-  }
-  totalEntriesInService(sg: ServiceGroup): number {
-    return sg.ressourceGroups.reduce((sum, rg) => sum + rg.entries.length, 0);
-  }
-  countActiveInGroup(entries: FileAttenteResponse[]): number {
-    return entries.filter(fa => ['EN_ATTENTE','APPELE','EN_COURS'].includes(fa.statut)).length;
-  }
-
-  // Ordre priorité : actifs d'abord, terminés/annulés en bas
-  readonly PRIORITE: Record<string, number> = {
-    EN_ATTENTE: 1, APPELE: 2, EN_COURS: 3, EXPIRE: 4, TERMINE: 5, ANNULE: 6
-  };
-
-  // Par défaut : masquer les terminés
-  showTermine = false;
-
-  get filteredEntries(): FileAttenteResponse[] {
-    return this.fileAttente.filter(fa => {
-      const matchStatut  = !this._filtreStatut || fa.statut === this._filtreStatut;
-      const matchTermine = this.showTermine ? true : fa.statut !== 'TERMINE' && fa.statut !== 'ANNULE';
-      let matchDate = true;
-      if (this._filtreDate) {
-        const arr = fa.heureArrivee ? new Date(fa.heureArrivee).toISOString().slice(0, 10) : '';
-        const rdv = fa.dateHeureRdv ? new Date(fa.dateHeureRdv).toISOString().slice(0, 10) : '';
-        matchDate = arr === this._filtreDate || rdv === this._filtreDate;
-      }
-      return matchStatut && matchTermine && matchDate;
+    svcMap.forEach(sg => {
+      sg.ressourceGroups.sort((a, b) => (a.ressourceNom ?? '').localeCompare(b.ressourceNom ?? ''));
+      sg.ressourceGroups.forEach(rg => { rg.entries = this.sortEntries(rg.entries); });
     });
+    this.serviceGroups = Array.from(svcMap.values()).sort((a, b) => a.serviceNom.localeCompare(b.serviceNom));
   }
 
   sortEntries(entries: FileAttenteResponse[]): FileAttenteResponse[] {
     return [...entries].sort((a, b) => {
-      const pa = this.PRIORITE[a.statut] ?? 99;
-      const pb = this.PRIORITE[b.statut] ?? 99;
+      const pa = this.PRIORITE[a.statut] ?? 99, pb = this.PRIORITE[b.statut] ?? 99;
       if (pa !== pb) return pa - pb;
-      // Même priorité → trier par heure d'arrivée
       return new Date(a.heureArrivee).getTime() - new Date(b.heureArrivee).getTime();
     });
   }
 
-  toggleService(sg: ServiceGroup): void { sg.expanded = !sg.expanded; }
+  toggleService(sg: ServiceGroup): void    { sg.expanded = !sg.expanded; }
   toggleRessource(rg: RessourceGroup): void { rg.expanded = !rg.expanded; }
 
-  ngOnInit(): void { this.loadAll(); }
+  ngOnInit(): void {
+    const profile = this.auth.getCurrentUser();
+    this.entrepriseId  = profile?.entrepriseId!;
+    this.currentUserId = profile?.id!;
+    this.loadAll();
+  }
 
   loadAll(): void {
     this.loading = true;
@@ -187,9 +191,36 @@ export class EmployeFileComponent implements OnInit {
       res: this.api.getReservations()
     }).subscribe({
       next: d => {
-        this.fileAttente  = d.fa;
-        this.clients      = d.cli;
-        this.reservations = d.res;
+        // ✅ Détecter l'employeId de l'utilisateur connecté à partir de la file
+        // (la première entrée qui porte son nom nous donne son employeId)
+        const profile = this.auth.getCurrentUser();
+        const myNom    = profile?.nom?.toLowerCase();
+        const myPrenom = profile?.prenom?.toLowerCase();
+
+        // Chercher l'employeId dans les entrées de la file qui correspondent au user connecté
+        const myEntry = d.fa.find(fa =>
+          fa.employeNom?.toLowerCase() === myNom &&
+          fa.employePrenom?.toLowerCase() === myPrenom
+        );
+        if (myEntry?.employeId) {
+          this.myEmployeId = myEntry.employeId;
+        }
+
+        // ✅ Filtrer la file : entrées assignées à cet employé OU sans employé (file générale de l'entreprise)
+        this.fileAttente = d.fa.filter(fa =>
+          fa.employeId === this.myEmployeId ||
+          (fa.employeId === null && fa.entrepriseId === this.entrepriseId)
+        );
+
+        // ✅ Clients de l'entreprise uniquement
+        this.clients = d.cli.filter(c =>
+          c.entreprises?.some((e: any) => e.id === this.entrepriseId)
+        );
+
+        // ✅ Réservations des clients de cette entreprise uniquement
+        const clientIds = new Set(this.clients.map(c => c.id));
+        this.reservations = d.res.filter(r => clientIds.has(r.clientId));
+
         this.loading = false;
         this.buildGroups();
       },
@@ -197,29 +228,19 @@ export class EmployeFileComponent implements OnInit {
     });
   }
 
-  reload(): void { this.api.getFileAttente().subscribe(d => { this.fileAttente = d; this.buildGroups(); }); }
-
-  onClientChange(): void {
-    if (!this.formClientId) { this.filteredReservations = []; this.selectedReservation = null; return; }
-    // Réservations confirmées ET pas déjà inscrites en file active
-    const inscritIds = new Set(
-      this.fileAttente
-        .filter(fa => fa.statut !== 'ANNULE' && fa.reservationId != null)
-        .map(fa => fa.reservationId!)
-    );
-    this.filteredReservations = this.reservations.filter(r =>
-      r.clientId === this.formClientId &&
-      r.statut === 'CONFIRMEE' &&
-      !inscritIds.has(r.id)
-    );
-    this.selectedReservation = null;
+  reload(): void {
+    this.api.getFileAttente().subscribe(d => {
+      // Réappliquer le même filtre employé
+      this.fileAttente = d.filter(fa =>
+        fa.employeId === this.myEmployeId ||
+        (fa.employeId === null && fa.entrepriseId === this.entrepriseId)
+      );
+      this.buildGroups();
+    });
   }
 
-  selectReservation(r: ReservationResponse): void { this.selectedReservation = r; }
-
   openCreate(): void {
-    this.formClientId = null;
-    this.filteredReservations = []; this.selectedReservation = null;
+    this.formClientId = null; this.filteredReservations = []; this.selectedReservation = null;
     this.showModal = true;
   }
 
@@ -228,22 +249,34 @@ export class EmployeFileComponent implements OnInit {
     this.filteredReservations = []; this.selectedReservation = null;
   }
 
+  onClientChange(): void {
+    if (!this.formClientId) { this.filteredReservations = []; this.selectedReservation = null; return; }
+    const inscritIds = new Set(
+      this.fileAttente.filter(fa => fa.statut !== 'ANNULE' && fa.reservationId != null).map(fa => fa.reservationId!)
+    );
+    this.filteredReservations = this.reservations.filter(r =>
+      r.clientId === this.formClientId && r.statut === 'CONFIRMEE' && !inscritIds.has(r.id)
+    );
+    this.selectedReservation = null;
+  }
+
+  selectReservation(r: ReservationResponse): void { this.selectedReservation = r; }
+
   save(): void {
     if (!this.formClientId || !this.selectedReservation) return;
     this.loadingModal = true;
-    const body: any = {
-      clientId:      this.formClientId,
-      serviceId:     this.selectedReservation.serviceId,
+    this.api.ajouterFileAttente({
+      clientId: this.formClientId,
+      serviceId: this.selectedReservation.serviceId,
       reservationId: this.selectedReservation.id
-    };
-    this.api.ajouterFileAttente(body).subscribe({
+    } as any).subscribe({
       next: () => {
         this.toast.success('Client inscrit en file !');
-        this.reload();
-        this.closeModal();
-        this.loadingModal = false;
-        // Recharger les réservations pour mettre à jour le formulaire
-        this.api.getReservations().subscribe(r => { this.reservations = r; });
+        this.reload(); this.closeModal(); this.loadingModal = false;
+        this.api.getReservations().subscribe(r => {
+          const clientIds = new Set(this.clients.map(c => c.id));
+          this.reservations = r.filter(res => clientIds.has(res.clientId));
+        });
       },
       error: (err: any) => { this.toast.error(err?.error?.message || 'Erreur'); this.loadingModal = false; }
     });
@@ -276,18 +309,20 @@ export class EmployeFileComponent implements OnInit {
     });
   }
 
-  annulerAdmin(fa: FileAttenteResponse, event?: Event): void {
+  // ✅ Employé → utilise annuler (pas annulerAdmin, interdit pour EMPLOYE côté backend)
+  annulerEntry(fa: FileAttenteResponse, event?: Event): void {
     event?.stopPropagation();
     if (!confirm(`Annuler l'entrée #${fa.id} ?`)) return;
-    this.api.annulerAdmin(fa.id).subscribe({
+    this.api.annuler(fa.id).subscribe({
       next: u => { this.updateLocal(u); this.toast.success('Entrée annulée'); if (this.selectedDetail?.id === fa.id) this.selectedDetail = u; },
-      error: () => this.toast.error('Erreur')
+      error: (err: any) => this.toast.error(err?.error?.message || 'Erreur')
     });
   }
 
   private updateLocal(updated: FileAttenteResponse): void {
     const idx = this.fileAttente.findIndex(x => x.id === updated.id);
     if (idx !== -1) this.fileAttente[idx] = updated;
+    else this.fileAttente.push(updated);
     this.buildGroups();
   }
 
@@ -295,49 +330,31 @@ export class EmployeFileComponent implements OnInit {
 
   dureeAttenteEstimee(fa: FileAttenteResponse, entries: FileAttenteResponse[]): string {
     if (fa.statut !== 'EN_ATTENTE') return '';
-
-    // 1. Durée unitaire : config officielle du service en priorité, sinon 30 min par défaut
     const dureeMoyenne = fa.dureeMinutes ?? 30;
-
-    // 2. Position dans la file (EN_ATTENTE du même groupe, triées par arrivée)
-    const enAttente = entries
-      .filter(f => f.statut === 'EN_ATTENTE')
+    const enAttente = entries.filter(f => f.statut === 'EN_ATTENTE')
       .sort((a, b) => new Date(a.heureArrivee).getTime() - new Date(b.heureArrivee).getTime());
     const pos = enAttente.findIndex(f => f.id === fa.id);
     if (pos < 0) return '';
-
-    // 3. Temps restant pour les EN_COURS (basé sur heureDebut réelle, pas une estimation fixe)
     const now = Date.now();
     const enCoursEntries = entries.filter(f => f.statut === 'EN_COURS' && f.heureDebut);
     let tempsRestantEnCours = 0;
     if (enCoursEntries.length > 0) {
-      const restants = enCoursEntries.map(f => {
-        const dejaEcoule = (now - new Date(f.heureDebut!).getTime()) / 60000;
-        return Math.max(0, dureeMoyenne - dejaEcoule);
-      });
+      const restants = enCoursEntries.map(f => Math.max(0, dureeMoyenne - (now - new Date(f.heureDebut!).getTime()) / 60000));
       tempsRestantEnCours = Math.min(...restants);
     }
-
     const minutes = Math.round(pos * dureeMoyenne + tempsRestantEnCours);
-
     if (minutes < 1) return 'Immédiat';
     if (minutes < 60) return `~${minutes} min`;
-    const h = Math.floor(minutes / 60);
-    const m = minutes % 60;
+    const h = Math.floor(minutes / 60), m = minutes % 60;
     return m > 0 ? `~${h}h${m.toString().padStart(2, '0')}` : `~${h}h`;
   }
 
   dureeAttenteReelle(fa: FileAttenteResponse): string {
     if (!fa.heureArrivee || !fa.heureDebut) return '—';
-    const diff = Math.round(
-      (new Date(fa.heureDebut).getTime() - new Date(fa.heureArrivee).getTime()) / 60000
-    );
+    const diff = Math.round((new Date(fa.heureDebut).getTime() - new Date(fa.heureArrivee).getTime()) / 60000);
     if (diff <= 0) return '< 1 min';
     if (diff < 60) return `${diff} min`;
-    const h = Math.floor(diff / 60);
-    const m = diff % 60;
+    const h = Math.floor(diff / 60), m = diff % 60;
     return m > 0 ? `${h}h${m.toString().padStart(2, '0')}` : `${h}h`;
   }
-
-
 }

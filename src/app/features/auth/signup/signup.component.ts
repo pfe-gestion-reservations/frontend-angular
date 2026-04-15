@@ -19,7 +19,7 @@ import { ToastService } from '../../../core/services/toast.service';
       <div class="auth-logo">
         <div class="auth-logo-icon"><i class="fas fa-user-plus"></i></div>
         <h1>Créer un compte</h1>
-        <p>Rejoignez Book Space en tant que client</p>
+        <p>Rejoignez notre plateforme en tant que client</p>
       </div>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-row">

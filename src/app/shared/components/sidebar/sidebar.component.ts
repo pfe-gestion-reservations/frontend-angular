@@ -28,8 +28,8 @@ export interface NavGroup {
         <i class="fas fa-calendar-check"></i>
       </div>
       <div class="logo-text" *ngIf="!collapsed">
-        <span class="logo-name">BookSpace</span>
-        <span class="logo-badge">{{ roleName }}</span>
+        <span class="logo-name">Espace <span class="logo-badge">{{ roleName }}</span> </span>
+        
       </div>
       <button class="toggle-btn" (click)="onToggle()" [title]="collapsed ? 'Expand' : 'Collapse'">
         <i class="fas" [class.fa-chevron-left]="!collapsed" [class.fa-chevron-right]="collapsed"></i>

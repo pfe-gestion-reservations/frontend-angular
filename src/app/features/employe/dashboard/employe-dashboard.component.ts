@@ -29,12 +29,7 @@ import { catchError } from 'rxjs/operators';
     <!-- ══ STATS ══ -->
     <div class="stat-grid">
       <div class="stat-card">
-        <div class="stat-icon amber"><i class="fas fa-users"></i></div>
-        <div class="stat-info">
-          <div class="stat-value">{{ stats.employes }}</div>
-          <div class="stat-label">Employés actifs</div>
-        </div>
-      </div>
+
       <div class="stat-card">
         <div class="stat-icon blue"><i class="fas fa-user-friends"></i></div>
         <div class="stat-info">
@@ -72,85 +67,7 @@ import { catchError } from 'rxjs/operators';
       </div>
     </div>
 
-    <!-- ══ 2 COLONNES ══ -->
-    <div class="dash-grid">
-
-      <!-- Réservations récentes -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i class="fas fa-calendar-alt"></i> Réservations récentes</div>
-          <span class="card-count">{{ stats.reservations }}</span>
-        </div>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr><th>Client</th><th>Service</th><th>Date</th><th>Statut</th></tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let r of recentReservations">
-                <td>
-                  <div class="mini-person">
-                    <div class="mini-avatar" [style.background]="'hsl('+ ((r.clientId??0)*47%360) +',55%,52%)'">
-                      {{ r.clientNom?.charAt(0) }}{{ r.clientPrenom?.charAt(0) }}
-                    </div>
-                    {{ r.clientNom }} {{ r.clientPrenom }}
-                  </div>
-                </td>
-                <td><span class="svc-tag">{{ r.serviceNom }}</span></td>
-                <td class="date-cell">
-                  <div>{{ r.heureDebut | date:'dd/MM/yyyy' }}</div>
-                  <div class="time">{{ r.heureDebut | date:'HH:mm' }}</div>
-                </td>
-                <td>
-                  <span class="badge" [ngClass]="statutClass(r.statut)">{{ statutLabel(r.statut) }}</span>
-                </td>
-              </tr>
-              <tr *ngIf="recentReservations.length === 0">
-                <td colspan="4">
-                  <div class="empty-state">
-                    <i class="fas fa-calendar"></i>
-                    <h3>Aucune réservation</h3>
-                  </div>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <!-- Derniers avis -->
-      <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i class="fas fa-star"></i> Derniers avis</div>
-          <div class="avg-note" *ngIf="avgNote">
-            <i class="fas fa-star" style="color:#f59e0b;font-size:.8rem"></i>
-            <strong>{{ avgNote }}</strong>/5
-          </div>
-        </div>
-        <div class="avis-list">
-          <div class="avis-item" *ngFor="let a of recentAvis">
-            <div class="avis-avatar">{{ a.clientPrenom?.charAt(0) }}{{ a.clientNom?.charAt(0) }}</div>
-            <div class="avis-body">
-              <div class="avis-top">
-                <span class="avis-name">{{ a.clientPrenom }} {{ a.clientNom }}</span>
-                <span class="avis-service">{{ a.serviceNom }}</span>
-              </div>
-              <div class="avis-stars">
-                <i class="fas fa-star" *ngFor="let s of [1,2,3,4,5]" [class.lit]="s <= a.note"></i>
-              </div>
-              <div class="avis-comment" *ngIf="a.commentaire">"{{ a.commentaire }}"</div>
-            </div>
-            <div class="avis-date">{{ a.dateAvis | date:'dd/MM' }}</div>
-          </div>
-          <div class="empty-state" *ngIf="recentAvis.length === 0">
-            <i class="fas fa-star-half-alt"></i>
-            <h3>Aucun avis</h3>
-          </div>
-        </div>
-      </div>
-
-    </div>
-  </div>`,
+    `,
   styles: [`
     .dash-grid { display:grid; grid-template-columns:1fr 1fr; gap:20px; }
     @media (max-width:900px) { .dash-grid { grid-template-columns:1fr; } }

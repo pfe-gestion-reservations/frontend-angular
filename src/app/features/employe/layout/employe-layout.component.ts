@@ -12,7 +12,7 @@ import { NavbarComponent } from '../../../shared/components/navbar/navbar.compon
     <app-sidebar
       [groups]="navGroups"
       [collapsed]="collapsed()"
-      roleName="Gérant"
+      roleName="Employe"
       (toggleCollapse)="toggleCollapsed()" />
     <div class="main-content" [class.sidebar-collapsed]="collapsed()">
       <app-navbar [sidebarCollapsed]="collapsed()" />

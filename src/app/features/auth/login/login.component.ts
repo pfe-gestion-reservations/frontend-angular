@@ -18,8 +18,8 @@ import { finalize } from 'rxjs/operators';
     <div class="auth-card">
       <div class="auth-logo">
         <div class="auth-logo-icon"><i class="fas fa-calendar-check"></i></div>
-        <h1>Book Space</h1>
-        <p>Plateforme de gestion des réservations</p>
+        <h1>Plateforme de gestion des réservations</h1>
+        <p></p>
       </div>
       <form [formGroup]="form" (ngSubmit)="onSubmit()">
         <div class="form-group">
